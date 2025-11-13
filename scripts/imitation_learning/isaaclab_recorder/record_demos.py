@@ -315,7 +315,7 @@ def setup_ui(label_text: str, env: gym.Env) -> InstructionDisplay:
     Returns:
         InstructionDisplay: The configured instruction display object
     """
-    instruction_display = InstructionDisplay(args_cli.xr)
+    instruction_display = InstructionDisplay(args_cli.teleop_device)
     if not args_cli.xr:
         window = EmptyWindow(env, "Instruction")
         with window.ui_window_elements["main_vstack"]:
