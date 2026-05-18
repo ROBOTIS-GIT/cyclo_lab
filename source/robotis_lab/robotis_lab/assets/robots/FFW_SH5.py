@@ -60,7 +60,7 @@ FFW_SH5_CFG = ArticulationCfg(
             "head_joint2": 0.0,
 
             # Lift joint
-            "lift_joint": 0.0,
+            "lift_joint": -0.15,
         },
     ),
     actuators={

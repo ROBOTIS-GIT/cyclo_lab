@@ -56,6 +56,8 @@ SWERVE_WHEEL_RADIUS = 0.05
 CMD_VEL_TIMEOUT = 0.1
 BASE_LINEAR_DAMPING = 2.0
 BASE_ANGULAR_DAMPING = 4.0
+ENVIRONMENT_POS = (0.0, 0.0, 0.0)
+ENVIRONMENT_ROT = (1.0, 0.0, 0.0, 0.0)
 
 SCRIPT_DIR = Path(__file__).resolve().parent
 if str(SCRIPT_DIR) not in sys.path:
@@ -88,6 +90,22 @@ parser.add_argument(
 )
 parser.add_argument("--domain_id", type=int, default=None, help="DDS domain id. Defaults to ROS_DOMAIN_ID or 0.")
 parser.add_argument("--enable_gravity", action="store_true", help="Enable gravity on the SH5 rigid bodies.")
+parser.add_argument(
+    "--environment_usd",
+    default=None,
+    help="USD file to spawn as the static environment. Defaults to source/robotis_lab/data/robots/table2.usd.",
+)
+parser.add_argument("--disable_environment", action="store_true", help="Do not spawn the environment USD.")
+parser.add_argument(
+    "--environment_pos",
+    default=",".join(str(value) for value in ENVIRONMENT_POS),
+    help="Comma-separated environment position in meters.",
+)
+parser.add_argument(
+    "--environment_rot",
+    default=",".join(str(value) for value in ENVIRONMENT_ROT),
+    help="Comma-separated environment quaternion as w,x,y,z.",
+)
 
 AppLauncher.add_app_launcher_args(parser)
 args_cli = parser.parse_args()
@@ -112,12 +130,16 @@ from robotis_dds_python.idl.tf2_msgs.msg import TFMessage_
 from robotis_dds_python.idl.trajectory_msgs.msg import JointTrajectory_
 from robotis_dds_python.tools.topic_manager import TopicManager
 
-from robotis_lab.assets.robots import FFW_SH5_CFG
+from robotis_lab.assets.robots import FFW_SH5_CFG, ROBOTIS_LAB_ASSETS_DATA_DIR
 from common.swerve_drive import SwerveModule, compute_swerve_commands
 
 
 def _default_sh5_usd_path() -> str:
     return FFW_SH5_CFG.spawn.usd_path
+
+
+def _default_environment_usd_path() -> str:
+    return f"{ROBOTIS_LAB_ASSETS_DATA_DIR}/robots/table2.usd"
 
 
 def _trajectory_qos() -> Qos:
@@ -145,6 +167,7 @@ class SH5BringupSceneCfg(InteractiveSceneCfg):
         prim_path="/World/Light",
         spawn=sim_utils.DomeLightCfg(color=(0.75, 0.75, 0.75), intensity=3000.0),
     )
+    environment: AssetBaseCfg = None
     robot: ArticulationCfg = None
 
 
@@ -517,11 +540,24 @@ def main():
     if not os.path.exists(usd_path):
         raise FileNotFoundError(f"SH5 USD not found: {usd_path}")
 
+    environment_usd_path = args_cli.environment_usd or _default_environment_usd_path()
+    if not args_cli.disable_environment and not os.path.exists(environment_usd_path):
+        raise FileNotFoundError(f"Environment USD not found: {environment_usd_path}")
+
     sim_cfg = sim_utils.SimulationCfg(device=args_cli.device, dt=1.0 / STEP_HZ)
     sim = sim_utils.SimulationContext(sim_cfg)
     sim.set_camera_view([2.8, -2.2, 1.8], [0.0, 0.0, 0.8])
 
     scene_cfg = SH5BringupSceneCfg(num_envs=1, env_spacing=2.0)
+    if not args_cli.disable_environment:
+        scene_cfg.environment = AssetBaseCfg(
+            prim_path="{ENV_REGEX_NS}/Environment",
+            spawn=sim_utils.UsdFileCfg(usd_path=environment_usd_path),
+            init_state=AssetBaseCfg.InitialStateCfg(
+                pos=_parse_float_list(args_cli.environment_pos, 3, "--environment_pos"),
+                rot=_parse_float_list(args_cli.environment_rot, 4, "--environment_rot"),
+            ),
+        )
     robot_cfg = deepcopy(FFW_SH5_CFG)
     robot_cfg.spawn.usd_path = usd_path
     robot_cfg.spawn.rigid_props.disable_gravity = not args_cli.enable_gravity
@@ -560,6 +596,8 @@ def main():
     )
 
     print(f"[INFO] FFW SH5 DDS bringup ready. ROS_DOMAIN_ID={domain_id}")
+    if not args_cli.disable_environment:
+        print(f"[INFO] Environment USD: {environment_usd_path}")
     print("[DDS] JointTrajectory subscriber reliability: best_effort")
     print(f"[DDS] Publishing joint states: {JOINT_STATES_TOPIC}")
     print(f"[DDS] Publishing TF: {TF_TOPIC} ({BASE_FRAME} -> robot links)")
