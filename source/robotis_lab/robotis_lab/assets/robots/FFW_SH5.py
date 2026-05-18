@@ -56,7 +56,7 @@ FFW_SH5_CFG = ArticulationCfg(
             **{f"finger_r_joint{i}": 0.0 for i in range(1, 21)},
 
             # Head joints
-            "head_joint1": 0.0,
+            "head_joint1": 0.5,
             "head_joint2": 0.0,
 
             # Lift joint

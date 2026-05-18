@@ -39,6 +39,7 @@ LEFT_ARM_TOPIC = "/leader/joint_trajectory_command_broadcaster_left/joint_trajec
 LEFT_HAND_TOPIC = "/leader/joint_trajectory_command_broadcaster_left_hand/joint_trajectory"
 HEAD_TOPIC = "/leader/joystick_controller_left/joint_trajectory"
 LIFT_TOPIC = "/leader/joystick_controller_right/joint_trajectory"
+LIFT_JOINT_NAME = "lift_joint"
 CMD_VEL_TOPIC = "/cmd_vel"
 JOINT_STATES_TOPIC = "/joint_states"
 TF_TOPIC = "/tf"
@@ -58,6 +59,12 @@ BASE_LINEAR_DAMPING = 2.0
 BASE_ANGULAR_DAMPING = 4.0
 ENVIRONMENT_POS = (0.0, 0.0, 0.0)
 ENVIRONMENT_ROT = (1.0, 0.0, 0.0, 0.0)
+OVERVIEW_CAMERA_EYE = (2.8, -2.2, 1.8)
+OVERVIEW_CAMERA_TARGET = (0.0, 0.0, 0.8)
+CAMERA_CENTER_NAME = "Head_Camera"
+CAMERA_LEFT_NAME = "Left_Camera"
+CAMERA_RIGHT_NAME = "Right_Camera"
+CAMERA_VIEW_WINDOWS = []
 
 SCRIPT_DIR = Path(__file__).resolve().parent
 if str(SCRIPT_DIR) not in sys.path:
@@ -67,6 +74,7 @@ if str(SCRIPT_DIR) not in sys.path:
 parser = argparse.ArgumentParser(description="FFW SH5 DDS bringup for Isaac Sim.")
 parser.add_argument("--disable_head", action="store_true", help="Do not subscribe to the head topic.")
 parser.add_argument("--disable_lift", action="store_true", help="Do not subscribe to the lift topic.")
+parser.add_argument("--lift_topic", default=LIFT_TOPIC, help="DDS trajectory topic for the lift joint.")
 parser.add_argument("--disable_cmd_vel", action="store_true", help="Do not subscribe to cmd_vel for the swerve base.")
 parser.add_argument("--cmd_vel_topic", default=CMD_VEL_TOPIC, help="DDS geometry_msgs/Twist topic for the swerve base.")
 parser.add_argument("--cmd_vel_timeout", type=float, default=CMD_VEL_TIMEOUT, help="Seconds before stale cmd_vel is treated as zero.")
@@ -105,6 +113,26 @@ parser.add_argument(
     "--environment_rot",
     default=",".join(str(value) for value in ENVIRONMENT_ROT),
     help="Comma-separated environment quaternion as w,x,y,z.",
+)
+parser.add_argument(
+    "--enable_camera_views",
+    action="store_true",
+    help="Open Isaac Sim viewport windows for overview, Head_Camera, Left_Camera, and Right_Camera.",
+)
+parser.add_argument(
+    "--camera_center_name",
+    default=CAMERA_CENTER_NAME,
+    help="USD camera prim name for the top-left center camera viewport.",
+)
+parser.add_argument(
+    "--camera_left_name",
+    default=CAMERA_LEFT_NAME,
+    help="USD camera prim name for the bottom-left camera viewport.",
+)
+parser.add_argument(
+    "--camera_right_name",
+    default=CAMERA_RIGHT_NAME,
+    help="USD camera prim name for the bottom-right camera viewport.",
 )
 
 AppLauncher.add_app_launcher_args(parser)
@@ -271,6 +299,18 @@ class SH5DdsBridge:
         point = msg.points[-1]
         joint_names = list(msg.joint_names)
         positions = list(point.positions)
+
+        if label == "lift":
+            lift_position = None
+            if LIFT_JOINT_NAME in joint_names:
+                lift_position = positions[joint_names.index(LIFT_JOINT_NAME)]
+            elif len(positions) == 1:
+                lift_position = positions[0]
+            if lift_position is None:
+                print(f"[DDS] Ignoring lift message: '{LIFT_JOINT_NAME}' not found in joint_names={joint_names}")
+                return
+            joint_names = [LIFT_JOINT_NAME]
+            positions = [lift_position]
 
         if len(joint_names) != len(positions):
             print(
@@ -467,7 +507,7 @@ def _enabled_topics() -> dict[str, str]:
     if not args_cli.disable_head:
         topics["head"] = HEAD_TOPIC
     if not args_cli.disable_lift:
-        topics["lift"] = LIFT_TOPIC
+        topics["lift"] = args_cli.lift_topic
     return topics
 
 
@@ -505,6 +545,135 @@ def _write_default_joint_state(robot):
     robot.write_joint_state_to_sim(default_joint_pos, default_joint_vel)
     robot.set_joint_position_target(default_joint_pos)
     robot.set_joint_velocity_target(default_joint_vel)
+
+
+def _find_child_prim_by_name(stage, root_path: str, prim_name: str):
+    root_path = root_path.rstrip("/")
+    for prim in stage.Traverse():
+        prim_path = str(prim.GetPath())
+        if prim_path.startswith(root_path) and prim.GetName() == prim_name:
+            return prim
+    return None
+
+
+def _find_camera_prim_by_name(stage, prim_name: str):
+    for prim in stage.Traverse():
+        if prim.GetName() == prim_name and prim.GetTypeName() == "Camera":
+            return prim
+    return None
+
+
+def _create_camera_prim(camera_path: str, translation=None, orientation=None):
+    import isaacsim.core.utils.prims as prim_utils
+
+    if not prim_utils.is_prim_path_valid(camera_path):
+        prim = prim_utils.create_prim(camera_path, "Camera", translation=translation, orientation=orientation)
+    else:
+        prim = prim_utils.get_prim_at_path(camera_path)
+
+    prim.GetAttribute("focalLength").Set(18.0)
+    prim.GetAttribute("horizontalAperture").Set(20.955)
+    clipping_attr = prim.GetAttribute("clippingRange")
+    if clipping_attr and clipping_attr.IsValid():
+        clipping_attr.Set((0.05, 100.0))
+
+    _ensure_camera_viewport_attrs(prim)
+    return prim
+
+
+def _ensure_camera_viewport_attrs(camera_prim):
+    from pxr import Gf, Sdf
+
+    coi_attr = camera_prim.GetProperty("omni:kit:centerOfInterest")
+    if not coi_attr or not coi_attr.IsValid():
+        coi_attr = camera_prim.CreateAttribute(
+            "omni:kit:centerOfInterest", Sdf.ValueTypeNames.Vector3d, True, Sdf.VariabilityUniform
+        )
+    if coi_attr.Get() is None:
+        coi_attr.Set(Gf.Vec3d(0.0, 0.0, -10.0))
+
+
+def _position_window(window, width: int, height: int, x: int | None = None, y: int | None = None):
+    for attr_name, value in (("width", width), ("height", height), ("position_x", x), ("position_y", y)):
+        if value is None:
+            continue
+        try:
+            setattr(window, attr_name, value)
+        except Exception:
+            pass
+        try:
+            frame = getattr(window, "frame", None)
+            if frame is not None:
+                setattr(frame, attr_name, value)
+        except Exception:
+            pass
+
+
+def _set_viewport_camera(
+    window_name: str,
+    camera_path: str,
+    width: int = 640,
+    height: int = 480,
+    x: int | None = None,
+    y: int | None = None,
+):
+    try:
+        from omni.kit.viewport.utility import create_viewport_window, get_viewport_from_window_name
+        from pxr import Sdf
+
+        viewport = get_viewport_from_window_name(window_name)
+        if viewport is None:
+            window = create_viewport_window(
+                window_name,
+                width=width,
+                height=height,
+                position_x=0 if x is None else x,
+                position_y=0 if y is None else y,
+                camera_path=Sdf.Path(camera_path),
+            )
+            CAMERA_VIEW_WINDOWS.append(window)
+            _position_window(window, width, height, x, y)
+            viewport = get_viewport_from_window_name(window_name)
+        if viewport is not None:
+            viewport.set_active_camera(camera_path)
+            return True
+    except Exception as exc:
+        print(f"[WARN] Could not create viewport '{window_name}': {exc}")
+    return False
+
+
+def _setup_camera_views(scene: InteractiveScene):
+    from isaacsim.core.utils.stage import get_current_stage
+
+    stage = get_current_stage()
+
+    camera_specs = (
+        ("Center Camera", args_cli.camera_center_name, 520, 330, 0, 0),
+        ("Left Camera", args_cli.camera_left_name, 258, 250, 0, 350),
+        ("Right Camera", args_cli.camera_right_name, 258, 250, 262, 350),
+    )
+    camera_paths: dict[str, str] = {}
+    missing_camera_names: list[str] = []
+
+    for window_name, camera_name, width, height, x, y in camera_specs:
+        camera_prim = _find_camera_prim_by_name(stage, camera_name)
+        if camera_prim is None:
+            missing_camera_names.append(camera_name)
+            continue
+        _ensure_camera_viewport_attrs(camera_prim)
+        camera_path = str(camera_prim.GetPath())
+        camera_paths[camera_name] = camera_path
+        _set_viewport_camera(window_name, camera_path, width=width, height=height, x=x, y=y)
+
+    print("[INFO] Main Isaac Sim viewport left unchanged for overview/manual view.")
+    for camera_name, camera_path in camera_paths.items():
+        print(f"[INFO] {camera_name}: {camera_path}")
+    if missing_camera_names:
+        available_cameras = [
+            str(prim.GetPath()) for prim in stage.Traverse() if prim.GetTypeName() == "Camera"
+        ]
+        print(f"[WARN] Missing requested camera prims: {missing_camera_names}")
+        print(f"[WARN] Available cameras: {available_cameras}")
 
 
 def run_simulator(sim: sim_utils.SimulationContext, scene: InteractiveScene, bridge: SH5DdsBridge):
@@ -578,6 +747,8 @@ def main():
     sim.step()
     scene.update(sim.get_physics_dt())
     _print_joint_groups(robot.data.joint_names)
+    if args_cli.enable_camera_views:
+        _setup_camera_views(scene)
 
     domain_id = args_cli.domain_id if args_cli.domain_id is not None else int(os.getenv("ROS_DOMAIN_ID", 0))
     topic_manager = TopicManager(domain_id=domain_id)
