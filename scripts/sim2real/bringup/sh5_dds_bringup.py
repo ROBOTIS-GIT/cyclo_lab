@@ -44,8 +44,9 @@ CMD_VEL_TOPIC = "/cmd_vel"
 JOINT_STATES_TOPIC = "/joint_states"
 TF_TOPIC = "/tf"
 BASE_FRAME = "base_link"
-PUBLISH_HZ = 60.0
-STEP_HZ = 120.0
+PUBLISH_HZ = 30.0
+STEP_HZ = 30.0
+RENDER_INTERVAL = 1
 ROBOT_POS = (0.0, 0.0, -0.18)
 ARTICULATION_ROOT_PRIM_PATH = "/base_link/base_link"
 SWERVE_STEERING_JOINTS = ("left_wheel_steer_joint", "right_wheel_steer_joint", "rear_wheel_steer_joint")
@@ -148,6 +149,8 @@ from cyclonedds.core import Qos, Policy
 from isaaclab.assets import AssetBaseCfg
 from isaaclab.assets.articulation import ArticulationCfg
 from isaaclab.scene import InteractiveScene, InteractiveSceneCfg
+from isaaclab.sim.spawners.from_files import from_files
+from isaaclab.sim.utils import bind_physics_material, clone
 from isaaclab.utils import configclass
 
 from robotis_dds_python.idl.builtin_interfaces.msg import Time_
@@ -160,6 +163,27 @@ from robotis_dds_python.tools.topic_manager import TopicManager
 
 from robotis_lab.assets.robots import FFW_SH5_CFG, ROBOTIS_LAB_ASSETS_DATA_DIR
 from common.swerve_drive import SwerveModule, compute_swerve_commands
+
+
+ENVIRONMENT_PHYSICS_MATERIAL = sim_utils.RigidBodyMaterialCfg(
+    friction_combine_mode="max",
+    restitution_combine_mode="min",
+    static_friction=2.0,
+    dynamic_friction=1.8,
+    restitution=0.0,
+)
+
+
+@clone
+def spawn_environment_with_friction(prim_path, cfg, translation=None, orientation=None, **kwargs):
+    """Spawn the environment USD and bind a high-friction material to its collision geometry."""
+    prim = from_files.spawn_from_usd(prim_path, cfg, translation, orientation, **kwargs)
+
+    material_path = f"{prim_path}/environmentPhysicsMaterial"
+    ENVIRONMENT_PHYSICS_MATERIAL.func(material_path, ENVIRONMENT_PHYSICS_MATERIAL)
+    bind_physics_material(prim_path, material_path)
+
+    return prim
 
 
 def _default_sh5_usd_path() -> str:
@@ -303,7 +327,7 @@ class SH5DdsBridge:
         if label == "lift":
             lift_position = None
             if LIFT_JOINT_NAME in joint_names:
-                lift_position = positions[joint_names.index(LIFT_JOINT_NAME)]
+                lift_position = 0.5 * positions[joint_names.index(LIFT_JOINT_NAME)]  # for experiment sit
             elif len(positions) == 1:
                 lift_position = positions[0]
             if lift_position is None:
@@ -648,9 +672,9 @@ def _setup_camera_views(scene: InteractiveScene):
     stage = get_current_stage()
 
     camera_specs = (
-        ("Center Camera", args_cli.camera_center_name, 520, 330, 0, 0),
-        ("Left Camera", args_cli.camera_left_name, 258, 250, 0, 350),
-        ("Right Camera", args_cli.camera_right_name, 258, 250, 262, 350),
+        ("Center Camera", args_cli.camera_center_name, 520, 330, 50, 20),
+        ("Left Camera", args_cli.camera_left_name, 258, 200, 50, 350),
+        ("Right Camera", args_cli.camera_right_name, 258, 200, 312, 350),
     )
     camera_paths: dict[str, str] = {}
     missing_camera_names: list[str] = []
@@ -713,7 +737,11 @@ def main():
     if not args_cli.disable_environment and not os.path.exists(environment_usd_path):
         raise FileNotFoundError(f"Environment USD not found: {environment_usd_path}")
 
-    sim_cfg = sim_utils.SimulationCfg(device=args_cli.device, dt=1.0 / STEP_HZ)
+    sim_cfg = sim_utils.SimulationCfg(
+        device=args_cli.device,
+        dt=1.0 / STEP_HZ,
+        render_interval=RENDER_INTERVAL,
+    )
     sim = sim_utils.SimulationContext(sim_cfg)
     sim.set_camera_view([2.8, -2.2, 1.8], [0.0, 0.0, 0.8])
 
@@ -721,7 +749,14 @@ def main():
     if not args_cli.disable_environment:
         scene_cfg.environment = AssetBaseCfg(
             prim_path="{ENV_REGEX_NS}/Environment",
-            spawn=sim_utils.UsdFileCfg(usd_path=environment_usd_path),
+            spawn=sim_utils.UsdFileCfg(
+                func=spawn_environment_with_friction,
+                usd_path=environment_usd_path,
+                collision_props=sim_utils.CollisionPropertiesCfg(
+                    contact_offset=0.003,
+                    rest_offset=0.0,
+                ),
+            ),
             init_state=AssetBaseCfg.InitialStateCfg(
                 pos=_parse_float_list(args_cli.environment_pos, 3, "--environment_pos"),
                 rot=_parse_float_list(args_cli.environment_rot, 4, "--environment_rot"),
