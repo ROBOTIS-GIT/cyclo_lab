@@ -42,6 +42,7 @@ _SH5_FINGER_TIP_MATERIAL = RigidBodyMaterialCfg(
 )
 
 _SH5_BASE_COLLISION_LINKS = (5, 6, 9, 10, 13, 14, 17, 18)
+_SH5_WHEEL_DRIVE_LINKS = ("left_wheel_drive", "right_wheel_drive", "rear_wheel_drive")
 
 
 def _is_sh5_finger_tip_prim(prim_path: str) -> bool:
@@ -93,6 +94,40 @@ def _filter_sh5_base_finger_collisions(stage, prim_path: str) -> None:
         print("[SH5 collision filter] disabled hx5 base collision with MCP/PIP links.")
 
 
+def _add_filtered_collision_pairs(stage, source_paths: list[str], target_paths: list[str]) -> None:
+    for source_path in source_paths:
+        source_prim = stage.GetPrimAtPath(source_path)
+        filtered_pairs_api = UsdPhysics.FilteredPairsAPI.Apply(source_prim)
+        filtered_pairs_rel = filtered_pairs_api.CreateFilteredPairsRel()
+        for target_path in target_paths:
+            filtered_pairs_rel.AddTarget(Sdf.Path(target_path))
+
+
+def _filter_sh5_base_wheel_drive_collisions(stage, prim_path: str) -> None:
+    """Disable collision checks between the base link and swerve drive wheel links."""
+    base_collision_paths = []
+    wheel_drive_collision_paths = []
+    wheel_drive_pattern = "|".join(re.escape(link_name) for link_name in _SH5_WHEEL_DRIVE_LINKS)
+
+    for child_prim in stage.Traverse():
+        child_path = str(child_prim.GetPath())
+        if not child_path.startswith(f"{prim_path}/") or "/collisions/" not in child_path:
+            continue
+
+        lower_path = child_path.lower()
+        if re.search(r"(^|/)base_link/collisions(/|_|$)", lower_path):
+            base_collision_paths.append(child_path)
+        elif re.search(rf"(^|/)({wheel_drive_pattern})/collisions(/|_|$)", lower_path):
+            wheel_drive_collision_paths.append(child_path)
+
+    if not base_collision_paths or not wheel_drive_collision_paths:
+        return
+
+    _add_filtered_collision_pairs(stage, base_collision_paths, wheel_drive_collision_paths)
+    _add_filtered_collision_pairs(stage, wheel_drive_collision_paths, base_collision_paths)
+    print("[SH5 collision filter] disabled base_link collision with swerve drive wheel links.")
+
+
 @clone
 def spawn_sh5_with_finger_tip_friction(prim_path, cfg, translation=None, orientation=None, **kwargs):
     """Spawn SH5 and bind high-friction material to fingertip bodies."""
@@ -118,6 +153,7 @@ def spawn_sh5_with_finger_tip_friction(prim_path, cfg, translation=None, orienta
         bind_physics_material(friction_prim_path, material_path)
 
     _filter_sh5_base_finger_collisions(stage, prim_path)
+    _filter_sh5_base_wheel_drive_collisions(stage, prim_path)
 
     return prim
 
@@ -161,7 +197,7 @@ FFW_SH5_CFG = ArticulationCfg(
             **{f"finger_r_joint{i}": 0.0 for i in range(1, 21)},
 
             # Head joints
-            "head_joint1": 0.5,
+            "head_joint1": 0.695,
             "head_joint2": 0.0,
 
             # Lift joint
@@ -187,10 +223,10 @@ FFW_SH5_CFG = ArticulationCfg(
                 "right_wheel_drive_joint",
                 "rear_wheel_drive_joint",
             ],
-            velocity_limit_sim=30.0,
+            velocity_limit_sim=50.0,
             effort_limit_sim=100000.0,
             stiffness=0.0,
-            damping=500.0,
+            damping=100.0,
         ),
 
         # Actuator for vertical lift joint
