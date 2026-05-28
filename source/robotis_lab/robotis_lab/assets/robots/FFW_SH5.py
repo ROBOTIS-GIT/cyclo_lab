@@ -44,6 +44,13 @@ _SH5_FINGER_TIP_MATERIAL = RigidBodyMaterialCfg(
 _SH5_BASE_COLLISION_LINKS = (5, 6, 9, 10, 13, 14, 17, 18)
 _SH5_WHEEL_DRIVE_LINKS = ("left_wheel_drive", "right_wheel_drive", "rear_wheel_drive")
 
+SH5_SWERVE_STEERING_JOINTS = ("left_wheel_steer_joint", "right_wheel_steer_joint", "rear_wheel_steer_joint")
+SH5_SWERVE_WHEEL_JOINTS = ("left_wheel_drive_joint", "right_wheel_drive_joint", "rear_wheel_drive_joint")
+SH5_SWERVE_MODULE_X_OFFSETS = (0.1371, 0.1374, -0.289)
+SH5_SWERVE_MODULE_Y_OFFSETS = (0.2554, -0.2554, 0.0)
+SH5_SWERVE_MODULE_ANGLE_OFFSETS = (0.0, 0.0, 0.0)
+SH5_SWERVE_WHEEL_RADIUS = 0.0865
+
 
 def _is_sh5_finger_tip_prim(prim_path: str) -> bool:
     """Return true for SH5 finger link prims that need more grip."""
@@ -207,22 +214,14 @@ FFW_SH5_CFG = ArticulationCfg(
     actuators={
         # Actuators for swerve base
         "base_steer": ImplicitActuatorCfg(
-            joint_names_expr=[
-                "left_wheel_steer_joint",
-                "right_wheel_steer_joint",
-                "rear_wheel_steer_joint",
-            ],
+            joint_names_expr=list(SH5_SWERVE_STEERING_JOINTS),
             velocity_limit_sim=10.0,
             effort_limit_sim=100000.0,
             stiffness=10000.0,
             damping=100.0,
         ),
         "base_drive": ImplicitActuatorCfg(
-            joint_names_expr=[
-                "left_wheel_drive_joint",
-                "right_wheel_drive_joint",
-                "rear_wheel_drive_joint",
-            ],
+            joint_names_expr=list(SH5_SWERVE_WHEEL_JOINTS),
             velocity_limit_sim=50.0,
             effort_limit_sim=100000.0,
             stiffness=0.0,

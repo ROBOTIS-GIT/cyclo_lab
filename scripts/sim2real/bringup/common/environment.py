@@ -44,7 +44,7 @@ LIGHTWHEEL_KITCHEN_ENVIRONMENT_USD_PATH = str(
 DEFAULT_ENVIRONMENT_USD_PATH = SIMPLE_WAREHOUSE_ENVIRONMENT_USD_PATH
 # DEFAULT_ENVIRONMENT_USD_PATH = LIGHTWHEEL_KITCHEN_ENVIRONMENT_USD_PATH
 
-ENVIRONMENT_SCALE = 0.7   # 1.0 for table, 0.7 for warehouse, 1.2 for kitchen
+ENVIRONMENT_SCALE = 0.7  # 1.0 for table, 0.7 for warehouse, 1.2 for kitchen
 ENVIRONMENT_POS = (0.0, 0.0, 0.0)
 ENVIRONMENT_ROT = (1.0, 0.0, 0.0, 0.0)
 
@@ -78,11 +78,11 @@ def default_environment_usd_path() -> str:
     return DEFAULT_ENVIRONMENT_USD_PATH
 
 
-def is_remote_usd_path(usd_path: str) -> bool:
+def remote_usd_path(usd_path: str) -> bool:
     return urlparse(usd_path).scheme in ("http", "https", "omniverse")
 
 
-def is_simple_warehouse_environment(usd_path: str) -> bool:
+def simple_warehouse_environment(usd_path: str) -> bool:
     return usd_path == SIMPLE_WAREHOUSE_ENVIRONMENT_USD_PATH
 
 

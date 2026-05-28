@@ -14,21 +14,19 @@
 #
 # Author: Howon Kim
 
+"""FFW SH5 DDS bringup for Isaac Sim."""
+
 import argparse
 import os
 import sys
 import threading
 import time
-from collections.abc import Iterable
 from copy import deepcopy
 from pathlib import Path
 
 from isaaclab.app import AppLauncher
 
 
-# ========== Setup ==========
-
-# Fixed bringup configuration
 RIGHT_ARM_TOPIC = "/leader/joint_trajectory_command_broadcaster_right/joint_trajectory"
 RIGHT_HAND_TOPIC = "/leader/joint_trajectory_command_broadcaster_right_hand/joint_trajectory"
 LEFT_ARM_TOPIC = "/leader/joint_trajectory_command_broadcaster_left/joint_trajectory"
@@ -46,20 +44,11 @@ RENDER_INTERVAL = 2
 # ROBOT_POS = (0.4, 0.0, -0.18)
 ROBOT_POS = (-1.25, -0.5, -0.1)  # for warehouse environment
 # ROBOT_POS = (1.3, 1.5, -0.08)  # for kitchen environment
-ARTICULATION_ROOT_PRIM_PATH = "/base_link/base_link"
-SWERVE_STEERING_JOINTS = ("left_wheel_steer_joint", "right_wheel_steer_joint", "rear_wheel_steer_joint")
-SWERVE_WHEEL_JOINTS = ("left_wheel_drive_joint", "right_wheel_drive_joint", "rear_wheel_drive_joint")
-SWERVE_MODULE_X_OFFSETS = (0.1371, 0.1374, -0.289)
-SWERVE_MODULE_Y_OFFSETS = (0.2554, -0.2554, 0.0)
-SWERVE_MODULE_ANGLE_OFFSETS = (0.0, 0.0, 0.0)
-SWERVE_WHEEL_RADIUS = 0.0865
 SWERVE_STEERING_LIMIT_LOWER = -1.570796
 SWERVE_STEERING_LIMIT_UPPER = 1.570796
 SWERVE_WHEEL_SPEED_LIMIT_LOWER = -50.0
 SWERVE_WHEEL_SPEED_LIMIT_UPPER = 50.0
 CMD_VEL_TIMEOUT = 0.1
-BASE_LINEAR_DAMPING = 2.0
-BASE_ANGULAR_DAMPING = 4.0
 OVERVIEW_CAMERA_EYE = (2.8, -2.2, 1.8)
 OVERVIEW_CAMERA_TARGET = (0.0, 0.0, 0.8)
 CAMERA_CENTER_NAME = "Head_Camera"
@@ -76,14 +65,15 @@ parser = argparse.ArgumentParser(description="FFW SH5 DDS bringup for Isaac Sim.
 parser.add_argument("--disable_head", action="store_true", help="Do not subscribe to the head topic.")
 parser.add_argument("--disable_lift", action="store_true", help="Do not subscribe to the lift topic.")
 parser.add_argument("--disable_cmd_vel", action="store_true", help="Do not subscribe to cmd_vel for the swerve base.")
-parser.add_argument("--base_linear_damping", type=float, default=BASE_LINEAR_DAMPING, help="Rigid-body linear damping for the SH5 USD bodies.")
-parser.add_argument("--base_angular_damping", type=float, default=BASE_ANGULAR_DAMPING, help="Rigid-body angular damping for the SH5 USD bodies.")
 parser.add_argument("--domain_id", type=int, default=None, help="DDS domain id. Defaults to ROS_DOMAIN_ID or 0.")
 parser.add_argument("--enable_gravity", action="store_true", help="Enable gravity on the SH5 rigid bodies.")
 parser.add_argument(
     "--environment_usd",
     default=None,
-    help="USD file or URL to spawn as the static environment. Defaults to common.environment.DEFAULT_ENVIRONMENT_USD_PATH.",
+    help=(
+        "USD file or URL to spawn as the static environment. "
+        "Defaults to common.environment.DEFAULT_ENVIRONMENT_USD_PATH."
+    ),
 )
 parser.add_argument("--enable_environment", action="store_true", help="Spawn the environment USD.")
 parser.add_argument(
@@ -121,21 +111,26 @@ from robotis_dds_python.idl.tf2_msgs.msg import TFMessage_
 from robotis_dds_python.idl.trajectory_msgs.msg import JointTrajectory_
 from robotis_dds_python.tools.topic_manager import TopicManager
 
-from robotis_lab.assets.robots import FFW_SH5_CFG
+from robotis_lab.assets.robots import (
+    FFW_SH5_CFG,
+    SH5_SWERVE_MODULE_ANGLE_OFFSETS,
+    SH5_SWERVE_MODULE_X_OFFSETS,
+    SH5_SWERVE_MODULE_Y_OFFSETS,
+    SH5_SWERVE_STEERING_JOINTS,
+    SH5_SWERVE_WHEEL_RADIUS,
+    SH5_SWERVE_WHEEL_JOINTS,
+)
 from common.environment import (
     default_environment_usd_path,
-    is_simple_warehouse_environment,
-    is_remote_usd_path,
     make_card_boxes_graspable,
     make_environment_cfg,
+    remote_usd_path,
+    simple_warehouse_environment,
 )
 from common.swerve_drive import SwerveDriveController, SwerveModule
 
 
-# Scene setup
-def _default_sh5_usd_path() -> str:
-    return FFW_SH5_CFG.spawn.usd_path
-
+# ========== Scene Setup ==========
 
 @configclass
 class SH5BringupSceneCfg(InteractiveSceneCfg):
@@ -152,14 +147,12 @@ def _make_robot_cfg(usd_path: str) -> ArticulationCfg:
     robot_cfg = deepcopy(FFW_SH5_CFG)
     robot_cfg.spawn.usd_path = usd_path
     robot_cfg.spawn.rigid_props.disable_gravity = not args_cli.enable_gravity
-    robot_cfg.spawn.rigid_props.linear_damping = args_cli.base_linear_damping
-    robot_cfg.spawn.rigid_props.angular_damping = args_cli.base_angular_damping
-    robot_cfg.articulation_root_prim_path = ARTICULATION_ROOT_PRIM_PATH
     robot_cfg.init_state.pos = ROBOT_POS
     return robot_cfg
 
 
-# ========== DDS Topic parsing and matching ==========
+# ========== DDS Topic Parsing and Matching ==========
+
 def _trajectory_qos() -> Qos:
     return Qos(
         Policy.Reliability.BestEffort,
@@ -499,30 +492,23 @@ class SH5DdsBridge:
 
 # ========== Robot State ==========
 
-# Swerve module configuration
 def _swerve_modules() -> list[SwerveModule]:
     return [
         SwerveModule(
             steering_joint=steering_joint,
             wheel_joint=wheel_joint,
-            x_offset=SWERVE_MODULE_X_OFFSETS[index],
-            y_offset=SWERVE_MODULE_Y_OFFSETS[index],
-            angle_offset=SWERVE_MODULE_ANGLE_OFFSETS[index],
+            x_offset=SH5_SWERVE_MODULE_X_OFFSETS[index],
+            y_offset=SH5_SWERVE_MODULE_Y_OFFSETS[index],
+            angle_offset=SH5_SWERVE_MODULE_ANGLE_OFFSETS[index],
             steering_limit_lower=SWERVE_STEERING_LIMIT_LOWER,
             steering_limit_upper=SWERVE_STEERING_LIMIT_UPPER,
             wheel_speed_limit_lower=SWERVE_WHEEL_SPEED_LIMIT_LOWER,
             wheel_speed_limit_upper=SWERVE_WHEEL_SPEED_LIMIT_UPPER,
         )
-        for index, (steering_joint, wheel_joint) in enumerate(zip(SWERVE_STEERING_JOINTS, SWERVE_WHEEL_JOINTS))
+        for index, (steering_joint, wheel_joint) in enumerate(
+            zip(SH5_SWERVE_STEERING_JOINTS, SH5_SWERVE_WHEEL_JOINTS)
+        )
     ]
-
-
-# Robot state initialization
-def _print_joint_groups(joint_names: Iterable[str]):
-    names = list(joint_names)
-    print("[INFO] SH5 articulation joints:")
-    for name in names:
-        print(f"  - {name}")
 
 
 def _write_default_joint_state(robot):
@@ -637,7 +623,8 @@ def _setup_camera_views():
         print(f"[WARN] Available cameras: {available_cameras}")
 
 
-# Simulation loop
+# ========== Simulation Loop ==========
+
 def run_simulator(sim: sim_utils.SimulationContext, scene: InteractiveScene, bridge: SH5DdsBridge):
     sim_dt = sim.get_physics_dt()
     step_period = 1.0 / STEP_HZ if STEP_HZ > 0 else 0.0
@@ -666,14 +653,14 @@ def run_simulator(sim: sim_utils.SimulationContext, scene: InteractiveScene, bri
 
 
 def main():
-    usd_path = _default_sh5_usd_path()
+    usd_path = FFW_SH5_CFG.spawn.usd_path
     if not os.path.exists(usd_path):
         raise FileNotFoundError(f"SH5 USD not found: {usd_path}")
 
     environment_usd_path = args_cli.environment_usd or default_environment_usd_path()
     if (
         args_cli.enable_environment
-        and not is_remote_usd_path(environment_usd_path)
+        and not remote_usd_path(environment_usd_path)
         and not os.path.exists(environment_usd_path)
     ):
         raise FileNotFoundError(f"Environment USD not found: {environment_usd_path}")
@@ -691,7 +678,7 @@ def main():
         scene_cfg.environment = make_environment_cfg(environment_usd_path)
     scene_cfg.robot = _make_robot_cfg(usd_path).replace(prim_path="{ENV_REGEX_NS}/Robot")
     scene = InteractiveScene(scene_cfg)
-    if args_cli.enable_environment and is_simple_warehouse_environment(environment_usd_path):
+    if args_cli.enable_environment and simple_warehouse_environment(environment_usd_path):
         make_card_boxes_graspable()
 
     sim.reset()
@@ -703,7 +690,6 @@ def main():
     scene.write_data_to_sim()
     sim.step()
     scene.update(sim.get_physics_dt())
-    _print_joint_groups(robot.data.joint_names)
     if args_cli.enable_camera_views:
         _setup_camera_views()
 
@@ -719,7 +705,7 @@ def main():
         trajectory_qos=_trajectory_qos(),
         cmd_vel_topic=None if args_cli.disable_cmd_vel else CMD_VEL_TOPIC,
         swerve_modules=[] if args_cli.disable_cmd_vel else _swerve_modules(),
-        wheel_radius=SWERVE_WHEEL_RADIUS,
+        wheel_radius=SH5_SWERVE_WHEEL_RADIUS,
         cmd_vel_timeout=CMD_VEL_TIMEOUT,
     )
 
