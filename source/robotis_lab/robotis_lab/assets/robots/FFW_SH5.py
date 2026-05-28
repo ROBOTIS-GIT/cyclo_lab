@@ -232,10 +232,10 @@ FFW_SH5_CFG = ArticulationCfg(
         # Actuator for vertical lift joint
         "lift": ImplicitActuatorCfg(
             joint_names_expr=["lift_joint"],
-            velocity_limit_sim=0.2,
+            velocity_limit_sim=0.2,  # 0.0001
             effort_limit_sim=1000000.0,
             stiffness=10000.0,
-            damping=100.0,
+            damping=100.0,  # 0.0
         ),
 
         # Actuators for both arms
@@ -271,7 +271,7 @@ FFW_SH5_CFG = ArticulationCfg(
         ),
 
         # Actuators for hands
-        "fingers": ImplicitActuatorCfg(
+        "XM_335": ImplicitActuatorCfg(
             joint_names_expr=[
                 "finger_l_joint[1-9]",
                 "finger_l_joint1[0-9]",
@@ -280,9 +280,9 @@ FFW_SH5_CFG = ArticulationCfg(
                 "finger_r_joint1[0-9]",
                 "finger_r_joint20",
             ],
-            velocity_limit_sim=30.0,  # 30.0
-            effort_limit_sim=5.15,    # 1.03 * 4
-            stiffness=600.0,   # 200.0 : for safe
+            velocity_limit_sim=30.0,
+            effort_limit_sim=5.15,    
+            stiffness=600.0,   
             damping=20.0,
         ),
 
