@@ -206,6 +206,25 @@ python scripts/imitation_learning/robomimic/play.py \
 >
 
 <details>
+<summary>Bringup</summary>
+**ROBOTIS HAND VR Teleoperation in Isaac Sim**
+[Introduction YouTube](https://www.youtube.com/watch?v=Mp-OEt9UeDU)
+
+https://github.com/user-attachments/assets/67267195-db02-4dd9-83cf-00830b4bc13f
+
+Launch the AI Worker SH5 model and DDS bridge
+
+```bash
+# Grid with SH5 AI Worker
+python scripts/sim2real/bringup/sh5_dds_bringup.py --domain_id 30 --enable_gravity --enable_camera_views
+
+# NVIDIA Simple Warehouse environment
+python scripts/sim2real/bringup/sh5_dds_bringup.py --domain_id 30 --enable_gravity --enable_camera_views --enable_environment
+```
+
+</details>
+
+<details>
 <summary>Reinforcement learning</summary>
 
 **OMY Reach Task**
