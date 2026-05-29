@@ -207,6 +207,7 @@ python scripts/imitation_learning/robomimic/play.py \
 
 <details>
 <summary>Bringup</summary>
+
 **ROBOTIS HAND VR Teleoperation in Isaac Sim**
 [Introduction YouTube](https://www.youtube.com/watch?v=Mp-OEt9UeDU)
 
