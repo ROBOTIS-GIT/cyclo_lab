@@ -32,6 +32,7 @@ LEFT_HAND_TOPIC = "/leader/joint_trajectory_command_broadcaster_left_hand/joint_
 HEAD_TOPIC = "/leader/joystick_controller_left/joint_trajectory"
 LIFT_TOPIC = "/leader/joystick_controller_right/joint_trajectory"
 LIFT_JOINT_NAME = "lift_joint"
+LIFT_POSITION_SCALE = 0.5
 CMD_VEL_TOPIC = "/cmd_vel"
 JOINT_STATES_TOPIC = "/joint_states"
 TF_TOPIC = "/tf"
@@ -39,7 +40,7 @@ BASE_FRAME = "base_link"
 PUBLISH_HZ = 30.0
 STEP_HZ = 60.0
 RENDER_INTERVAL = 2
-ROBOT_POS = (0.0, 0.0, -0.18) 
+ROBOT_POS = (0.0, 0.0, -0.18)
 # ROBOT_POS = (-1.25, -0.5, -0.1)  # for warehouse environment
 SWERVE_STEERING_LIMIT_LOWER = -1.570796
 SWERVE_STEERING_LIMIT_UPPER = 1.570796
@@ -294,9 +295,9 @@ class SH5DdsBridge:
         if label == "lift":
             lift_position = None
             if LIFT_JOINT_NAME in joint_names:
-                lift_position = positions[joint_names.index(LIFT_JOINT_NAME)]  # for experiment sit
+                lift_position = LIFT_POSITION_SCALE * positions[joint_names.index(LIFT_JOINT_NAME)]
             elif len(positions) == 1:
-                lift_position = positions[0]
+                lift_position = LIFT_POSITION_SCALE * positions[0]
             if lift_position is None:
                 print(f"[DDS] Ignoring lift message: '{LIFT_JOINT_NAME}' not found in joint_names={joint_names}")
                 return
