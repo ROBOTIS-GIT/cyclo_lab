@@ -16,6 +16,8 @@
 
 from __future__ import annotations
 
+from collections import deque
+
 import isaaclab.sim as sim_utils
 from isaaclab.assets import AssetBaseCfg
 from isaaclab.sim.spawners.from_files import from_files
@@ -28,8 +30,8 @@ SIMPLE_WAREHOUSE_ENVIRONMENT_USD_PATH = (
     "Assets/Isaac/5.1/Isaac/Environments/Simple_Warehouse/warehouse_multiple_shelves.usd"
 )
 
-ENVIRONMENT_SCALE = 0.7  # 1.0 for table, 0.7 for warehouse, 1.2 for kitchen
-ENVIRONMENT_POS = (0.0, 0.0, 0.0)
+ENVIRONMENT_SCALE = 0.7
+ENVIRONMENT_POS = (1.25, 0.5, 0.0)
 ENVIRONMENT_ROT = (1.0, 0.0, 0.0, 0.0)
 
 GRASPABLE_CARD_BOX_MASS = 0.2
@@ -103,10 +105,11 @@ def make_card_boxes_graspable():
         sim_utils.define_rigid_body_properties(prim_path, rigid_props, stage)
         sim_utils.define_mass_properties(prim_path, mass_props, stage)
 
-        child_prims = [prim]
-        for child_prim in child_prims:
+        queue = deque([prim])
+        while queue:
+            child_prim = queue.popleft()
             if child_prim.GetTypeName() == "Mesh":
                 sim_utils.define_mesh_collision_properties(str(child_prim.GetPath()), convex_hull_props, stage)
-            child_prims.extend(child_prim.GetChildren())
+            queue.extend(child_prim.GetChildren())
 
         print(f"[INFO] Graspable card box enabled: {prim_path} mass={GRASPABLE_CARD_BOX_MASS} kg")

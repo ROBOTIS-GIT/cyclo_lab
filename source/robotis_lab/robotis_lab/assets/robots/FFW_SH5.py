@@ -17,7 +17,7 @@
 import re
 
 from isaacsim.core.utils.stage import get_current_stage
-from pxr import Sdf, UsdPhysics
+from pxr import Sdf, Usd, UsdPhysics
 
 from isaaclab.actuators import ImplicitActuatorCfg
 from isaaclab.assets.articulation import ArticulationCfg
@@ -58,14 +58,19 @@ def _is_sh5_finger_tip_prim(prim_path: str) -> bool:
     return re.search(r"(^|/)finger_[rl]_link([1-9]|1[0-9]|20)(/|_|$)", path) is not None
 
 
+def _iter_robot_prims(stage, prim_path: str):
+    robot_prim = stage.GetPrimAtPath(prim_path)
+    if not robot_prim.IsValid():
+        return ()
+    return Usd.PrimRange(robot_prim)
+
+
 def _filter_sh5_base_finger_collisions(stage, prim_path: str) -> None:
     """Disable collision checks between each hand base and the MCP/PIP finger links."""
     collision_paths_by_link_name = {}
     base_collision_paths_by_side = {"l": [], "r": []}
-    for child_prim in stage.Traverse():
+    for child_prim in _iter_robot_prims(stage, prim_path):
         child_path = str(child_prim.GetPath())
-        if not child_path.startswith(f"{prim_path}/"):
-            continue
         base_match = re.search(r"(^|/)hx5_([lr])_base/collisions(/|_|$)", child_path.lower())
         if base_match is not None:
             base_collision_paths_by_side[base_match.group(2)].append(child_path)
@@ -116,9 +121,9 @@ def _filter_sh5_base_wheel_drive_collisions(stage, prim_path: str) -> None:
     wheel_drive_collision_paths = []
     wheel_drive_pattern = "|".join(re.escape(link_name) for link_name in _SH5_WHEEL_DRIVE_LINKS)
 
-    for child_prim in stage.Traverse():
+    for child_prim in _iter_robot_prims(stage, prim_path):
         child_path = str(child_prim.GetPath())
-        if not child_path.startswith(f"{prim_path}/") or "/collisions/" not in child_path:
+        if "/collisions/" not in child_path:
             continue
 
         lower_path = child_path.lower()
@@ -147,13 +152,9 @@ def spawn_sh5_with_finger_tip_friction(prim_path, cfg, translation=None, orienta
     make_uninstanceable(prim_path, stage)
 
     friction_prim_paths = set()
-    for child_prim in stage.Traverse():
+    for child_prim in _iter_robot_prims(stage, prim_path):
         child_path = str(child_prim.GetPath())
-        if (
-            child_path.startswith(f"{prim_path}/")
-            and "/collisions/" in child_path
-            and _is_sh5_finger_tip_prim(child_path)
-        ):
+        if "/collisions/" in child_path and _is_sh5_finger_tip_prim(child_path):
             friction_prim_paths.add(child_path)
 
     for friction_prim_path in friction_prim_paths:

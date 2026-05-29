@@ -193,6 +193,29 @@ class SH5DdsBridge:
         self.unknown_joints: set[str] = set()
         self._warned_missing_base_frame = False
         self._warned_missing_swerve_joints: set[str] = set()
+        self._body_names = list(self.robot.data.body_names)
+        self._base_id = (
+            self._body_names.index(self.base_frame) if self.base_frame in self._body_names else None
+        )
+        self._joint_name_to_index = {
+            name: index for index, name in enumerate(self.robot.data.joint_names)
+        }
+        self._missing_swerve_joints = [
+            joint_name
+            for module in self.swerve_modules
+            for joint_name in (module.steering_joint, module.wheel_joint)
+            if joint_name not in self._joint_name_to_index
+        ]
+        self._swerve_steering_joint_ids = [
+            self._joint_name_to_index[module.steering_joint]
+            for module in self.swerve_modules
+            if module.steering_joint in self._joint_name_to_index
+        ]
+        self._swerve_wheel_joint_ids = [
+            self._joint_name_to_index[module.wheel_joint]
+            for module in self.swerve_modules
+            if module.wheel_joint in self._joint_name_to_index
+        ]
         self.readers = []
         self.threads = []
         self.joint_state_writer = topic_manager.topic_writer(
@@ -271,7 +294,7 @@ class SH5DdsBridge:
         if label == "lift":
             lift_position = None
             if LIFT_JOINT_NAME in joint_names:
-                lift_position = 0.5 * positions[joint_names.index(LIFT_JOINT_NAME)]  # for experiment sit
+                lift_position = positions[joint_names.index(LIFT_JOINT_NAME)]  # for experiment sit
             elif len(positions) == 1:
                 lift_position = positions[0]
             if lift_position is None:
@@ -296,7 +319,7 @@ class SH5DdsBridge:
             return
         with self.lock:
             self.latest_cmd_vel = (float(msg.linear.x), float(msg.linear.y), float(msg.angular.z))
-            self.last_cmd_vel_time = time.time()
+            self.last_cmd_vel_time = time.monotonic()
 
     def _current_cmd_vel(self) -> tuple[float, float, float]:
         with self.lock:
@@ -305,7 +328,7 @@ class SH5DdsBridge:
 
         if last_msg_time == 0.0:
             return 0.0, 0.0, 0.0
-        if self.cmd_vel_timeout > 0.0 and time.time() - last_msg_time > self.cmd_vel_timeout:
+        if self.cmd_vel_timeout > 0.0 and time.monotonic() - last_msg_time > self.cmd_vel_timeout:
             return 0.0, 0.0, 0.0
         return command
 
@@ -313,50 +336,41 @@ class SH5DdsBridge:
         with self.lock:
             commands = dict(self.pending_positions)
 
-        joint_names = self.robot.data.joint_names
         position_target = self.robot.data.joint_pos_target.clone()
         velocity_target = self.robot.data.joint_vel_target.clone()
 
         for name, position in commands.items():
-            if name not in joint_names:
+            joint_id = self._joint_name_to_index.get(name)
+            if joint_id is None:
                 if name not in self.unknown_joints:
                     self.unknown_joints.add(name)
                     print(f"[DDS] Joint '{name}' is not in the SH5 USD articulation; ignoring it.")
                 continue
-            joint_id = joint_names.index(name)
             position_target[:, joint_id] = float(position)
 
-        self._apply_swerve_targets(joint_names, position_target, velocity_target)
+        self._apply_swerve_targets(position_target, velocity_target)
 
         self.robot.set_joint_position_target(position_target)
         self.robot.set_joint_velocity_target(velocity_target)
 
-    def _apply_swerve_targets(self, joint_names: list[str], position_target, velocity_target):
+    def _apply_swerve_targets(self, position_target, velocity_target):
         if not self.swerve_modules:
             return
 
-        missing_joints = [
-            joint_name
-            for module in self.swerve_modules
-            for joint_name in (module.steering_joint, module.wheel_joint)
-            if joint_name not in joint_names
-        ]
-        for joint_name in missing_joints:
+        for joint_name in self._missing_swerve_joints:
             if joint_name not in self._warned_missing_swerve_joints:
                 self._warned_missing_swerve_joints.add(joint_name)
                 print(f"[DDS] Swerve joint '{joint_name}' is not in the SH5 USD articulation; ignoring cmd_vel.")
-        if missing_joints:
+        if self._missing_swerve_joints:
             return
 
-        steering_joint_ids = [joint_names.index(module.steering_joint) for module in self.swerve_modules]
-        wheel_joint_ids = [joint_names.index(module.wheel_joint) for module in self.swerve_modules]
         current_steering = [
             float(value)
-            for value in self.robot.data.joint_pos[0, steering_joint_ids].detach().cpu().tolist()
+            for value in self.robot.data.joint_pos[0, self._swerve_steering_joint_ids].detach().cpu().tolist()
         ]
         current_wheel_velocities = [
             float(value)
-            for value in self.robot.data.joint_vel[0, wheel_joint_ids].detach().cpu().tolist()
+            for value in self.robot.data.joint_vel[0, self._swerve_wheel_joint_ids].detach().cpu().tolist()
         ]
         linear_x, linear_y, angular_z = self._current_cmd_vel()
         now = time.monotonic()
@@ -373,9 +387,11 @@ class SH5DdsBridge:
             current_wheel_velocities=current_wheel_velocities,
             dt=dt,
         )
-        for module_command in module_commands:
-            steering_id = joint_names.index(module_command.steering_joint)
-            wheel_id = joint_names.index(module_command.wheel_joint)
+        for module_command, steering_id, wheel_id in zip(
+            module_commands,
+            self._swerve_steering_joint_ids,
+            self._swerve_wheel_joint_ids,
+        ):
             position_target[:, steering_id] = module_command.steering_position
             velocity_target[:, wheel_id] = module_command.wheel_velocity
 
@@ -403,26 +419,24 @@ class SH5DdsBridge:
             print(f"[DDS] joint_states write error: {exc}")
 
     def publish_tf(self):
-        body_names = list(self.robot.data.body_names)
-        if self.base_frame not in body_names:
+        if self._base_id is None:
             if not self._warned_missing_base_frame:
                 self._warned_missing_base_frame = True
                 print(
                     f"[DDS] Cannot publish TF: base frame '{self.base_frame}' is not in SH5 body names. "
-                    f"Available bodies: {body_names}"
+                    f"Available bodies: {self._body_names}"
                 )
             return
 
         now = time.time()
         stamp = Time_(sec=int(now), nanosec=int((now - int(now)) * 1_000_000_000))
-        base_id = body_names.index(self.base_frame)
         body_pose_w = self.robot.data.body_link_state_w[0, :, :7]
-        base_pose_w = body_pose_w[base_id]
+        base_pose_w = body_pose_w[self._base_id]
         base_pos_w = base_pose_w[:3].unsqueeze(0)
         base_quat_w = base_pose_w[3:7].unsqueeze(0)
 
         transforms = []
-        for body_id, child_frame in enumerate(body_names):
+        for body_id, child_frame in enumerate(self._body_names):
             if child_frame == self.base_frame:
                 continue
 
