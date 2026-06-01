@@ -25,38 +25,11 @@ from pathlib import Path
 from isaaclab.app import AppLauncher
 
 
-RIGHT_ARM_TOPIC = "/leader/joint_trajectory_command_broadcaster_right/joint_trajectory"
-RIGHT_HAND_TOPIC = "/leader/joint_trajectory_command_broadcaster_right_hand/joint_trajectory"
-LEFT_ARM_TOPIC = "/leader/joint_trajectory_command_broadcaster_left/joint_trajectory"
-LEFT_HAND_TOPIC = "/leader/joint_trajectory_command_broadcaster_left_hand/joint_trajectory"
-HEAD_TOPIC = "/leader/joystick_controller_left/joint_trajectory"
-LIFT_TOPIC = "/leader/joystick_controller_right/joint_trajectory"
-LIFT_JOINT_NAME = "lift_joint"
-LIFT_POSITION_SCALE = 0.5
-CMD_VEL_TOPIC = "/cmd_vel"
-JOINT_STATES_TOPIC = "/joint_states"
-TF_TOPIC = "/tf"
-BASE_FRAME = "base_link"
-PUBLISH_HZ = 30.0
-STEP_HZ = 60.0
-RENDER_INTERVAL = 2
-ROBOT_POS = (0.0, 0.0, -0.18)
-# ROBOT_POS = (-1.25, -0.5, -0.1)  # for warehouse environment
-SWERVE_STEERING_LIMIT_LOWER = -1.570796
-SWERVE_STEERING_LIMIT_UPPER = 1.570796
-SWERVE_WHEEL_SPEED_LIMIT_LOWER = -50.0
-SWERVE_WHEEL_SPEED_LIMIT_UPPER = 50.0
-CMD_VEL_TIMEOUT = 0.1
-OVERVIEW_CAMERA_EYE = (2.8, -2.2, 1.8)
-OVERVIEW_CAMERA_TARGET = (0.0, 0.0, 0.8)
-CAMERA_CENTER_NAME = "Head_Camera"
-CAMERA_LEFT_NAME = "Left_Camera"
-CAMERA_RIGHT_NAME = "Right_Camera"
-CAMERA_VIEW_WINDOWS = []
-
 SCRIPT_DIR = Path(__file__).resolve().parent
 if str(SCRIPT_DIR) not in sys.path:
     sys.path.insert(0, str(SCRIPT_DIR))
+
+from common import robotis_config as cfg
 
 # CLI and app launch
 parser = argparse.ArgumentParser(description="FFW SH5 DDS bringup for Isaac Sim.")
@@ -134,7 +107,7 @@ def _make_robot_cfg(usd_path: str) -> ArticulationCfg:
     robot_cfg = deepcopy(FFW_SH5_CFG)
     robot_cfg.spawn.usd_path = usd_path
     robot_cfg.spawn.rigid_props.disable_gravity = not args_cli.enable_gravity
-    robot_cfg.init_state.pos = ROBOT_POS
+    robot_cfg.init_state.pos = cfg.ROBOT_POS
     return robot_cfg
 
 
@@ -150,15 +123,15 @@ def _trajectory_qos() -> Qos:
 
 def _enabled_topics() -> dict[str, str]:
     topics = {
-        "right_arm": RIGHT_ARM_TOPIC,
-        "right_hand": RIGHT_HAND_TOPIC,
-        "left_arm": LEFT_ARM_TOPIC,
-        "left_hand": LEFT_HAND_TOPIC,
+        "right_arm": cfg.AI_WORKER_RIGHT_ARM_TOPIC,
+        "right_hand": cfg.SH5_RIGHT_HAND_TOPIC,
+        "left_arm": cfg.AI_WORKER_LEFT_ARM_TOPIC,
+        "left_hand": cfg.SH5_LEFT_HAND_TOPIC,
     }
     if not args_cli.disable_head:
-        topics["head"] = HEAD_TOPIC
+        topics["head"] = cfg.HEAD_TOPIC
     if not args_cli.disable_lift:
-        topics["lift"] = LIFT_TOPIC
+        topics["lift"] = cfg.LIFT_TOPIC
     return topics
 
 
@@ -294,14 +267,20 @@ class SH5DdsBridge:
 
         if label == "lift":
             lift_position = None
-            if LIFT_JOINT_NAME in joint_names:
-                lift_position = LIFT_POSITION_SCALE * positions[joint_names.index(LIFT_JOINT_NAME)]
+            if cfg.LIFT_JOINT_NAME in joint_names:
+                lift_position = (
+                    cfg.LIFT_POSITION_SCALE
+                    * positions[joint_names.index(cfg.LIFT_JOINT_NAME)]
+                )
             elif len(positions) == 1:
-                lift_position = LIFT_POSITION_SCALE * positions[0]
+                lift_position = cfg.LIFT_POSITION_SCALE * positions[0]
             if lift_position is None:
-                print(f"[DDS] Ignoring lift message: '{LIFT_JOINT_NAME}' not found in joint_names={joint_names}")
+                print(
+                    f"[DDS] Ignoring lift message: '{cfg.LIFT_JOINT_NAME}' "
+                    f"not found in joint_names={joint_names}"
+                )
                 return
-            joint_names = [LIFT_JOINT_NAME]
+            joint_names = [cfg.LIFT_JOINT_NAME]
             positions = [lift_position]
 
         if len(joint_names) != len(positions):
@@ -501,10 +480,10 @@ def _swerve_modules() -> list[SwerveModule]:
             x_offset=SH5_SWERVE_MODULE_X_OFFSETS[index],
             y_offset=SH5_SWERVE_MODULE_Y_OFFSETS[index],
             angle_offset=SH5_SWERVE_MODULE_ANGLE_OFFSETS[index],
-            steering_limit_lower=SWERVE_STEERING_LIMIT_LOWER,
-            steering_limit_upper=SWERVE_STEERING_LIMIT_UPPER,
-            wheel_speed_limit_lower=SWERVE_WHEEL_SPEED_LIMIT_LOWER,
-            wheel_speed_limit_upper=SWERVE_WHEEL_SPEED_LIMIT_UPPER,
+            steering_limit_lower=cfg.AI_WORKER_SWERVE_STEERING_LIMIT_LOWER,
+            steering_limit_upper=cfg.AI_WORKER_SWERVE_STEERING_LIMIT_UPPER,
+            wheel_speed_limit_lower=cfg.AI_WORKER_SWERVE_WHEEL_SPEED_LIMIT_LOWER,
+            wheel_speed_limit_upper=cfg.AI_WORKER_SWERVE_WHEEL_SPEED_LIMIT_UPPER,
         )
         for index, (steering_joint, wheel_joint) in enumerate(
             zip(SH5_SWERVE_STEERING_JOINTS, SH5_SWERVE_WHEEL_JOINTS)
@@ -579,7 +558,7 @@ def _set_viewport_camera(
                 position_y=0 if y is None else y,
                 camera_path=Sdf.Path(camera_path),
             )
-            CAMERA_VIEW_WINDOWS.append(window)
+            cfg.AI_WORKER_CAMERA_VIEW_WINDOWS.append(window)
             _position_window(window, width, height, x, y)
             viewport = get_viewport_from_window_name(window_name)
         if viewport is not None:
@@ -596,9 +575,9 @@ def _setup_camera_views():
     stage = get_current_stage()
 
     camera_specs = (
-        ("Center Camera", CAMERA_CENTER_NAME, 780, 490, 50, 22),
-        ("Left Camera", CAMERA_LEFT_NAME, 387, 280, 50, 517),
-        ("Right Camera", CAMERA_RIGHT_NAME, 387, 280, 441, 517),
+        ("Center Camera", cfg.AI_WORKER_CAMERA_CENTER_NAME, 780, 490, 50, 22),
+        ("Left Camera", cfg.AI_WORKER_CAMERA_LEFT_NAME, 387, 280, 50, 517),
+        ("Right Camera", cfg.AI_WORKER_CAMERA_RIGHT_NAME, 387, 280, 441, 517),
     )
     camera_paths: dict[str, str] = {}
     missing_camera_names: list[str] = []
@@ -628,8 +607,8 @@ def _setup_camera_views():
 
 def run_simulator(sim: sim_utils.SimulationContext, scene: InteractiveScene, bridge: SH5DdsBridge):
     sim_dt = sim.get_physics_dt()
-    step_period = 1.0 / STEP_HZ if STEP_HZ > 0 else 0.0
-    publish_period = 1.0 / PUBLISH_HZ if PUBLISH_HZ > 0 else 0.0
+    step_period = 1.0 / cfg.STEP_HZ if cfg.STEP_HZ > 0 else 0.0
+    publish_period = 1.0 / cfg.PUBLISH_HZ if cfg.PUBLISH_HZ > 0 else 0.0
     last_publish = 0.0
     last_step = time.time()
 
@@ -660,11 +639,11 @@ def main():
 
     sim_cfg = sim_utils.SimulationCfg(
         device=args_cli.device,
-        dt=1.0 / STEP_HZ,
-        render_interval=RENDER_INTERVAL,
+        dt=1.0 / cfg.STEP_HZ,
+        render_interval=cfg.RENDER_INTERVAL,
     )
     sim = sim_utils.SimulationContext(sim_cfg)
-    sim.set_camera_view(OVERVIEW_CAMERA_EYE, OVERVIEW_CAMERA_TARGET)
+    sim.set_camera_view(cfg.AI_WORKER_OVERVIEW_CAMERA_EYE, cfg.AI_WORKER_OVERVIEW_CAMERA_TARGET)
 
     scene_cfg = SH5BringupSceneCfg(num_envs=1, env_spacing=2.0)
     if args_cli.enable_environment:
@@ -692,24 +671,24 @@ def main():
         robot=robot,
         topic_manager=topic_manager,
         topic_names=_enabled_topics(),
-        joint_states_topic=JOINT_STATES_TOPIC,
-        tf_topic=TF_TOPIC,
-        base_frame=BASE_FRAME,
+        joint_states_topic=cfg.JOINT_STATES_TOPIC,
+        tf_topic=cfg.TF_TOPIC,
+        base_frame=cfg.BASE_FRAME,
         trajectory_qos=_trajectory_qos(),
-        cmd_vel_topic=None if args_cli.disable_cmd_vel else CMD_VEL_TOPIC,
+        cmd_vel_topic=None if args_cli.disable_cmd_vel else cfg.CMD_VEL_TOPIC,
         swerve_modules=[] if args_cli.disable_cmd_vel else _swerve_modules(),
         wheel_radius=SH5_SWERVE_WHEEL_RADIUS,
-        cmd_vel_timeout=CMD_VEL_TIMEOUT,
+        cmd_vel_timeout=cfg.CMD_VEL_TIMEOUT,
     )
 
     print(f"[INFO] FFW SH5 DDS bringup ready. ROS_DOMAIN_ID={domain_id}")
     if args_cli.enable_environment:
         print("[INFO] Environment: Simple Warehouse")
     print("[DDS] JointTrajectory subscriber reliability: best_effort")
-    print(f"[DDS] Publishing joint states: {JOINT_STATES_TOPIC}")
-    print(f"[DDS] Publishing TF: {TF_TOPIC} ({BASE_FRAME} -> robot links)")
+    print(f"[DDS] Publishing joint states: {cfg.JOINT_STATES_TOPIC}")
+    print(f"[DDS] Publishing TF: {cfg.TF_TOPIC} ({cfg.BASE_FRAME} -> robot links)")
     if not args_cli.disable_cmd_vel:
-        print(f"[DDS] Applying swerve cmd_vel: {CMD_VEL_TOPIC}")
+        print(f"[DDS] Applying swerve cmd_vel: {cfg.CMD_VEL_TOPIC}")
 
     try:
         run_simulator(sim, scene, bridge)
