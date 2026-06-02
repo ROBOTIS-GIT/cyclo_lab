@@ -1,5 +1,11 @@
 # Changelog for package robotis_lab
 
+1.2.1 (2026-06-02)
+------------------
+* Added swerve odometry and `/odom` publishing for SH5 DDS bringup.
+* Tuned FFW_SH5 XM350 actuator parameters.
+* Contributors: Howon Kim
+
 1.2.0 (2026-05-28)
 ------------------
 * Updated FFW_SH5.usd for visualize simulation
