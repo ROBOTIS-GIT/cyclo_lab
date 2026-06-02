@@ -49,7 +49,7 @@ SH5_SWERVE_WHEEL_JOINTS = ("left_wheel_drive_joint", "right_wheel_drive_joint", 
 SH5_SWERVE_MODULE_X_OFFSETS = (0.1371, 0.1374, -0.289)
 SH5_SWERVE_MODULE_Y_OFFSETS = (0.2554, -0.2554, 0.0)
 SH5_SWERVE_MODULE_ANGLE_OFFSETS = (0.0, 0.0, 0.0)
-SH5_SWERVE_WHEEL_RADIUS = 0.0865
+SH5_SWERVE_WHEEL_RADIUS = 0.09
 
 
 def _is_sh5_finger_tip_prim(prim_path: str) -> bool:
@@ -280,10 +280,10 @@ FFW_SH5_CFG = ArticulationCfg(
                 "finger_r_joint1[0-9]",
                 "finger_r_joint20",
             ],
-            velocity_limit_sim=30.0,
-            effort_limit_sim=5.15,    
-            stiffness=600.0,   
-            damping=20.0,
+            velocity_limit_sim=15.0,
+            effort_limit_sim=3.09,    
+            stiffness=500.0,   
+            damping=30.0,
         ),
 
         # Actuators for head joints
