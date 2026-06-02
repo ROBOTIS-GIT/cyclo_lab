@@ -280,10 +280,10 @@ FFW_SH5_CFG = ArticulationCfg(
                 "finger_r_joint1[0-9]",
                 "finger_r_joint20",
             ],
-            velocity_limit_sim=30.0,
-            effort_limit_sim=5.15,    
-            stiffness=600.0,   
-            damping=20.0,
+            velocity_limit_sim=15.0,
+            effort_limit_sim=3.09,    
+            stiffness=500.0,   
+            damping=30.0,
         ),
 
         # Actuators for head joints

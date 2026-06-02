@@ -1,5 +1,11 @@
 # Changelog for package robotis_lab
 
+1.2.1 (2026-06-02)
+------------------
+* Added swerve odometry calculation. 
+* Updated `/odom` publishing in SH5 DDS bringup.
+* Contributors: Howon Kim
+
 1.2.0 (2026-05-28)
 ------------------
 * Updated FFW_SH5.usd for visualize simulation

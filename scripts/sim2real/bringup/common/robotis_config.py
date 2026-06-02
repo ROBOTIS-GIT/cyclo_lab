@@ -30,14 +30,16 @@ LIFT_POSITION_SCALE = 0.5
 
 # DDS output topics and base frame.
 CMD_VEL_TOPIC = "/cmd_vel"
+ODOM_TOPIC = "/odom"
 JOINT_STATES_TOPIC = "/joint_states"
 TF_TOPIC = "/tf"
 BASE_FRAME = "base_link"
+ODOM_FRAME = "odom"
 
 # Simulation timing and robot spawn pose.
 PUBLISH_HZ = 30.0
-STEP_HZ = 60.0
-RENDER_INTERVAL = 2
+STEP_HZ = 30.0
+RENDER_INTERVAL = 1
 ROBOT_POS = (0.0, 0.0, -0.18)
 
 # Swerve drive joint limits and cmd_vel timeout.
