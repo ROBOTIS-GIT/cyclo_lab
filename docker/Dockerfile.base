@@ -1,4 +1,4 @@
-# Copyright (c) 2024, Robotis Lab Project Developers.
+# Copyright (c) 2024, Cyclo Lab Project Developers.
 # All rights reserved.
 #
 # Based on Isaac Lab Dockerfile structure
@@ -13,16 +13,16 @@ ENV ISAACSIM_VERSION=${ISAACSIM_VERSION_ARG}
 SHELL ["/bin/bash", "-c"]
 
 # Adds labels to the Dockerfile
-LABEL version="1.0.0"
-LABEL description="Dockerfile for building and running the Isaac Lab and robotis_lab framework inside Isaac Sim container image."
+LABEL version="2.0.0"
+LABEL description="Dockerfile for building and running the Isaac Lab and Cyclo Lab framework inside Isaac Sim container image."
 
 # Arguments
 # Path to Isaac Sim root folder
 ARG ISAACSIM_ROOT_PATH_ARG
 ENV ISAACSIM_ROOT_PATH=${ISAACSIM_ROOT_PATH_ARG}
-# Path to the Robotis Lab directory
-ARG ROBOTISLAB_PATH_ARG
-ENV ROBOTISLAB_PATH=${ROBOTISLAB_PATH_ARG}
+# Path to the Cyclo Lab directory
+ARG CYCLOLAB_PATH_ARG
+ENV CYCLOLAB_PATH=${CYCLOLAB_PATH_ARG}
 # Home dir of docker user, typically '/root'
 ARG DOCKER_USER_HOME_ARG
 ENV DOCKER_USER_HOME=${DOCKER_USER_HOME_ARG}
@@ -44,6 +44,7 @@ RUN --mount=type=cache,target=/var/cache/apt \
     ncurses-term \
     wget \
     curl \
+    tmux \
     vim \
     python3-venv \
     python3-pip \
@@ -52,12 +53,12 @@ RUN --mount=type=cache,target=/var/cache/apt \
     && apt -y autoremove && apt clean autoclean \
     && rm -rf /var/lib/apt/lists/*
 
-# Copy the Robotis Lab directory including third_party submodules
+# Copy the Cyclo Lab directory including third_party submodules
 # (files to exclude are defined in .dockerignore)
-COPY ../ ${ROBOTISLAB_PATH}
+COPY ../ ${CYCLOLAB_PATH}
 
 # Set up Isaac Lab path from third_party
-ENV ISAACLAB_PATH=${ROBOTISLAB_PATH}/third_party/IsaacLab
+ENV ISAACLAB_PATH=${CYCLOLAB_PATH}/third_party/IsaacLab
 
 # Ensure isaaclab.sh has execute permissions
 RUN chmod +x ${ISAACLAB_PATH}/isaaclab.sh
@@ -110,7 +111,7 @@ RUN ${ISAACLAB_PATH}/isaaclab.sh -p -m pip uninstall -y quadprog
 #==
 
 # Build and install CycloneDDS from third_party submodule
-RUN cd ${ROBOTISLAB_PATH}/third_party/cyclonedds && \
+RUN cd ${CYCLOLAB_PATH}/third_party/cyclonedds && \
     mkdir -p build && cd build && \
     cmake -DCMAKE_INSTALL_PREFIX=${DOCKER_USER_HOME}/cyclonedds/install -DBUILD_EXAMPLES=ON .. && \
     cmake --build . && \
@@ -124,23 +125,23 @@ ENV PATH=${CYCLONEDDS_HOME}/bin:${PATH}
 
 # Install robotis_dds_python from third_party submodule
 RUN --mount=type=cache,target=${DOCKER_USER_HOME}/.cache/pip \
-    cd ${ROBOTISLAB_PATH}/third_party/robotis_dds_python && \
+    cd ${CYCLOLAB_PATH}/third_party/robotis_dds_python && \
     ${ISAACLAB_PATH}/isaaclab.sh -p -m pip install -e .
 
 #==
-# Install Robotis Lab
+# Install Cyclo Lab
 #==
 RUN --mount=type=cache,target=/var/cache/apt \
-    if [ -d "${ROBOTISLAB_PATH}/source" ]; then \
-        ${ISAACLAB_PATH}/isaaclab.sh -p ${ISAACLAB_PATH}/tools/install_deps.py apt ${ROBOTISLAB_PATH}/source || true; \
+    if [ -d "${CYCLOLAB_PATH}/source" ]; then \
+        ${ISAACLAB_PATH}/isaaclab.sh -p ${ISAACLAB_PATH}/tools/install_deps.py apt ${CYCLOLAB_PATH}/source || true; \
     fi && \
     apt -y autoremove && apt clean autoclean && \
     rm -rf /var/lib/apt/lists/*
 
-# Install Robotis Lab package in development mode
+# Install Cyclo Lab package in development mode
 RUN --mount=type=cache,target=${DOCKER_USER_HOME}/.cache/pip \
-    if [ -f ${ROBOTISLAB_PATH}/source/robotis_lab/setup.py ] || [ -f ${ROBOTISLAB_PATH}/source/robotis_lab/pyproject.toml ]; then \
-        cd ${ROBOTISLAB_PATH}/source/robotis_lab && \
+    if [ -f ${CYCLOLAB_PATH}/source/cyclo_lab/setup.py ] || [ -f ${CYCLOLAB_PATH}/source/cyclo_lab/pyproject.toml ]; then \
+        cd ${CYCLOLAB_PATH}/source/cyclo_lab && \
         ${ISAACLAB_PATH}/isaaclab.sh -p -m pip install -e .; \
     fi
 
@@ -160,7 +161,7 @@ RUN --mount=type=cache,target=${DOCKER_USER_HOME}/.cache/pip \
 # Set up aliases and environment
 RUN echo "# Environment variables" >> ${DOCKER_USER_HOME}/.bashrc && \
     echo "export ISAACLAB_PATH=${ISAACLAB_PATH}" >> ${DOCKER_USER_HOME}/.bashrc && \
-    echo "export ROBOTISLAB_PATH=${ROBOTISLAB_PATH}" >> ${DOCKER_USER_HOME}/.bashrc && \
+    echo "export CYCLOLAB_PATH=${CYCLOLAB_PATH}" >> ${DOCKER_USER_HOME}/.bashrc && \
     echo "export CYCLONEDDS_HOME=${CYCLONEDDS_HOME}" >> ${DOCKER_USER_HOME}/.bashrc && \
     echo "export CMAKE_PREFIX_PATH=${CYCLONEDDS_HOME}:\$CMAKE_PREFIX_PATH" >> ${DOCKER_USER_HOME}/.bashrc && \
     echo "export LD_LIBRARY_PATH=${CYCLONEDDS_HOME}/lib:\$LD_LIBRARY_PATH" >> ${DOCKER_USER_HOME}/.bashrc && \
@@ -186,8 +187,8 @@ RUN echo "# Environment variables" >> ${DOCKER_USER_HOME}/.bashrc && \
     echo "alias lerobot-python='\${LEROBOT_VENV}/bin/python3'" >> ${DOCKER_USER_HOME}/.bashrc && \
     echo "alias lerobot-pip='\${LEROBOT_VENV}/bin/pip'" >> ${DOCKER_USER_HOME}/.bashrc
 
-# make working directory as the Robotis Lab directory
-WORKDIR ${ROBOTISLAB_PATH}
+# make working directory as the Cyclo Lab directory
+WORKDIR ${CYCLOLAB_PATH}
 
 # Set entrypoint to create symlinks after volumes are mounted
 ENTRYPOINT ["/entrypoint.sh"]

@@ -81,7 +81,7 @@ from isaaclab_mimic.datagen.utils import get_env_name_from_dataset, setup_output
 
 import isaaclab_tasks  # noqa: F401
 
-import robotis_lab  # noqa: F401
+import cyclo_lab  # noqa: F401
 
 
 def main():

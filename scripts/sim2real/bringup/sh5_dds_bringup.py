@@ -79,7 +79,7 @@ from robotis_dds_python.idl.tf2_msgs.msg import TFMessage_
 from robotis_dds_python.idl.trajectory_msgs.msg import JointTrajectory_
 from robotis_dds_python.tools.topic_manager import TopicManager
 
-from robotis_lab.assets.robots import (
+from cyclo_lab.assets.robots import (
     FFW_SH5_CFG,
     SH5_SWERVE_MODULE_ANGLE_OFFSETS,
     SH5_SWERVE_MODULE_X_OFFSETS,

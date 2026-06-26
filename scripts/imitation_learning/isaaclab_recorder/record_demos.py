@@ -119,7 +119,7 @@ from isaaclab.managers import DatasetExportMode
 import isaaclab_tasks  # noqa: F401
 from isaaclab_tasks.utils.parse_cfg import parse_env_cfg
 
-import robotis_lab
+import cyclo_lab
 
 class RateLimiter:
     """Convenience class for enforcing rates in loops."""

@@ -69,7 +69,7 @@ from isaaclab_tasks.utils import get_checkpoint_path, load_cfg_from_registry, pa
 
 # PLACEHOLDER: Extension template (do not remove this comment)
 
-import robotis_lab  # noqa: F401
+import cyclo_lab  # noqa: F401
 
 
 def main():

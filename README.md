@@ -1,4 +1,4 @@
-# robotis_lab
+# cyclo_lab
 
 [![IsaacSim](https://img.shields.io/badge/IsaacSim-5.1.0-silver.svg)](https://docs.isaacsim.omniverse.nvidia.com/latest/index.html)
 [![Isaac Lab](https://img.shields.io/badge/IsaacLab-2.3.0-silver)](https://isaac-sim.github.io/IsaacLab/main/index.html)
@@ -10,7 +10,7 @@ https://github.com/user-attachments/assets/28347b4b-f90c-4a4f-8916-621f917d86cb
 
 ## Overview
 
-**robotis_lab** is a research-oriented repository based on [Isaac Lab](https://isaac-sim.github.io/IsaacLab), designed to enable reinforcement learning (RL) and imitation learning (IL) experiments using Robotis robots in simulation.
+**cyclo_lab** is a research-oriented repository based on [Isaac Lab](https://isaac-sim.github.io/IsaacLab), designed to enable reinforcement learning (RL) and imitation learning (IL) experiments using Robotis robots in simulation.
 This project provides simulation environments, configuration tools, and task definitions tailored for Robotis hardware, leveraging NVIDIA Isaac Sim’s powerful GPU-accelerated physics engine and Isaac Lab’s modular RL pipeline.
 
 > [!IMPORTANT]
@@ -28,11 +28,11 @@ Docker installation provides a consistent environment with all dependencies pre-
 
 **Steps:**
 
-1. Clone robotis_lab repository with submodules:
+1. Clone cyclo_lab repository with submodules:
 
    ```bash
-   git clone --recurse-submodules https://github.com/ROBOTIS-GIT/robotis_lab.git
-   cd robotis_lab
+   git clone --recurse-submodules https://github.com/ROBOTIS-GIT/cyclo_lab.git
+   cd cyclo_lab
    ```
 
    If you already cloned without submodules, initialize them:
@@ -77,40 +77,40 @@ Docker installation provides a consistent environment with all dependencies pre-
 
 ```bash
 # Train
-python scripts/reinforcement_learning/rsl_rl/train.py --task RobotisLab-Reach-OMY-v0 --num_envs=512 --headless
+python scripts/reinforcement_learning/rsl_rl/train.py --task Cyclo-Reach-OMY-v0 --num_envs=512 --headless
 
 # Play
-python scripts/reinforcement_learning/rsl_rl/play.py --task RobotisLab-Reach-OMY-v0 --num_envs=16
+python scripts/reinforcement_learning/rsl_rl/play.py --task Cyclo-Reach-OMY-v0 --num_envs=16
 ```
 
 **OMY Lift Task**
 
 ```bash
 # Train
-python scripts/reinforcement_learning/rsl_rl/train.py --task RobotisLab-Lift-Cube-OMY-v0 --num_envs=512 --headless
+python scripts/reinforcement_learning/rsl_rl/train.py --task Cyclo-Lift-Cube-OMY-v0 --num_envs=512 --headless
 
 # Play
-python scripts/reinforcement_learning/rsl_rl/play.py --task RobotisLab-Lift-Cube-OMY-v0 --num_envs=16
+python scripts/reinforcement_learning/rsl_rl/play.py --task Cyclo-Lift-Cube-OMY-v0 --num_envs=16
 ```
 
 **OMY Open drawer Task**
 
 ```bash
 # Train
-python scripts/reinforcement_learning/rsl_rl/train.py --task RobotisLab-Open-Drawer-OMY-v0 --num_envs=512 --headless
+python scripts/reinforcement_learning/rsl_rl/train.py --task Cyclo-Open-Drawer-OMY-v0 --num_envs=512 --headless
 
 # Play
-python scripts/reinforcement_learning/rsl_rl/play.py --task RobotisLab-Open-Drawer-OMY-v0 --num_envs=16
+python scripts/reinforcement_learning/rsl_rl/play.py --task Cyclo-Open-Drawer-OMY-v0 --num_envs=16
 ```
 
 **FFW-BG2 reach Task**
 
 ```bash
 # Train
-python scripts/reinforcement_learning/rsl_rl/train.py --task RobotisLab-Reach-FFW-BG2-v0 --num_envs=512 --headless
+python scripts/reinforcement_learning/rsl_rl/train.py --task Cyclo-Reach-FFW-BG2-v0 --num_envs=512 --headless
 
 # Play
-python scripts/reinforcement_learning/rsl_rl/play.py --task RobotisLab-Reach-FFW-BG2-v0 --num_envs=16
+python scripts/reinforcement_learning/rsl_rl/play.py --task Cyclo-Reach-FFW-BG2-v0 --num_envs=16
 ```
 
 </details>
@@ -140,10 +140,10 @@ python scripts/reinforcement_learning/rsl_rl/play.py --task RobotisLab-Reach-FFW
 
 ```bash
 # Teleop and record
-python scripts/imitation_learning/isaaclab_recorder/record_demos.py --task RobotisLab-Stack-Cube-OMY-IK-Rel-v0 --teleop_device keyboard --dataset_file ./datasets/dataset.hdf5 --num_demos 10
+python scripts/imitation_learning/isaaclab_recorder/record_demos.py --task Cyclo-Stack-Cube-OMY-IK-Rel-v0 --teleop_device keyboard --dataset_file ./datasets/dataset.hdf5 --num_demos 10
 
 # Annotate
-python scripts/imitation_learning/isaaclab_mimic/annotate_demos.py --device cuda --task RobotisLab-Stack-Cube-OMY-IK-Rel-Mimic-v0 --auto --input_file ./datasets/dataset.hdf5 --output_file ./datasets/annotated_dataset.hdf5 --headless
+python scripts/imitation_learning/isaaclab_mimic/annotate_demos.py --device cuda --task Cyclo-Stack-Cube-OMY-IK-Rel-Mimic-v0 --auto --input_file ./datasets/dataset.hdf5 --output_file ./datasets/annotated_dataset.hdf5 --headless
 
 # Mimic data
 python scripts/imitation_learning/isaaclab_mimic/generate_dataset.py \
@@ -152,12 +152,12 @@ python scripts/imitation_learning/isaaclab_mimic/generate_dataset.py \
 
 # Train
 python scripts/imitation_learning/robomimic/train.py \
---task RobotisLab-Stack-Cube-OMY-IK-Rel-v0 --algo bc \
+--task Cyclo-Stack-Cube-OMY-IK-Rel-v0 --algo bc \
 --dataset ./datasets/generated_dataset.hdf5
 
 # Play
 python scripts/imitation_learning/robomimic/play.py \
---device cuda --task RobotisLab-Stack-Cube-OMY-IK-Rel-v0 --num_rollouts 50 \
+--device cuda --task Cyclo-Stack-Cube-OMY-IK-Rel-v0 --num_rollouts 50 \
 --checkpoint /PATH/TO/desired_model_checkpoint.pth
 ```
 
@@ -165,10 +165,10 @@ python scripts/imitation_learning/robomimic/play.py \
 
 ```bash
 # Teleop and record
-python scripts/imitation_learning/isaaclab_recorder/record_demos.py --task RobotisLab-PickPlace-FFW-BG2-IK-Rel-v0 --teleop_device keyboard --dataset_file ./datasets/dataset.hdf5 --num_demos 10 --enable_cameras
+python scripts/imitation_learning/isaaclab_recorder/record_demos.py --task Cyclo-PickPlace-FFW-BG2-IK-Rel-v0 --teleop_device keyboard --dataset_file ./datasets/dataset.hdf5 --num_demos 10 --enable_cameras
 
 # Annotate
-python scripts/imitation_learning/isaaclab_mimic/annotate_demos.py --device cuda --task RobotisLab-PickPlace-FFW-BG2-Mimic-v0 --input_file ./datasets/dataset.hdf5 --output_file ./datasets/annotated_dataset.hdf5 --enable_cameras
+python scripts/imitation_learning/isaaclab_mimic/annotate_demos.py --device cuda --task Cyclo-PickPlace-FFW-BG2-Mimic-v0 --input_file ./datasets/dataset.hdf5 --output_file ./datasets/annotated_dataset.hdf5 --enable_cameras
 
 # Mimic data
 python scripts/imitation_learning/isaaclab_mimic/generate_dataset.py \
@@ -177,12 +177,12 @@ python scripts/imitation_learning/isaaclab_mimic/generate_dataset.py \
 
 # Train
 python scripts/imitation_learning/robomimic/train.py \
---task RobotisLab-PickPlace-FFW-BG2-IK-Rel-v0 --algo bc \
+--task Cyclo-PickPlace-FFW-BG2-IK-Rel-v0 --algo bc \
 --dataset ./datasets/generated_dataset.hdf5
 
 # Play
 python scripts/imitation_learning/robomimic/play.py \
---device cuda --task RobotisLab-PickPlace-FFW-BG2-IK-Rel-v0  --num_rollouts 50 \
+--device cuda --task Cyclo-PickPlace-FFW-BG2-IK-Rel-v0  --num_rollouts 50 \
 --checkpoint /PATH/TO/desired_model_checkpoint.pth --enable_cameras
 ```
 </details>
@@ -237,10 +237,10 @@ Run Sim2Real Reach Policy on OMY
 
 ```bash
 # Train
-python scripts/reinforcement_learning/rsl_rl/train.py --task RobotisLab-Reach-OMY-v0 --num_envs=512 --headless
+python scripts/reinforcement_learning/rsl_rl/train.py --task Cyclo-Reach-OMY-v0 --num_envs=512 --headless
 
 # Play (You must run rsl_rl play in order to generate the policy file.)
-python scripts/reinforcement_learning/rsl_rl/play.py --task RobotisLab-Reach-OMY-v0 --num_envs=16
+python scripts/reinforcement_learning/rsl_rl/play.py --task Cyclo-Reach-OMY-v0 --num_envs=16
 
 # Sim2Real
 python scripts/sim2real/reinforcement_learning/inference/OMY/reach/run_omy_reach.py --model_dir=<2025-07-10_08-47-09>
@@ -268,7 +268,7 @@ https://github.com/user-attachments/assets/8ec9d245-f8e0-4bcc-b683-0ea2864de495
 
 * Teleop and record demos
 ```bash
-python scripts/sim2real/imitation_learning/recorder/record_demos.py --task=RobotisLab-Real-Pick-Place-Bottle-OMY-v0 --robot_type OMY --dataset_file ./datasets/omy_pick_place_task.hdf5 --num_demos 10 --enable_cameras
+python scripts/sim2real/imitation_learning/recorder/record_demos.py --task=Cyclo-Real-Pick-Place-Bottle-OMY-v0 --robot_type OMY --dataset_file ./datasets/omy_pick_place_task.hdf5 --num_demos 10 --enable_cameras
 
 ```
 
@@ -279,10 +279,10 @@ python scripts/sim2real/imitation_learning/recorder/record_demos.py --task=Robot
 python scripts/sim2real/imitation_learning/mimic/action_data_converter.py --robot_type OMY --input_file ./datasets/omy_pick_place_task.hdf5 --output_file ./datasets/processed_omy_pick_place_task.hdf5 --action_type ik
 
 # Annotate dataset
-python scripts/sim2real/imitation_learning/mimic/annotate_demos.py --task RobotisLab-Real-Mimic-Pick-Place-Bottle-OMY-v0 --auto --input_file ./datasets/processed_omy_pick_place_task.hdf5 --output_file ./datasets/annotated_dataset.hdf5 --enable_cameras --headless
+python scripts/sim2real/imitation_learning/mimic/annotate_demos.py --task Cyclo-Real-Mimic-Pick-Place-Bottle-OMY-v0 --auto --input_file ./datasets/processed_omy_pick_place_task.hdf5 --output_file ./datasets/annotated_dataset.hdf5 --enable_cameras --headless
 
 # Generate dataset
-python scripts/sim2real/imitation_learning/mimic/generate_dataset.py --device cuda --num_envs 10 --task RobotisLab-Real-Mimic-Pick-Place-Bottle-OMY-v0 --generation_num_trials 500 --input_file ./datasets/annotated_dataset.hdf5 --output_file ./datasets/generated_dataset.hdf5 --enable_cameras --headless
+python scripts/sim2real/imitation_learning/mimic/generate_dataset.py --device cuda --num_envs 10 --task Cyclo-Real-Mimic-Pick-Place-Bottle-OMY-v0 --generation_num_trials 500 --input_file ./datasets/annotated_dataset.hdf5 --output_file ./datasets/generated_dataset.hdf5 --enable_cameras --headless
 
 # Data convert joint action from ee_pose action
 python scripts/sim2real/imitation_learning/mimic/action_data_converter.py --robot_type OMY --input_file ./datasets/generated_dataset.hdf5 --output_file ./datasets/processed_generated_dataset.hdf5 --action_type joint
@@ -292,7 +292,7 @@ python scripts/sim2real/imitation_learning/mimic/action_data_converter.py --robo
 * Data convert lerobot dataset from IsaacLab hdf dataset
 ```bash
 lerobot-python scripts/sim2real/imitation_learning/data_converter/isaaclab2lerobot.py \
-    --task=RobotisLab-Real-Pick-Place-Bottle-OMY-v0 \
+    --task=Cyclo-Real-Pick-Place-Bottle-OMY-v0 \
     --robot_type OMY \
     --dataset_file ./datasets/processed_generated_dataset.hdf5
 
@@ -300,7 +300,7 @@ lerobot-python scripts/sim2real/imitation_learning/data_converter/isaaclab2lerob
 
 * Inference in simulation
 ```bash
-python scripts/sim2real/imitation_learning/inference/inference_demos.py --task RobotisLab-Real-Pick-Place-Bottle-OMY-v0 --robot_type OMY --enable_cameras
+python scripts/sim2real/imitation_learning/inference/inference_demos.py --task Cyclo-Real-Pick-Place-Bottle-OMY-v0 --robot_type OMY --enable_cameras
 
 ```
 
@@ -310,7 +310,7 @@ https://github.com/user-attachments/assets/cdb3afca-f0db-4fb6-bf17-e361f3aa254b
 
 * Teleop and record demos
 ```bash
-python scripts/sim2real/imitation_learning/recorder/record_demos.py --task=RobotisLab-Real-Pick-Place-FFW-SG2-v0 --robot_type FFW_SG2 --dataset_file ./datasets/ffw_sg2_raw.hdf5 --num_demos 4 --enable_cameras
+python scripts/sim2real/imitation_learning/recorder/record_demos.py --task=Cyclo-Real-Pick-Place-FFW-SG2-v0 --robot_type FFW_SG2 --dataset_file ./datasets/ffw_sg2_raw.hdf5 --num_demos 4 --enable_cameras
 
 ```
 
@@ -321,10 +321,10 @@ python scripts/sim2real/imitation_learning/recorder/record_demos.py --task=Robot
 python scripts/sim2real/imitation_learning/mimic/action_data_converter.py --robot_type FFW_SG2 --input_file ./datasets/ffw_sg2_raw.hdf5 --output_file ./datasets/ffw_sg2_ik.hdf5 --action_type ik
 
 # Annotate dataset
-python scripts/sim2real/imitation_learning/mimic/annotate_demos.py --task RobotisLab-Real-Mimic-Pick-Place-FFW-SG2-v0 --auto --input_file ./datasets/ffw_sg2_ik.hdf5 --output_file ./datasets/ffw_sg2_annotate.hdf5 --enable_cameras --headless
+python scripts/sim2real/imitation_learning/mimic/annotate_demos.py --task Cyclo-Real-Mimic-Pick-Place-FFW-SG2-v0 --auto --input_file ./datasets/ffw_sg2_ik.hdf5 --output_file ./datasets/ffw_sg2_annotate.hdf5 --enable_cameras --headless
 
 # Generate dataset
-python scripts/sim2real/imitation_learning/mimic/generate_dataset.py --device cuda --num_envs 10 --task RobotisLab-Real-Mimic-Pick-Place-FFW-SG2-v0 --generation_num_trials 500 --input_file ./datasets/ffw_sg2_annotate.hdf5 --output_file ./datasets/ffw_sg2_generate.hdf5 --enable_cameras --headless
+python scripts/sim2real/imitation_learning/mimic/generate_dataset.py --device cuda --num_envs 10 --task Cyclo-Real-Mimic-Pick-Place-FFW-SG2-v0 --generation_num_trials 500 --input_file ./datasets/ffw_sg2_annotate.hdf5 --output_file ./datasets/ffw_sg2_generate.hdf5 --enable_cameras --headless
 
 # Data convert joint action from ee_pose action
 python scripts/sim2real/imitation_learning/mimic/action_data_converter.py --robot_type FFW_SG2 --input_file ./datasets/ffw_sg2_generate.hdf5 --output_file ./datasets/ffw_sg2_final.hdf5 --action_type joint
@@ -334,7 +334,7 @@ python scripts/sim2real/imitation_learning/mimic/action_data_converter.py --robo
 * Data convert lerobot dataset from IsaacLab hdf dataset
 ```bash
 lerobot-python scripts/sim2real/imitation_learning/data_converter/isaaclab2lerobot.py \
-    --task=RobotisLab-Real-Pick-Place-FFW-SG2-v0 \
+    --task=Cyclo-Real-Pick-Place-FFW-SG2-v0 \
     --robot_type FFW_SG2 \
     --dataset_file ./datasets/ffw_sg2_final.hdf5
 
@@ -342,7 +342,7 @@ lerobot-python scripts/sim2real/imitation_learning/data_converter/isaaclab2lerob
 
 * Inference in simulation
 ```bash
-python scripts/sim2real/imitation_learning/inference/inference_demos.py --task RobotisLab-Real-Pick-Place-FFW-SG2-v0  --robot_type FFW_SG2 --enable_cameras
+python scripts/sim2real/imitation_learning/inference/inference_demos.py --task Cyclo-Real-Pick-Place-FFW-SG2-v0  --robot_type FFW_SG2 --enable_cameras
 
 ```
 

@@ -19,7 +19,7 @@
 #
 # SPDX-License-Identifier: BSD-3-Clause
 
-"""Script to run a robotis_lab teleoperation with robotis_lab manipulation environments."""
+"""Script to run a cyclo_lab teleoperation with cyclo_lab manipulation environments."""
 
 """Launch Isaac Sim Simulator first."""
 import multiprocessing
@@ -30,7 +30,7 @@ import argparse
 from isaaclab.app import AppLauncher
 
 # add argparse arguments
-parser = argparse.ArgumentParser(description="robotis_lab teleoperation for robotis_lab environments.")
+parser = argparse.ArgumentParser(description="cyclo_lab teleoperation for cyclo_lab environments.")
 parser.add_argument("--robot_type", type=str, default="keyboard", choices=['OMY', 'FFW_SG2'], help="Type of robot to use for teleoperation.")
 parser.add_argument("--task", type=str, default=None, help="Name of the task.")
 parser.add_argument("--seed", type=int, default=42, help="Seed for the environment.")
@@ -60,7 +60,7 @@ from isaaclab.envs import ManagerBasedRLEnv
 from isaaclab_tasks.utils import parse_env_cfg
 from isaaclab.managers import TerminationTermCfg, DatasetExportMode
 
-import robotis_lab
+import cyclo_lab
 import sys
 import sys, os
 
@@ -96,7 +96,7 @@ class RateLimiter:
 
 
 def main():
-    """Running robotis_lab teleoperation with robotis_lab manipulation environment."""
+    """Running cyclo_lab teleoperation with cyclo_lab manipulation environment."""
 
     # get directory path and file name (without extension) from cli arguments
     output_dir = os.path.dirname(args_cli.dataset_file)

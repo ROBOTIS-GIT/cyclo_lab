@@ -1,4 +1,16 @@
-# Changelog for package robotis_lab
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+Changelog for package cyclo_lab
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+2.0.0 (2026-06-26)
+------------------
+* Renamed the extension package from ``robotis_lab`` to ``cyclo_lab``.
+* Added AI Sapiens K1 Rev.1 robot asset configuration.
+* Added K1 Rev.1 locomotion and mimic tracking task configurations.
+* Added K1 Rev.1 dance motion datasets.
+* Added motion conversion and kinematics-only replay tools.
+* Added ``ai_sapiens`` as a third-party submodule.
+* Contributors: Woojin Wie, Woojae Lee, Kiwoong Park
 
 1.2.1 (2026-06-02)
 ------------------
@@ -52,7 +64,7 @@ Fixed
 * Added comprehensive Docker containerization for consistent development environment
 * Docker Infrastructure:
     * Created `Dockerfile.base` based on NVIDIA Isaac Sim container image
-    * Implemented multi-stage build with Isaac Lab and Robotis Lab integration
+    * Implemented multi-stage build with Isaac Lab and Cyclo Lab integration
     * Added `docker-compose.yaml` with volume management for caches, logs, and datasets
     * Created `container.sh` management script with build, start, enter, stop, clean, and logs commands
     * Implemented X11 forwarding support for GUI applications through `x11.yaml`

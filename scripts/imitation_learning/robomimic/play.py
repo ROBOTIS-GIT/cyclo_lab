@@ -71,7 +71,7 @@ if args_cli.enable_pinocchio:
 
 from isaaclab_tasks.utils import parse_env_cfg
 
-import robotis_lab  # noqa: F401
+import cyclo_lab  # noqa: F401
 
 
 def rollout(policy, env, success_term, horizon, device):

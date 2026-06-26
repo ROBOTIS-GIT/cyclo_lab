@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# Copyright (c) 2024, Robotis Lab Project Developers.
+# Copyright (c) 2024, Cyclo Lab Project Developers.
 # All rights reserved.
 
 # This script is the entrypoint for the Docker container

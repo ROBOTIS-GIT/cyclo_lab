@@ -28,7 +28,7 @@ import argparse
 from isaaclab.app import AppLauncher
 
 # add argparse arguments
-parser = argparse.ArgumentParser(description="Inference script for robotis_lab environments.")
+parser = argparse.ArgumentParser(description="Inference script for cyclo_lab environments.")
 parser.add_argument("--task", type=str, required=True, help="Name of the task.")
 parser.add_argument("--seed", type=int, default=42, help="Seed for the environment.")
 parser.add_argument("--step_hz", type=int, default=60, help="Environment stepping rate in Hz.")
@@ -50,7 +50,7 @@ from isaaclab_tasks.utils import parse_env_cfg
 import sys, os
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-import robotis_lab
+import cyclo_lab
 
 class RateLimiter:
     """Simple class for enforcing a loop frequency."""

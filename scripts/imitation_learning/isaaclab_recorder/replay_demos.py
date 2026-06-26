@@ -71,7 +71,7 @@ if args_cli.enable_pinocchio:
 import isaaclab_tasks  # noqa: F401
 from isaaclab_tasks.utils.parse_cfg import parse_env_cfg
 
-import robotis_lab  # noqa: F401
+import cyclo_lab  # noqa: F401
 
 is_paused = False
 

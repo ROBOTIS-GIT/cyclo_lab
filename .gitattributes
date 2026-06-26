@@ -5,8 +5,18 @@
 *.dae filter=lfs diff=lfs merge=lfs -text
 *.mtl filter=lfs diff=lfs merge=lfs -text
 *.obj filter=lfs diff=lfs merge=lfs -text
+*.stl filter=lfs diff=lfs merge=lfs -text
 *.gif filter=lfs diff=lfs merge=lfs -text
 *.mp4 filter=lfs diff=lfs merge=lfs -text
+*.npz filter=lfs diff=lfs merge=lfs -text
 *.pt filter=lfs diff=lfs merge=lfs -text
 *.jit filter=lfs diff=lfs merge=lfs -text
 *.hdf5 filter=lfs diff=lfs merge=lfs -text
+
+# Legacy assets were committed as normal Git blobs before the CycloLab rename.
+# Keep those moved files as blobs so GitHub can display them as renames.
+source/cyclo_lab/data/object/*.usd -filter -diff -merge -text
+source/cyclo_lab/data/robots/FFW/FFW_BG2.usd -filter -diff -merge -text
+source/cyclo_lab/data/robots/FFW/FFW_BG2_without_mimic.usd -filter -diff -merge -text
+source/cyclo_lab/data/robots/FFW/FFW_SG2.usd -filter -diff -merge -text
+source/cyclo_lab/data/robots/OMY/OMY.usd -filter -diff -merge -text
