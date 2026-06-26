@@ -24,4 +24,4 @@ jobs:
 
     - name: Run flake8
       run: |
-        flake8 source/robotis_lab
+        flake8 source/cyclo_lab
