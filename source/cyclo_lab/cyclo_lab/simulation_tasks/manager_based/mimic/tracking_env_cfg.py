@@ -339,13 +339,3 @@ class TrackingEnvCfg(ManagerBasedRLEnvCfg):
         self.sim.render_interval = self.decimation
         self.sim.physics_material = self.scene.terrain.physics_material
         self.sim.physx.gpu_max_rigid_patch_count = 10 * 2**15
-
-
-# Backwards-compatible names used by the K1 Rev.1 mimic configs.
-TrackingSceneCfg = MySceneCfg
-ReferenceCommandsCfg = CommandsCfg
-TrackingActionsCfg = ActionsCfg
-TrackingObservationsCfg = ObservationsCfg
-TrackingEventsCfg = EventCfg
-TrackingRewardsCfg = RewardsCfg
-TrackingTerminationsCfg = TerminationsCfg
