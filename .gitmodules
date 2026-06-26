@@ -7,3 +7,7 @@
 [submodule "third_party/robotis_dds_python"]
 	path = third_party/robotis_dds_python
 	url = https://github.com/ROBOTIS-GIT/robotis_dds_python.git
+[submodule "third_party/ai_sapiens"]
+	path = third_party/ai_sapiens
+	url = https://github.com/ROBOTIS-GIT/ai_sapiens.git
+	branch = main

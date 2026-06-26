@@ -1,19 +1,19 @@
-# Copyright (c) 2024, Robotis Lab Project Developers.
+# Copyright (c) 2024, Cyclo Lab Project Developers.
 # All rights reserved.
 #
 # Based on Isaac Lab x11.yaml
 
 services:
-  robotis_lab:
+  cyclo_lab:
     environment:
       - DISPLAY
       - TERM
       - QT_X11_NO_MITSHM=1
-      - XAUTHORITY=${__ROBOTISLAB_TMP_XAUTH}
+      - XAUTHORITY=${__CYCLOLAB_TMP_XAUTH}
     volumes:
     - type: bind
-      source: ${__ROBOTISLAB_TMP_DIR}
-      target: ${__ROBOTISLAB_TMP_DIR}
+      source: ${__CYCLOLAB_TMP_DIR}
+      target: ${__CYCLOLAB_TMP_DIR}
     - type: bind
       source: /tmp/.X11-unix
       target: /tmp/.X11-unix

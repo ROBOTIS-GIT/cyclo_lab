@@ -1,4 +1,6 @@
-# Changelog for package robotis_lab
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+Changelog for package cyclo_lab
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 1.2.1 (2026-06-02)
 ------------------
@@ -52,7 +54,7 @@ Fixed
 * Added comprehensive Docker containerization for consistent development environment
 * Docker Infrastructure:
     * Created `Dockerfile.base` based on NVIDIA Isaac Sim container image
-    * Implemented multi-stage build with Isaac Lab and Robotis Lab integration
+    * Implemented multi-stage build with Isaac Lab and Cyclo Lab integration
     * Added `docker-compose.yaml` with volume management for caches, logs, and datasets
     * Created `container.sh` management script with build, start, enter, stop, clean, and logs commands
     * Implemented X11 forwarding support for GUI applications through `x11.yaml`

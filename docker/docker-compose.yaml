@@ -1,8 +1,8 @@
-# Copyright (c) 2024, Robotis Lab Project Developers.
+# Copyright (c) 2024, Cyclo Lab Project Developers.
 # All rights reserved.
 
 # Extension fields for reusable configurations
-x-default-robotis-lab-volumes: &default-robotis-lab-volumes
+x-default-cyclo-lab-volumes: &default-cyclo-lab-volumes
   # Isaac Sim cache volumes
   - type: volume
     source: isaac-cache-kit
@@ -31,19 +31,10 @@ x-default-robotis-lab-volumes: &default-robotis-lab-volumes
   - type: volume
     source: isaac-docs
     target: ${DOCKER_USER_HOME}/Documents
-  # Bind mount for Robotis Lab source code (includes third_party submodules)
+  # Bind mount the Cyclo Lab repository so source files and Git state match the host checkout.
   - type: bind
-    source: ../source
-    target: ${DOCKER_ROBOTISLAB_PATH}/source
-  - type: bind
-    source: ../scripts
-    target: ${DOCKER_ROBOTISLAB_PATH}/scripts
-  - type: bind
-    source: ../datasets
-    target: ${DOCKER_ROBOTISLAB_PATH}/datasets
-  - type: bind
-    source: ../third_party
-    target: ${DOCKER_ROBOTISLAB_PATH}/third_party
+    source: ../
+    target: ${DOCKER_CYCLOLAB_PATH}
   # Isaac Lab volumes for artifacts (third_party/IsaacLab)
   - type: volume
     source: isaac-lab-docs
@@ -54,29 +45,22 @@ x-default-robotis-lab-volumes: &default-robotis-lab-volumes
   - type: volume
     source: isaac-lab-data
     target: ${DOCKER_ISAACLAB_PATH}/data_storage
-  # Robotis Lab bind mounts for logs and outputs (persistent on host)
-  - type: bind
-    source: ../logs
-    target: ${DOCKER_ROBOTISLAB_PATH}/logs
-  - type: bind
-    source: ../outputs
-    target: ${DOCKER_ROBOTISLAB_PATH}/outputs
   # Bash history
   - type: bind
-    source: .robotis-lab-docker-history
+    source: .cyclo-lab-docker-history
     target: ${DOCKER_USER_HOME}/.bash_history
 
-x-default-robotis-lab-environment: &default-robotis-lab-environment
+x-default-cyclo-lab-environment: &default-cyclo-lab-environment
   - ISAACSIM_PATH=${DOCKER_ISAACSIM_ROOT_PATH}
   - ISAACLAB_PATH=${DOCKER_ISAACLAB_PATH}
-  - ROBOTISLAB_PATH=${DOCKER_ROBOTISLAB_PATH}
+  - CYCLOLAB_PATH=${DOCKER_CYCLOLAB_PATH}
   - OMNI_KIT_ALLOW_ROOT=1
   - ACCEPT_EULA=${ACCEPT_EULA}
   - PRIVACY_CONSENT=Y
   - NVIDIA_VISIBLE_DEVICES=all
   - NVIDIA_DRIVER_CAPABILITIES=all
 
-x-default-robotis-lab-deploy: &default-robotis-lab-deploy
+x-default-cyclo-lab-deploy: &default-cyclo-lab-deploy
   resources:
     reservations:
       devices:
@@ -85,11 +69,11 @@ x-default-robotis-lab-deploy: &default-robotis-lab-deploy
           capabilities: [ gpu ]
 
 services:
-  robotis_lab:
+  cyclo_lab:
     profiles: [ "base" ]
     env_file: .env.base
-    image: robotis/robotis-lab${DOCKER_NAME_SUFFIX}:latest
-    container_name: robotis_lab${DOCKER_NAME_SUFFIX}
+    image: cyclolab/cyclo-lab${DOCKER_NAME_SUFFIX}:latest
+    container_name: cyclo_lab${DOCKER_NAME_SUFFIX}
     build:
       context: ../
       dockerfile: docker/Dockerfile.base
@@ -97,7 +81,7 @@ services:
         - ISAACSIM_BASE_IMAGE_ARG=${ISAACSIM_BASE_IMAGE}
         - ISAACSIM_VERSION_ARG=${ISAACSIM_VERSION}
         - ISAACSIM_ROOT_PATH_ARG=${DOCKER_ISAACSIM_ROOT_PATH}
-        - ROBOTISLAB_PATH_ARG=${DOCKER_ROBOTISLAB_PATH}
+        - CYCLOLAB_PATH_ARG=${DOCKER_CYCLOLAB_PATH}
         - DOCKER_USER_HOME_ARG=${DOCKER_USER_HOME}
       network: host
     stdin_open: true
@@ -105,9 +89,9 @@ services:
     network_mode: host
     privileged: true
     shm_size: "16gb"
-    volumes: *default-robotis-lab-volumes
-    environment: *default-robotis-lab-environment
-    deploy: *default-robotis-lab-deploy
+    volumes: *default-cyclo-lab-volumes
+    environment: *default-cyclo-lab-environment
+    deploy: *default-cyclo-lab-deploy
 
 volumes:
   isaac-cache-kit:

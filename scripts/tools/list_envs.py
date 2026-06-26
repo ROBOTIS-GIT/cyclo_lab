@@ -43,11 +43,11 @@ simulation_app = app_launcher.app
 import gymnasium as gym
 from prettytable import PrettyTable
 
-import robotis_lab  # noqa: F401
+import cyclo_lab  # noqa: F401
 
 
 def main():
-    """Print all environments registered in `robotis_lab` extension."""
+    """Print all environments registered in `cyclo_lab` extension."""
     # print all the available environments
     table = PrettyTable(["S. No.", "Task Name", "Entry Point", "Config"])
     table.title = "Available Environments in Isaac Lab"
@@ -60,7 +60,7 @@ def main():
     index = 0
     # acquire all Isaac environments names
     for task_spec in gym.registry.values():
-        if "RobotisLab" in task_spec.id:
+        if task_spec.id.startswith("Cyclo-"):
             # add details to table
             table.add_row([index + 1, task_spec.id, task_spec.entry_point, task_spec.kwargs["env_cfg_entry_point"]])
             # increment count

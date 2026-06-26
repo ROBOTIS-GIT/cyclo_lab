@@ -81,7 +81,7 @@ from isaaclab_rl.rl_games import RlGamesGpuEnv, RlGamesVecEnvWrapper
 import isaaclab_tasks  # noqa: F401
 from isaaclab_tasks.utils.hydra import hydra_task_config
 
-import robotis_lab  # noqa: F401
+import cyclo_lab  # noqa: F401
 # PLACEHOLDER: Extension template (do not remove this comment)
 
 

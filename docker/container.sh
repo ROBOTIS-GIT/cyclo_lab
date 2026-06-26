@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 
-# Copyright (c) 2024, Robotis Lab Project Developers.
+# Copyright (c) 2024, Cyclo Lab Project Developers.
 # All rights reserved.
 #
 # Based on Isaac Lab container management script
@@ -16,8 +16,8 @@ set -e
 tabs 4
 
 # get source directory
-export ROBOTISLAB_PATH="$( cd "$( dirname "${BASH_SOURCE[0]}" )/.." &> /dev/null && pwd )"
-export DOCKER_DIR="${ROBOTISLAB_PATH}/docker"
+export CYCLOLAB_PATH="$( cd "$( dirname "${BASH_SOURCE[0]}" )/.." &> /dev/null && pwd )"
+export DOCKER_DIR="${CYCLOLAB_PATH}/docker"
 
 #==
 # Helper functions
@@ -26,12 +26,12 @@ export DOCKER_DIR="${ROBOTISLAB_PATH}/docker"
 # print the usage description
 print_help() {
     echo -e "\nusage: $(basename "$0") [-h] <command> [<args>]"
-    echo -e "\nRobotis Lab Docker Container Management Script"
+    echo -e "\nCyclo Lab Docker Container Management Script"
     echo -e "\noptional arguments:"
     echo -e "  -h, --help           Display this help message."
     echo ""
     echo -e "commands:"
-    echo -e "  build                Build the docker image for Robotis Lab"
+    echo -e "  build                Build the docker image for Cyclo Lab"
     echo -e "  start                Start the docker container"
     echo -e "  enter                Enter the running docker container"
     echo -e "  stop                 Stop the docker container"
@@ -69,15 +69,15 @@ setup_x11() {
     fi
 
     # Create temporary directory for xauth
-    export __ROBOTISLAB_TMP_DIR=$(mktemp -d)
-    export __ROBOTISLAB_TMP_XAUTH="${__ROBOTISLAB_TMP_DIR}/.xauth"
+    export __CYCLOLAB_TMP_DIR=$(mktemp -d)
+    export __CYCLOLAB_TMP_XAUTH="${__CYCLOLAB_TMP_DIR}/.xauth"
 
     # Create xauth file
-    touch "${__ROBOTISLAB_TMP_XAUTH}"
-    xauth nlist "$DISPLAY" | sed -e 's/^..../ffff/' | xauth -f "${__ROBOTISLAB_TMP_XAUTH}" nmerge -
+    touch "${__CYCLOLAB_TMP_XAUTH}"
+    xauth nlist "$DISPLAY" | sed -e 's/^..../ffff/' | xauth -f "${__CYCLOLAB_TMP_XAUTH}" nmerge -
     
     echo "[INFO] X11 forwarding configured"
-    echo "[INFO] XAUTH file: ${__ROBOTISLAB_TMP_XAUTH}"
+    echo "[INFO] XAUTH file: ${__CYCLOLAB_TMP_XAUTH}"
 
     return 0
 }
@@ -93,19 +93,19 @@ check_x11() {
 
 # Build docker image
 build_image() {
-    echo "[INFO] Building Robotis Lab docker image..."
+    echo "[INFO] Building Cyclo Lab docker image..."
     cd "${DOCKER_DIR}"
-    docker compose build robotis_lab
+    docker compose build cyclo_lab
     echo "[INFO] Build complete!"
 }
 
 # Start docker container
 start_container() {
-    echo "[INFO] Starting Robotis Lab docker container..."
+    echo "[INFO] Starting Cyclo Lab docker container..."
 
     # Check and initialize git submodules
     echo "[INFO] Checking git submodules..."
-    cd "${ROBOTISLAB_PATH}"
+    cd "${CYCLOLAB_PATH}"
     if [ -d ".git" ]; then
         if git submodule status | grep -q '^-'; then
             echo "[INFO] Initializing git submodules..."
@@ -132,18 +132,18 @@ start_container() {
     fi
 
     # Check if container is already running
-    if [ -n "$(docker ps -q --filter "name=^robotis_lab${DOCKER_NAME_SUFFIX}$")" ]; then
+    if [ -n "$(docker ps -q --filter "name=^cyclo_lab${DOCKER_NAME_SUFFIX}$")" ]; then
         echo "[INFO] Container is already running"
         return 0
     fi
 
     # Check if container exists but is stopped
-    if [ -n "$(docker ps -aq --filter "name=^robotis_lab${DOCKER_NAME_SUFFIX}$")" ]; then
+    if [ -n "$(docker ps -aq --filter "name=^cyclo_lab${DOCKER_NAME_SUFFIX}$")" ]; then
         echo "[INFO] Starting existing container..."
-        docker start robotis_lab${DOCKER_NAME_SUFFIX}
+        docker start cyclo_lab${DOCKER_NAME_SUFFIX}
     else
         echo "[INFO] Creating and starting new container..."
-        docker compose -f docker-compose.yaml ${X11_COMPOSE_FILE} up -d robotis_lab
+        docker compose -f docker-compose.yaml ${X11_COMPOSE_FILE} up -d cyclo_lab
     fi
 
     echo "[INFO] Container started successfully!"
@@ -152,36 +152,36 @@ start_container() {
 
 # Enter running container
 enter_container() {
-    echo "[INFO] Entering Robotis Lab docker container..."
+    echo "[INFO] Entering Cyclo Lab docker container..."
 
     # Check if container is running
-    if [ -z "$(docker ps -q --filter "name=^robotis_lab${DOCKER_NAME_SUFFIX}$")" ]; then
+    if [ -z "$(docker ps -q --filter "name=^cyclo_lab${DOCKER_NAME_SUFFIX}$")" ]; then
         echo "[ERROR] Container is not running. Start it first with './docker/container.sh start'"
         exit 1
     fi
 
     # Pass DISPLAY environment variable to the container
-    docker exec -it -e DISPLAY="${DISPLAY}" robotis_lab${DOCKER_NAME_SUFFIX} /bin/bash
+    docker exec -it -e DISPLAY="${DISPLAY}" cyclo_lab${DOCKER_NAME_SUFFIX} /bin/bash
 }
 
 # Stop container
 stop_container() {
-    echo "[INFO] Stopping Robotis Lab docker container..."
+    echo "[INFO] Stopping Cyclo Lab docker container..."
     cd "${DOCKER_DIR}"
-    docker compose stop robotis_lab
+    docker compose stop cyclo_lab
     echo "[INFO] Container stopped"
 }
 
 # Clean up container and image
 clean_docker() {
-    echo "[INFO] Cleaning up Robotis Lab docker resources..."
+    echo "[INFO] Cleaning up Cyclo Lab docker resources..."
     cd "${DOCKER_DIR}"
 
     read -p "This will remove the container and image. Continue? (y/N) " -n 1 -r
     echo
     if [[ $REPLY =~ ^[Yy]$ ]]; then
-        docker compose down robotis_lab
-        docker rmi robotis/robotis-lab${DOCKER_NAME_SUFFIX}:latest || true
+        docker compose down cyclo_lab
+        docker rmi cyclolab/cyclo-lab${DOCKER_NAME_SUFFIX}:latest || true
         echo "[INFO] Cleanup complete"
     else
         echo "[INFO] Cleanup cancelled"
@@ -190,9 +190,9 @@ clean_docker() {
 
 # Show container logs
 show_logs() {
-    echo "[INFO] Showing Robotis Lab container logs..."
+    echo "[INFO] Showing Cyclo Lab container logs..."
     cd "${DOCKER_DIR}"
-    docker compose logs -f robotis_lab
+    docker compose logs -f cyclo_lab
 }
 
 #==

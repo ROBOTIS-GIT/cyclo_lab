@@ -1,0 +1,22 @@
+[package]
+
+# Semantic Versioning is used: https://semver.org/
+version = "1.1.0"
+
+# Description
+title =  "cyclo_lab Tasks"
+description=""
+readme  = "README.md"
+repository = "https://github.com/ROBOTIS-GIT/cyclo_lab.git"
+category = "robotics"
+keywords = ["extension", "cyclo_lab", "isaaclab"]
+
+[dependencies]
+"isaaclab" = {}
+
+[core]
+reloadable = false
+
+# Main python module this extension provides.
+[[python.module]]
+name = "cyclo_lab"
