@@ -2,7 +2,7 @@
 Changelog for package cyclo_lab
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-1.3.0 (2026-06-26)
+2.0.0 (2026-06-26)
 ------------------
 * Renamed the extension package from ``robotis_lab`` to ``cyclo_lab``.
 * Added AI Sapiens K1 Rev.1 robot asset configuration.
