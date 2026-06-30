@@ -181,7 +181,7 @@ clean_docker() {
     echo
     if [[ $REPLY =~ ^[Yy]$ ]]; then
         docker compose down cyclo_lab
-        docker rmi cyclolab/cyclo-lab${DOCKER_NAME_SUFFIX}:latest || true
+        docker rmi robotis/cyclo-lab${DOCKER_NAME_SUFFIX}:latest || true
         echo "[INFO] Cleanup complete"
     else
         echo "[INFO] Cleanup cancelled"

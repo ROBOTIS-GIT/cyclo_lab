@@ -72,7 +72,7 @@ services:
   cyclo_lab:
     profiles: [ "base" ]
     env_file: .env.base
-    image: cyclolab/cyclo-lab${DOCKER_NAME_SUFFIX}:latest
+    image: robotis/cyclo-lab${DOCKER_NAME_SUFFIX}:latest
     container_name: cyclo_lab${DOCKER_NAME_SUFFIX}
     build:
       context: ../
