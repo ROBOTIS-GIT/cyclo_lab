@@ -1,6 +1,9 @@
 # Copyright (c) 2024, Cyclo Lab Project Developers.
 # All rights reserved.
 
+# Isolate Cyclo Lab resources from other repositories with a docker directory.
+name: cyclo_lab
+
 # Extension fields for reusable configurations
 x-default-cyclo-lab-volumes: &default-cyclo-lab-volumes
   # Isaac Sim cache volumes
@@ -49,6 +52,13 @@ x-default-cyclo-lab-volumes: &default-cyclo-lab-volumes
   - type: bind
     source: .cyclo-lab-docker-history
     target: ${DOCKER_USER_HOME}/.bash_history
+  # Zenoh shared memory transport and message-definition cache
+  - type: bind
+    source: /dev/shm
+    target: /dev/shm
+  - type: bind
+    source: ./zenoh_cache
+    target: ${DOCKER_USER_HOME}/.cache/zenoh_ros2_sdk
 
 x-default-cyclo-lab-environment: &default-cyclo-lab-environment
   - ISAACSIM_PATH=${DOCKER_ISAACSIM_ROOT_PATH}
@@ -59,6 +69,10 @@ x-default-cyclo-lab-environment: &default-cyclo-lab-environment
   - PRIVACY_CONSENT=Y
   - NVIDIA_VISIBLE_DEVICES=all
   - NVIDIA_DRIVER_CAPABILITIES=all
+  - ROS_DOMAIN_ID=${ROS_DOMAIN_ID:-30}
+  - RMW_IMPLEMENTATION=${RMW_IMPLEMENTATION:-rmw_zenoh_cpp}
+  - ZENOH_CONFIG_OVERRIDE=${ZENOH_CONFIG_OVERRIDE:-transport/shared_memory/enabled=true}
+  - ZENOH_SDK_PATH=${DOCKER_CYCLOLAB_PATH}/third_party/zenoh_ros2_sdk
 
 x-default-cyclo-lab-deploy: &default-cyclo-lab-deploy
   resources:
@@ -87,8 +101,8 @@ services:
     stdin_open: true
     tty: true
     network_mode: host
+    ipc: host
     privileged: true
-    shm_size: "16gb"
     volumes: *default-cyclo-lab-volumes
     environment: *default-cyclo-lab-environment
     deploy: *default-cyclo-lab-deploy

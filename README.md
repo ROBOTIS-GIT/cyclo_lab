@@ -28,16 +28,12 @@ Docker installation provides a consistent environment with all dependencies pre-
 
 **Steps:**
 
-1. Clone cyclo_lab repository with submodules:
+1. Clone cyclo_lab and initialize its direct submodules:
 
    ```bash
-   git clone --recurse-submodules https://github.com/ROBOTIS-GIT/cyclo_lab.git
+   git clone https://github.com/ROBOTIS-GIT/cyclo_lab.git
    cd cyclo_lab
-   ```
-
-   If you already cloned without submodules, initialize them:
-   ```bash
-   git submodule update --init --recursive
+   git submodule update --init
    ```
 
 2. Build and start the Docker container:
@@ -54,6 +50,7 @@ Docker installation provides a consistent environment with all dependencies pre-
 
 **Docker Commands:**
 - `./docker/container.sh start` - Build and start the container
+- `./docker/container.sh recreate` - Recreate the container from the current image
 - `./docker/container.sh enter` - Enter the running container
 - `./docker/container.sh stop` - Stop the container
 - `./docker/container.sh logs` - View container logs
@@ -62,8 +59,8 @@ Docker installation provides a consistent environment with all dependencies pre-
 **What's included in the Docker image:**
 - Isaac Sim 5.1.0
 - Isaac Lab v2.3.0 (from third_party submodule)
-- CycloneDDS 0.10.2 (from third_party submodule)
-- robotis_dds_python (from third_party submodule)
+- zenoh_ros2_sdk 0.1.8 (from third_party submodule)
+- IsaacLab-Arena integration (from third_party submodule)
 - LeRobot 0.3.3 (in separate virtual environment at `~/lerobot_env`)
 - All required dependencies and configurations
 
@@ -213,14 +210,49 @@ python scripts/imitation_learning/robomimic/play.py \
 
 https://github.com/user-attachments/assets/67267195-db02-4dd9-83cf-00830b4bc13f
 
-Launch the AI Worker SH5 model and DDS bridge
+Launch AI Worker SH5
 
 ```bash
-# Grid with SH5 AI Worker
-python scripts/sim2real/bringup/sh5_dds_bringup.py --domain_id 30 --enable_gravity --enable_camera_views
+# Run SH5 on a ground plane through the Zenoh ROS2 bridge.
+python scripts/sim2real/bringup.py \
+    --task Cyclo-Bringup-FFW-SH5-v0 \
+    --bridge ffw_sh5
 
-# NVIDIA Simple Warehouse environment
-python scripts/sim2real/bringup/sh5_dds_bringup.py --domain_id 30 --enable_gravity --enable_camera_views --enable_environment
+# Run SH5 in NVIDIA Simple Warehouse with the operator camera view.
+python scripts/sim2real/bringup.py \
+    --task Cyclo-Bringup-Simple-Warehouse-FFW-SH5-v0 \
+    --bridge ffw_sh5 \
+    --camera_view operator \
+    --headless
+```
+
+Launch FFW SG2 in the Robotis showroom
+
+```bash
+# Publish SG2 state and camera topics from the empty 5 m showroom.
+python scripts/sim2real/bringup.py \
+    --task Cyclo-Real-Showroom-FFW-SG2-v0 \
+    --bridge ffw_sg2 \
+    --headless \
+    --enable_cameras
+
+# Run SG2 in the empty 5 m showroom with the six-panel operator view.
+python scripts/sim2real/bringup.py \
+    --task Cyclo-Real-Showroom-FFW-SG2-v0 \
+    --bridge ffw_sg2 \
+    --headless \
+    --camera_view operator
+```
+
+Launch FFW SG2 in the IsaacLab-Arena Galileo pick-and-place environment
+
+```bash
+# Run the upstream Galileo scene with Cyclo Lab's 22D SG2 mobile action.
+python scripts/sim2real/bringup.py \
+    --task Cyclo-Arena-Galileo-Pick-Place-FFW-SG2-v0 \
+    --bridge ffw_sg2 \
+    --enable_cameras \
+    --headless
 ```
 
 </details>

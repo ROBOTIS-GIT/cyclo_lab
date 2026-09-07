@@ -27,12 +27,13 @@ import os
 from copy import deepcopy
 
 import torch
+from cyclo_lab.robot_specs.ffw.sg2 import FFW_SG2_PUBLISHED_TO_ACTION_INDICES
+from isaaclab.utils.datasets import EpisodeData, HDF5DatasetFileHandler
 from tqdm import tqdm
-
-from isaaclab.utils.datasets import HDF5DatasetFileHandler, EpisodeData
 
 if multiprocessing.get_start_method(allow_none=True) != "spawn":
     multiprocessing.set_start_method("spawn", force=True)
+
 
 def convert_joint_to_ik_omy(ep_data: EpisodeData) -> EpisodeData:
     """Convert joint actions to IK (EEF state + gripper) for OMY robot."""
@@ -48,6 +49,7 @@ def convert_joint_to_ik_omy(ep_data: EpisodeData) -> EpisodeData:
     except (KeyError, IndexError, TypeError) as e:
         raise ValueError(f"Failed to convert joint to IK for OMY: {str(e)}")
 
+
 def convert_joint_to_ik_ffw_sg2(ep_data: EpisodeData) -> EpisodeData:
     """Convert joint actions to IK (EEF state + gripper + lift + head) for FFW SG2 robot."""
     try:
@@ -60,24 +62,28 @@ def convert_joint_to_ik_ffw_sg2(ep_data: EpisodeData) -> EpisodeData:
         # [arm_l(7), gripper_l(1), arm_r(7), gripper_r(1), lift(1), head(2)]
         gripper_l_action = joint_actions[:, 7:8]  # Index 7: gripper_l_joint1
         gripper_r_action = joint_actions[:, 15:16]  # Index 15: gripper_r_joint1
-        lift_action = joint_actions[:, 18:19]       # Index 18: lift_joint
-        head_action = joint_actions[:, 16:18]       # Index 16-17: head_joint[1-2]
+        lift_action = joint_actions[:, 16:17]  # Index 16: lift_joint
+        head_action = joint_actions[:, 17:19]  # Index 17-18: head_joint[1-2]
 
         # IK action order (total 19):
-        # [left_eef(7), gripper_l(1), right_eef(7), gripper_r(1), head(2), lift(1)]
-        new_actions = torch.cat([
-            left_eef_pose,    # 0-6: left EEF (pos + quat)
-            gripper_l_action,  # 7: left gripper
-            right_eef_pose,   # 8-14: right EEF (pos + quat)
-            gripper_r_action,  # 15: right gripper
-            head_action,        # 16-17: head joints
-            lift_action       # 18: lift joint
-        ], dim=1)
+        # [left_eef(7), gripper_l(1), right_eef(7), gripper_r(1), lift(1), head(2)]
+        new_actions = torch.cat(
+            [
+                left_eef_pose,  # 0-6: left EEF (pos + quat)
+                gripper_l_action,  # 7: left gripper
+                right_eef_pose,  # 8-14: right EEF (pos + quat)
+                gripper_r_action,  # 15: right gripper
+                lift_action,  # 16: lift joint
+                head_action,  # 17-18: head joints
+            ],
+            dim=1,
+        )
 
         ep_data.data["actions"] = new_actions
         return ep_data
     except (KeyError, IndexError, TypeError) as e:
         raise ValueError(f"Failed to convert joint to IK for FFW_SG2: {str(e)}")
+
 
 def convert_joint_to_ik(ep_data: EpisodeData, robot_type: str) -> EpisodeData:
     """Convert joint actions to IK based on robot type."""
@@ -88,14 +94,20 @@ def convert_joint_to_ik(ep_data: EpisodeData, robot_type: str) -> EpisodeData:
     else:
         raise ValueError(f"Unknown robot type: {robot_type}")
 
-def convert_ik_to_joint(ep_data: EpisodeData) -> EpisodeData:
+
+def convert_ik_to_joint(ep_data: EpisodeData, robot_type: str | None = None) -> EpisodeData:
     """Convert IK actions to joint targets."""
     try:
         joint_targets = ep_data.data["obs"]["joint_pos_target"]
+        if robot_type == "FFW_SG2":
+            if joint_targets.ndim != 2 or joint_targets.shape[1] != 19:
+                raise ValueError(f"FFW_SG2 joint_pos_target must have shape [N, 19], got {tuple(joint_targets.shape)}.")
+            joint_targets = joint_targets[:, FFW_SG2_PUBLISHED_TO_ACTION_INDICES]
         ep_data.data["actions"] = joint_targets
         return ep_data
     except (KeyError, IndexError, TypeError) as e:
         raise ValueError(f"Failed to convert IK to joint: {str(e)}")
+
 
 def process_dataset(input_file: str, output_file: str, action_type: str, robot_type: str) -> None:
     """Process dataset episodes and convert actions to the desired type."""
@@ -111,7 +123,7 @@ def process_dataset(input_file: str, output_file: str, action_type: str, robot_t
     try:
         episode_names = list(input_handler.get_episode_names())
         skipped_episodes = []
-        
+
         for name in tqdm(episode_names, desc="Processing episodes"):
             try:
                 ep_data = input_handler.load_episode(name, device="cpu")
@@ -120,20 +132,20 @@ def process_dataset(input_file: str, output_file: str, action_type: str, robot_t
                     continue
 
                 processed = deepcopy(ep_data)
-                
+
                 # Apply conversion based on action type
                 if action_type == "ik":
                     processed = convert_joint_to_ik(processed, robot_type)
                 elif action_type == "joint":
-                    processed = convert_ik_to_joint(processed)
-                
+                    processed = convert_ik_to_joint(processed, robot_type)
+
                 output_handler.write_episode(processed)
-                
+
             except Exception as e:
                 skipped_episodes.append((name, str(e)))
                 print(f"\nWarning: Skipping episode '{name}' due to error: {str(e)}")
                 continue
-        
+
         if skipped_episodes:
             print(f"\n\nSummary: Skipped {len(skipped_episodes)} episode(s) due to errors:")
             for ep_name, error_msg in skipped_episodes:
@@ -144,39 +156,31 @@ def process_dataset(input_file: str, output_file: str, action_type: str, robot_t
         output_handler.flush()
         output_handler.close()
 
+
 def parse_args():
-    parser = argparse.ArgumentParser(
-        description="Convert recorded demonstration actions between IK and joint space."
-    )
+    parser = argparse.ArgumentParser(description="Convert recorded demonstration actions between IK and joint space.")
     parser.add_argument(
-        "--input_file",
-        type=str,
-        default="./datasets/annotated_dataset.hdf5",
-        help="Path to input dataset file."
+        "--input_file", type=str, default="./datasets/annotated_dataset.hdf5", help="Path to input dataset file."
     )
     parser.add_argument(
         "--output_file",
         type=str,
         default="./datasets/processed_annotated_dataset.hdf5",
-        help="Path to save processed dataset file."
+        help="Path to save processed dataset file.",
     )
     parser.add_argument(
-        "--action_type",
-        choices=["ik", "joint"],
-        required=True,
-        help="Target action representation: 'ik' or 'joint'."
+        "--action_type", choices=["ik", "joint"], required=True, help="Target action representation: 'ik' or 'joint'."
     )
     parser.add_argument(
-        "--robot_type",
-        choices=["OMY", "FFW_SG2"],
-        required=True,
-        help="Robot type: 'OMY' or 'FFW_SG2'."
+        "--robot_type", choices=["OMY", "FFW_SG2"], required=True, help="Robot type: 'OMY' or 'FFW_SG2'."
     )
     return parser.parse_args()
+
 
 def main():
     args = parse_args()
     process_dataset(args.input_file, args.output_file, args.action_type, args.robot_type)
+
 
 if __name__ == "__main__":
     main()

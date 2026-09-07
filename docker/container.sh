@@ -12,8 +12,8 @@
 # Exits if error occurs
 set -e
 
-# Set tab-spaces
-tabs 4
+# Set tab-spaces when the terminal supports it.
+tabs 4 2>/dev/null || true
 
 # get source directory
 export CYCLOLAB_PATH="$( cd "$( dirname "${BASH_SOURCE[0]}" )/.." &> /dev/null && pwd )"
@@ -33,6 +33,7 @@ print_help() {
     echo -e "commands:"
     echo -e "  build                Build the docker image for Cyclo Lab"
     echo -e "  start                Start the docker container"
+    echo -e "  recreate             Recreate the container from the current image"
     echo -e "  enter                Enter the running docker container"
     echo -e "  stop                 Stop the docker container"
     echo -e "  clean                Remove the docker container and image"
@@ -50,6 +51,25 @@ load_env() {
     else
         echo "[ERROR] .env.base file not found in ${DOCKER_DIR}"
         exit 1
+    fi
+}
+
+# Initialize only the direct submodules required by the image. Arena carries
+# its own Isaac Lab gitlink, which must not replace Cyclo Lab's pinned runtime.
+initialize_submodules() {
+    echo "[INFO] Checking git submodules..."
+    cd "${CYCLOLAB_PATH}"
+    if [ ! -e ".git" ]; then
+        echo "[WARN] Not a git repository, skipping submodule initialization"
+        return 0
+    fi
+
+    if git submodule status | grep -q '^-'; then
+        echo "[INFO] Initializing direct git submodules..."
+        git submodule update --init
+        echo "[INFO] Git submodules initialized"
+    else
+        echo "[INFO] Git submodules already initialized"
     fi
 }
 
@@ -94,6 +114,7 @@ check_x11() {
 # Build docker image
 build_image() {
     echo "[INFO] Building Cyclo Lab docker image..."
+    initialize_submodules
     cd "${DOCKER_DIR}"
     docker compose build cyclo_lab
     echo "[INFO] Build complete!"
@@ -102,21 +123,7 @@ build_image() {
 # Start docker container
 start_container() {
     echo "[INFO] Starting Cyclo Lab docker container..."
-
-    # Check and initialize git submodules
-    echo "[INFO] Checking git submodules..."
-    cd "${CYCLOLAB_PATH}"
-    if [ -d ".git" ]; then
-        if git submodule status | grep -q '^-'; then
-            echo "[INFO] Initializing git submodules..."
-            git submodule update --init --recursive
-            echo "[INFO] Git submodules initialized"
-        else
-            echo "[INFO] Git submodules already initialized"
-        fi
-    else
-        echo "[WARN] Not a git repository, skipping submodule initialization"
-    fi
+    initialize_submodules
 
     cd "${DOCKER_DIR}"
 
@@ -150,6 +157,21 @@ start_container() {
     echo "[INFO] Use './docker/container.sh enter' to access the container"
 }
 
+# Recreate the container from the current image.
+recreate_container() {
+    echo "[INFO] Recreating Cyclo Lab docker container..."
+    cd "${DOCKER_DIR}"
+
+    X11_COMPOSE_FILE=""
+    if check_x11 && setup_x11; then
+        X11_COMPOSE_FILE="-f x11.yaml"
+        echo "[INFO] X11 forwarding enabled"
+    fi
+
+    docker compose -f docker-compose.yaml ${X11_COMPOSE_FILE} up -d --force-recreate cyclo_lab
+    echo "[INFO] Container recreated successfully!"
+}
+
 # Enter running container
 enter_container() {
     echo "[INFO] Entering Cyclo Lab docker container..."
@@ -180,7 +202,7 @@ clean_docker() {
     read -p "This will remove the container and image. Continue? (y/N) " -n 1 -r
     echo
     if [[ $REPLY =~ ^[Yy]$ ]]; then
-        docker compose down cyclo_lab
+        docker compose rm -sf cyclo_lab
         docker rmi robotis/cyclo-lab${DOCKER_NAME_SUFFIX}:latest || true
         echo "[INFO] Cleanup complete"
     else
@@ -216,6 +238,9 @@ case "$1" in
         ;;
     start)
         start_container
+        ;;
+    recreate)
+        recreate_container
         ;;
     enter)
         enter_container

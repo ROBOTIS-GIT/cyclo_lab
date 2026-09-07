@@ -1,0 +1,85 @@
+# Copyright 2025 ROBOTIS CO., LTD.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+
+from __future__ import annotations
+
+from collections import deque
+
+from .physics import spawn_environment_with_friction
+
+SIMPLE_WAREHOUSE_ENVIRONMENT_USD_PATH = (
+    "https://omniverse-content-production.s3-us-west-2.amazonaws.com/"
+    "Assets/Isaac/5.1/Isaac/Environments/Simple_Warehouse/warehouse_multiple_shelves.usd"
+)
+
+ENVIRONMENT_SCALE = 0.7
+ENVIRONMENT_POS = (1.25, 0.5, 0.0)
+ENVIRONMENT_ROT = (1.0, 0.0, 0.0, 0.0)
+
+GRASPABLE_CARD_BOX_MASS = 0.2
+GRASPABLE_CARD_BOX_PRIM_PATHS = tuple(
+    f"/World/envs/env_0/Environment/Shelf_1/SM_CardBoxD_{box_idx:02d}" for box_idx in range(1, 6)
+)
+
+
+def environment_scale() -> tuple[float, float, float]:
+    return (ENVIRONMENT_SCALE, ENVIRONMENT_SCALE, ENVIRONMENT_SCALE)
+
+
+def make_simple_warehouse_environment_cfg():
+    import isaaclab.sim as sim_utils
+    from isaaclab.assets import AssetBaseCfg
+
+    return AssetBaseCfg(
+        prim_path="{ENV_REGEX_NS}/Environment",
+        spawn=sim_utils.UsdFileCfg(
+            func=spawn_environment_with_friction,
+            usd_path=SIMPLE_WAREHOUSE_ENVIRONMENT_USD_PATH,
+            scale=environment_scale(),
+            collision_props=sim_utils.CollisionPropertiesCfg(
+                contact_offset=0.003,
+                rest_offset=0.0,
+            ),
+        ),
+        init_state=AssetBaseCfg.InitialStateCfg(
+            pos=ENVIRONMENT_POS,
+            rot=ENVIRONMENT_ROT,
+        ),
+    )
+
+
+def make_card_boxes_graspable():
+    """Apply rigid body, mass, and collision properties to selected warehouse card boxes."""
+    import isaaclab.sim as sim_utils
+    from isaaclab.sim.utils import make_uninstanceable
+    from isaacsim.core.utils.stage import get_current_stage
+
+    stage = get_current_stage()
+    rigid_props = sim_utils.RigidBodyPropertiesCfg(
+        rigid_body_enabled=True,
+        kinematic_enabled=False,
+        disable_gravity=False,
+        max_depenetration_velocity=2.0,
+    )
+    mass_props = sim_utils.MassPropertiesCfg(mass=GRASPABLE_CARD_BOX_MASS)
+    convex_hull_props = sim_utils.ConvexHullPropertiesCfg()
+
+    for prim_path in GRASPABLE_CARD_BOX_PRIM_PATHS:
+        prim = stage.GetPrimAtPath(prim_path)
+        if not prim.IsValid():
+            print(f"[WARN] Graspable card box prim not found: {prim_path}")
+            continue
+
+        make_uninstanceable(prim_path, stage)
+        sim_utils.define_rigid_body_properties(prim_path, rigid_props, stage)
+        sim_utils.define_mass_properties(prim_path, mass_props, stage)
+
+        queue = deque([prim])
+        while queue:
+            child_prim = queue.popleft()
+            if child_prim.GetTypeName() == "Mesh":
+                sim_utils.define_mesh_collision_properties(str(child_prim.GetPath()), convex_hull_props, stage)
+            queue.extend(child_prim.GetChildren())
+
+        print(f"[INFO] Graspable card box enabled: {prim_path} mass={GRASPABLE_CARD_BOX_MASS} kg")

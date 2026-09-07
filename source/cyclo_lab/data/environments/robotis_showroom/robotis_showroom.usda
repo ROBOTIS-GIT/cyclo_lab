@@ -1,0 +1,171 @@
+#usda 1.0
+(
+    defaultPrim = "robotis_showroom"
+    metersPerUnit = 1
+    upAxis = "Z"
+)
+
+def Xform "robotis_showroom"
+{
+    def Xform "ShowroomShell"
+    {
+        def Mesh "Floor"
+        {
+            int[] faceVertexCounts = [4]
+            int[] faceVertexIndices = [0, 1, 2, 3]
+            point3f[] points = [(-2.5, -2.5, 0.002), (2.5, -2.5, 0.002), (2.5, 2.5, 0.002), (-2.5, 2.5, 0.002)]
+            texCoord2f[] primvars:st = [(0, 0), (5, 0), (5, 5), (0, 5)] (
+                interpolation = "faceVarying"
+            )
+            uniform token subdivisionScheme = "none"
+            rel material:binding = </robotis_showroom/ShowroomShell/Looks/FloorMaterial>
+        }
+
+        def Cube "WallBack" (
+            prepend apiSchemas = ["PhysicsCollisionAPI"]
+        )
+        {
+            bool physics:collisionEnabled = 1
+            double size = 1
+            double3 xformOp:translate = (0, 2.5, 1.25)
+            float3 xformOp:scale = (5.1, 0.05, 2.5)
+            uniform token[] xformOpOrder = ["xformOp:translate", "xformOp:scale"]
+            rel material:binding = </robotis_showroom/ShowroomShell/Looks/WallMaterial>
+        }
+
+        def Cube "WallFront" (
+            prepend apiSchemas = ["PhysicsCollisionAPI"]
+        )
+        {
+            bool physics:collisionEnabled = 1
+            double size = 1
+            double3 xformOp:translate = (0, -2.5, 1.25)
+            float3 xformOp:scale = (5.1, 0.05, 2.5)
+            uniform token[] xformOpOrder = ["xformOp:translate", "xformOp:scale"]
+            rel material:binding = </robotis_showroom/ShowroomShell/Looks/WallMaterial>
+        }
+
+        def Cube "WallLeft" (
+            prepend apiSchemas = ["PhysicsCollisionAPI"]
+        )
+        {
+            bool physics:collisionEnabled = 1
+            double size = 1
+            double3 xformOp:translate = (-2.5, 0, 1.25)
+            float3 xformOp:scale = (0.05, 5, 2.5)
+            uniform token[] xformOpOrder = ["xformOp:translate", "xformOp:scale"]
+            rel material:binding = </robotis_showroom/ShowroomShell/Looks/WallMaterial>
+        }
+
+        def Cube "WallRight" (
+            prepend apiSchemas = ["PhysicsCollisionAPI"]
+        )
+        {
+            bool physics:collisionEnabled = 1
+            double size = 1
+            double3 xformOp:translate = (2.5, 0, 1.25)
+            float3 xformOp:scale = (0.05, 5, 2.5)
+            uniform token[] xformOpOrder = ["xformOp:translate", "xformOp:scale"]
+            rel material:binding = </robotis_showroom/ShowroomShell/Looks/WallMaterial>
+        }
+
+        def Xform "WallBackground"
+        {
+            def Mesh "BackPanel"
+            {
+                int[] faceVertexCounts = [4]
+                int[] faceVertexIndices = [0, 1, 2, 3]
+                point3f[] points = [(-2.45, 2.47, 0.1), (2.45, 2.47, 0.1), (2.45, 2.47, 2.4), (-2.45, 2.47, 2.4)]
+                texCoord2f[] primvars:st = [(0, 0), (1, 0), (1, 1), (0, 1)] (
+                    interpolation = "faceVarying"
+                )
+                uniform token subdivisionScheme = "none"
+                rel material:binding = </robotis_showroom/ShowroomShell/Looks/LabBackground>
+            }
+
+            def Mesh "LeftPanel"
+            {
+                int[] faceVertexCounts = [4]
+                int[] faceVertexIndices = [0, 1, 2, 3]
+                point3f[] points = [(-2.47, -2.45, 0.1), (-2.47, 2.45, 0.1), (-2.47, 2.45, 2.4), (-2.47, -2.45, 2.4)]
+                texCoord2f[] primvars:st = [(0, 0), (1, 0), (1, 1), (0, 1)] (
+                    interpolation = "faceVarying"
+                )
+                uniform token subdivisionScheme = "none"
+                rel material:binding = </robotis_showroom/ShowroomShell/Looks/LabBackground>
+            }
+        }
+
+        def Scope "Looks"
+        {
+            def Material "FloorMaterial"
+            {
+                token outputs:surface.connect = </robotis_showroom/ShowroomShell/Looks/FloorMaterial/PBR.outputs:surface>
+
+                def Shader "PBR"
+                {
+                    uniform token info:id = "UsdPreviewSurface"
+                    color3f inputs:diffuseColor = (0.32, 0.36, 0.4)
+                    float inputs:metallic = 0
+                    float inputs:roughness = 0.78
+                    token outputs:surface
+                }
+            }
+
+            def Material "WallMaterial"
+            {
+                token outputs:surface.connect = </robotis_showroom/ShowroomShell/Looks/WallMaterial/PBR.outputs:surface>
+
+                def Shader "PBR"
+                {
+                    uniform token info:id = "UsdPreviewSurface"
+                    color3f inputs:diffuseColor = (0.82, 0.82, 0.82)
+                    float inputs:metallic = 0
+                    float inputs:roughness = 0.9
+                    token outputs:surface
+                }
+            }
+
+            def Material "LabBackground"
+            {
+                token outputs:surface.connect = </robotis_showroom/ShowroomShell/Looks/LabBackground/PBR.outputs:surface>
+
+                def Shader "PBR"
+                {
+                    uniform token info:id = "UsdPreviewSurface"
+                    color3f inputs:diffuseColor.connect = </robotis_showroom/ShowroomShell/Looks/LabBackground/Texture.outputs:rgb>
+                    float inputs:metallic = 0
+                    float inputs:roughness = 0.85
+                    token outputs:surface
+                }
+
+                def Shader "PrimvarReader"
+                {
+                    uniform token info:id = "UsdPrimvarReader_float2"
+                    token inputs:varname = "st"
+                    float2 outputs:result
+                }
+
+                def Shader "UVTransform"
+                {
+                    uniform token info:id = "UsdTransform2d"
+                    float2 inputs:in.connect = </robotis_showroom/ShowroomShell/Looks/LabBackground/PrimvarReader.outputs:result>
+                    float inputs:rotation = 0
+                    float2 inputs:scale = (1, 1)
+                    float2 inputs:translation = (0, 0)
+                    float2 outputs:result
+                }
+
+                def Shader "Texture"
+                {
+                    uniform token info:id = "UsdUVTexture"
+                    asset inputs:file = @textures/lab_background_01.jpg@
+                    float2 inputs:st.connect = </robotis_showroom/ShowroomShell/Looks/LabBackground/UVTransform.outputs:result>
+                    token inputs:wrapS = "clamp"
+                    token inputs:wrapT = "clamp"
+                    float3 outputs:rgb
+                }
+            }
+        }
+    }
+}
