@@ -2,6 +2,22 @@
 Changelog for package cyclo_lab
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+2.2.0 (2026-09-07)
+------------------
+* Replaced direct DDS bindings with ROS2-compatible Zenoh transport for
+  simulation bringup and existing Sim2Real interfaces.
+* Added common manager-based bringup, robot specifications, state publishers,
+  and operator camera views for FFW-SH5 and FFW-SG2.
+* Added an FFW-SG2 task using the upstream IsaacLab-Arena Galileo
+  pick-and-place scene.
+* Added an empty 5 m Robotis showroom with randomized local wall backgrounds
+  and SG2 mobile-base control.
+* Improved Sim2Real recording diagnostics, incremental HDF5 flushing, action
+  conversion, and timestamp-based LeRobot resampling.
+* Added packaged snack-object assets and corrected legacy object material
+  references to use portable relative paths.
+* Contributors: Taehyeong Kim
+
 2.1.0 (2026-08-26)
 ------------------
 * Unified real-world and simulation task packages under

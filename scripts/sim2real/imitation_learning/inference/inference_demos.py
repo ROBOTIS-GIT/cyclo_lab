@@ -21,6 +21,7 @@
 
 
 import multiprocessing
+
 if multiprocessing.get_start_method() != "spawn":
     multiprocessing.set_start_method("spawn", force=True)
 import argparse
@@ -29,28 +30,29 @@ from isaaclab.app import AppLauncher
 
 # add argparse arguments
 parser = argparse.ArgumentParser(description="Inference script for cyclo_lab environments.")
-parser.add_argument("--task", type=str, required=True, help="Name of the task.")
+parser.add_argument("--task", type=str, help="Name of the task.")
 parser.add_argument("--seed", type=int, default=42, help="Seed for the environment.")
 parser.add_argument("--step_hz", type=int, default=60, help="Environment stepping rate in Hz.")
-parser.add_argument("--robot_type", type=str, default="OMY", choices=['OMY', 'FFW_SG2'], help="Type of robot to use for teleoperation.")
+parser.add_argument(
+    "--robot_type", type=str, default="OMY", choices=["OMY", "FFW_SG2"], help="Type of robot to use for teleoperation."
+)
 
 # append AppLauncher cli args
 AppLauncher.add_app_launcher_args(parser)
 args_cli = parser.parse_args()
+if args_cli.task is None:
+    parser.error("the following argument is required: --task")
 app_launcher = AppLauncher(vars(args_cli))
 simulation_app = app_launcher.app
 
 import time
-import torch
-import gymnasium as gym
 
+import cyclo_lab  # noqa: F401 - registers Cyclo Gym tasks
+import gymnasium as gym
+import torch
 from isaaclab.envs import ManagerBasedRLEnv
 from isaaclab_tasks.utils import parse_env_cfg
 
-import sys, os
-sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-
-import cyclo_lab
 
 class RateLimiter:
     """Simple class for enforcing a loop frequency."""
@@ -79,6 +81,7 @@ class RateLimiter:
             while self.last_time < time.time():
                 self.last_time += self.sleep_duration
 
+
 def main():
     # env config
     env_cfg = parse_env_cfg(args_cli.task, device=args_cli.device, num_envs=1)
@@ -90,11 +93,13 @@ def main():
 
     # teleop interface
     if args_cli.robot_type == "OMY":
-        from dds_sdk.omy_sdk import OMYSdk
-        teleop_interface = OMYSdk(env, mode='inference')
+        from cyclo_lab.runtime.sdk.omy import OMYSdk
+
+        teleop_interface = OMYSdk(env, mode="inference")
     elif args_cli.robot_type == "FFW_SG2":
-        from dds_sdk.ffw_sg2_sdk import FFWSG2Sdk
-        teleop_interface = FFWSG2Sdk(env, mode='inference')
+        from cyclo_lab.runtime.sdk.ffw_sg2 import FFWSG2Sdk
+
+        teleop_interface = FFWSG2Sdk(env, mode="inference")
     else:
         raise ValueError(f"Unsupported robot type: {args_cli.robot_type}")
 
@@ -105,6 +110,7 @@ def main():
 
     print("[INFO] Inference loop started. Press 'R' to reset environment.")
     should_reset_task = False
+
     def reset_task():
         nonlocal should_reset_task
         should_reset_task = True
@@ -121,6 +127,7 @@ def main():
                 print("[INFO] Reset requested.")
                 should_reset_task = False
                 env.reset()
+                teleop_interface.reset()
                 continue
 
             elif actions is None:

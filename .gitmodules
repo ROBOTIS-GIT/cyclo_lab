@@ -1,13 +1,14 @@
 [submodule "third_party/IsaacLab"]
 	path = third_party/IsaacLab
 	url = https://github.com/isaac-sim/IsaacLab.git
-[submodule "third_party/cyclonedds"]
-	path = third_party/cyclonedds
-	url = https://github.com/eclipse-cyclonedds/cyclonedds.git
-[submodule "third_party/robotis_dds_python"]
-	path = third_party/robotis_dds_python
-	url = https://github.com/ROBOTIS-GIT/robotis_dds_python.git
 [submodule "third_party/ai_sapiens"]
 	path = third_party/ai_sapiens
 	url = https://github.com/ROBOTIS-GIT/ai_sapiens.git
 	branch = main
+[submodule "third_party/zenoh_ros2_sdk"]
+	path = third_party/zenoh_ros2_sdk
+	url = https://github.com/ROBOTIS-GIT/zenoh_ros2_sdk.git
+[submodule "third_party/IsaacLab-Arena"]
+	path = third_party/IsaacLab-Arena
+	url = https://github.com/isaac-sim/IsaacLab-Arena.git
+	branch = feature/arena_v0.2_on_lab_2.3

@@ -14,7 +14,7 @@ ENV ISAACSIM_VERSION=${ISAACSIM_VERSION_ARG}
 SHELL ["/bin/bash", "-c"]
 
 # Adds labels to the Dockerfile
-LABEL version="2.1.0"
+LABEL version="2.2.0"
 LABEL description="Dockerfile for building and running the Isaac Lab and Cyclo Lab framework inside Isaac Sim container image."
 
 # Arguments
@@ -34,7 +34,7 @@ ENV DEBIAN_FRONTEND=noninteractive
 
 USER root
 
-# Install system dependencies (including CycloneDDS build dependencies and Python venv)
+# Install system dependencies and Python venv
 RUN --mount=type=cache,target=/var/cache/apt \
     apt-get update && apt-get install -y --no-install-recommends \
     build-essential \
@@ -113,26 +113,34 @@ RUN --mount=type=cache,target=${DOCKER_USER_HOME}/.cache/pip \
 RUN ${ISAACLAB_PATH}/isaaclab.sh -p -m pip uninstall -y quadprog
 
 #==
-# Install Robotis-specific dependencies
+# Install Robotis-specific Zenoh ROS2 dependencies
 #==
 
-# Build and install CycloneDDS from third_party submodule
-RUN cd ${CYCLOLAB_PATH}/third_party/cyclonedds && \
-    mkdir -p build && cd build && \
-    cmake -DCMAKE_INSTALL_PREFIX=${DOCKER_USER_HOME}/cyclonedds/install -DBUILD_EXAMPLES=ON .. && \
-    cmake --build . && \
-    cmake --install .
-
-# Set CycloneDDS environment variables
-ENV CYCLONEDDS_HOME=${DOCKER_USER_HOME}/cyclonedds/install
-ENV CMAKE_PREFIX_PATH=${CYCLONEDDS_HOME}
-ENV LD_LIBRARY_PATH=${CYCLONEDDS_HOME}/lib
-ENV PATH=${CYCLONEDDS_HOME}/bin:${PATH}
-
-# Install robotis_dds_python from third_party submodule
+# Install zenoh_ros2_sdk from third_party. Keep eclipse-zenoh on the 1.6 line
+# used by the rmw_zenoh/Zenoh stack.
+ENV ZENOH_SDK_PATH=${CYCLOLAB_PATH}/third_party/zenoh_ros2_sdk
+ENV ROS_DOMAIN_ID=30
+ENV RMW_IMPLEMENTATION=rmw_zenoh_cpp
+ENV ZENOH_CONFIG_OVERRIDE=transport/shared_memory/enabled=true
 RUN --mount=type=cache,target=${DOCKER_USER_HOME}/.cache/pip \
-    cd ${CYCLOLAB_PATH}/third_party/robotis_dds_python && \
-    ${ISAACLAB_PATH}/isaaclab.sh -p -m pip install -e .
+    ${ISAACLAB_PATH}/isaaclab.sh -p -m pip install \
+        'eclipse-zenoh>=1.6.0,<1.7.0' \
+        'rosbags>=0.11.0' \
+        'GitPython>=3.1.18' \
+        'json5>=0.9.14' \
+        pyyaml \
+        tqdm && \
+    cd ${ZENOH_SDK_PATH} && \
+    ${ISAACLAB_PATH}/isaaclab.sh -p -m pip install -e . && \
+    ln -sf ${ISAACSIM_ROOT_PATH}/kit/python/bin/zenoh-ros2 /usr/local/bin/zenoh-ros2
+
+# Keep GUI-enabled OpenCV isolated from Isaac Sim's headless OpenCV package.
+ENV CYCLO_CAMERA_VIEWER_VENV=/opt/cyclo-camera-viewer
+ENV CYCLO_CAMERA_VIEWER_PYTHON=${CYCLO_CAMERA_VIEWER_VENV}/bin/python
+RUN --mount=type=cache,target=${DOCKER_USER_HOME}/.cache/pip \
+    python3 -m venv ${CYCLO_CAMERA_VIEWER_VENV} && \
+    ${CYCLO_CAMERA_VIEWER_PYTHON} -m pip install --upgrade pip && \
+    ${CYCLO_CAMERA_VIEWER_PYTHON} -m pip install "opencv-python==4.11.0.86"
 
 #==
 # Install Cyclo Lab
@@ -151,6 +159,19 @@ RUN --mount=type=cache,target=${DOCKER_USER_HOME}/.cache/pip \
         ${ISAACLAB_PATH}/isaaclab.sh -p -m pip install -e .; \
     fi
 
+#==
+# Install Isaac Lab Arena for Isaac Sim 5.1 and Isaac Lab 2.3
+#==
+ENV ISAACLAB_ARENA_PATH=${CYCLOLAB_PATH}/third_party/IsaacLab-Arena
+ENV LW_API_ENDPOINT=https://api-dev.lightwheel.net
+RUN --mount=type=cache,target=${DOCKER_USER_HOME}/.cache/pip \
+    ${ISAACLAB_PATH}/isaaclab.sh -p -m pip install \
+        onnxruntime \
+        lightwheel-sdk \
+        pyzmq && \
+    cd ${ISAACLAB_ARENA_PATH} && \
+    ${ISAACLAB_PATH}/isaaclab.sh -p -m pip install --no-deps -e .
+
 
 # Create a separate Python virtual environment for LeRobot
 ENV LEROBOT_VENV=${DOCKER_USER_HOME}/lerobot_env
@@ -167,12 +188,12 @@ RUN --mount=type=cache,target=${DOCKER_USER_HOME}/.cache/pip \
 # Set up aliases and environment
 RUN echo "# Environment variables" >> ${DOCKER_USER_HOME}/.bashrc && \
     echo "export ISAACLAB_PATH=${ISAACLAB_PATH}" >> ${DOCKER_USER_HOME}/.bashrc && \
+    echo "export ISAACLAB_ARENA_PATH=${ISAACLAB_ARENA_PATH}" >> ${DOCKER_USER_HOME}/.bashrc && \
     echo "export CYCLOLAB_PATH=${CYCLOLAB_PATH}" >> ${DOCKER_USER_HOME}/.bashrc && \
-    echo "export CYCLONEDDS_HOME=${CYCLONEDDS_HOME}" >> ${DOCKER_USER_HOME}/.bashrc && \
-    echo "export CMAKE_PREFIX_PATH=${CYCLONEDDS_HOME}:\$CMAKE_PREFIX_PATH" >> ${DOCKER_USER_HOME}/.bashrc && \
-    echo "export LD_LIBRARY_PATH=${CYCLONEDDS_HOME}/lib:\$LD_LIBRARY_PATH" >> ${DOCKER_USER_HOME}/.bashrc && \
-    echo "export PATH=${CYCLONEDDS_HOME}/bin:\$PATH" >> ${DOCKER_USER_HOME}/.bashrc && \
     echo "export ROS_DOMAIN_ID=30" >> ${DOCKER_USER_HOME}/.bashrc && \
+    echo "export RMW_IMPLEMENTATION=rmw_zenoh_cpp" >> ${DOCKER_USER_HOME}/.bashrc && \
+    echo "export ZENOH_CONFIG_OVERRIDE='transport/shared_memory/enabled=true'" >> ${DOCKER_USER_HOME}/.bashrc && \
+    echo "export ZENOH_SDK_PATH=${ZENOH_SDK_PATH}" >> ${DOCKER_USER_HOME}/.bashrc && \
     echo "export TZ=$(date +%Z)" >> ${DOCKER_USER_HOME}/.bashrc && \
     echo "export LEROBOT_VENV=${LEROBOT_VENV}" >> ${DOCKER_USER_HOME}/.bashrc && \
     echo "" >> ${DOCKER_USER_HOME}/.bashrc && \

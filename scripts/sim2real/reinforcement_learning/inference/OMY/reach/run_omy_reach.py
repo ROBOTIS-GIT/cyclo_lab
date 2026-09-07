@@ -13,35 +13,32 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-#
-# Author: Taehyeong Kim
+
+from __future__ import annotations
 
 import argparse
-import os
 import threading
 import time
-from datetime import datetime
 
 import numpy as np
-
-from robotis_dds_python.idl.trajectory_msgs.msg import JointTrajectory_, JointTrajectoryPoint_
-from robotis_dds_python.idl.sensor_msgs.msg import JointState_
-from robotis_dds_python.idl.geometry_msgs.msg import TransformStamped_, Transform_, Vector3_, Quaternion_
-from robotis_dds_python.idl.tf2_msgs.msg import TFMessage_
-from robotis_dds_python.idl.std_msgs.msg import Header_
-from robotis_dds_python.idl.builtin_interfaces.msg import Time_, Duration_
-
-from robotis_dds_python.tools.topic_manager import TopicManager
-
+from cyclo_lab.runtime.policy_executor import PolicyExecutor
+from cyclo_lab.runtime.transport.ros2_zenoh import (
+    JOINT_STATE,
+    JOINT_TRAJECTORY,
+    TF_MESSAGE,
+    close_endpoints,
+    create_publisher,
+    create_subscriber,
+    make_joint_trajectory_kwargs,
+    make_tf_message_kwargs,
+    ros_domain_id,
+    transform_stamped_msg,
+)
 from reach_env_cfg import ReachEnvConfig
-
-import sys
-sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '../../..')))
-from inference.utils.policy_executor import PolicyExecutor
 
 
 class OMYReachPolicy(PolicyExecutor):
-    """DDS-based policy executor for executing a reach policy on the OMY robot."""
+    """Zenoh ROS2 policy executor for executing a reach policy on the OMY robot."""
 
     def __init__(self, model_dir: str):
         super().__init__()
@@ -50,11 +47,11 @@ class OMYReachPolicy(PolicyExecutor):
         self.load_policy_model(self.cfg.policy_model_path)
         self.load_policy_yaml(self.cfg.policy_env_path)
 
-        self.domain_id = int(os.getenv("ROS_DOMAIN_ID", 0))
+        self.domain_id = ros_domain_id()
         self.running = True
         self.iteration = 0
         self.has_joint_data = False
-        self.lock = threading.Lock()  # Protect shared state
+        self.lock = threading.Lock()
 
         self.action_scale = self.get_action_scale()
         self.joint_names = self.get_observation_joint_names()
@@ -66,69 +63,41 @@ class OMYReachPolicy(PolicyExecutor):
         self.current_joint_positions = np.zeros(self.num_joints)
         self.current_joint_velocities = np.zeros(self.num_joints)
 
-        # DDS Topic Manager
-        self.topic_manager = TopicManager(domain_id=self.domain_id)
-
-        # Subscriber for joint states
-        self.joint_state_reader = self.topic_manager.topic_reader(
-            topic_name=self.cfg.joint_state_topic,
-            topic_type=JointState_
+        self.joint_state_subscriber = create_subscriber(
+            topic=self.cfg.joint_state_topic,
+            msg_type=JOINT_STATE,
+            callback=self._on_joint_state,
         )
-
-        # Publisher for joint trajectory
-        self.joint_trajectory_writer = self.topic_manager.topic_writer(
-            topic_name=self.cfg.joint_trajectory_topic,
-            topic_type=JointTrajectory_
+        self.joint_trajectory_writer = create_publisher(
+            topic=self.cfg.joint_trajectory_topic,
+            msg_type=JOINT_TRAJECTORY,
         )
+        self.tf_writer = create_publisher(topic="/tf", msg_type=TF_MESSAGE)
 
-        # Publisher for TF (target pose visualization)
-        self.tf_writer = self.topic_manager.topic_writer(
-            topic_name="/tf",
-            topic_type=TFMessage_
-        )
+        self.subscribers = [self.joint_state_subscriber]
+        self.publishers = [self.joint_trajectory_writer, self.tf_writer]
 
-        # Start subscriber thread
-        self.thread = threading.Thread(target=self._subscriber_loop, daemon=True)
-        self.thread.start()
+        print(f"OMYReachPolicy initialized with Zenoh ROS2. ROS_DOMAIN_ID={self.domain_id}")
 
-        print("OMYReachPolicy initialized with DDS.")
-
-    def _subscriber_loop(self):
-        """Continuously read joint state messages from DDS in a separate thread."""
-        try:
-            while self.running:
-                has_message = False
-                for msg in self.joint_state_reader.take_iter():
-                    if msg:
-                        has_message = True
-                        with self.lock:
-                            name_to_index = {name: i for i, name in enumerate(msg.name)}
-                            for i, name in enumerate(self.joint_names):
-                                if name in name_to_index:
-                                    idx = name_to_index[name]
-                                    self.current_joint_positions[i] = msg.position[idx]
-                                    if idx < len(msg.velocity):
-                                        self.current_joint_velocities[i] = msg.velocity[idx]
-                                    else:
-                                        self.current_joint_velocities[i] = 0.0
-                                else:
-                                    print(f"Warning: Joint '{name}' not found in JointState message.")
-                            self.has_joint_data = True
-                
-                # Prevent CPU spinning when no messages are available
-                if not has_message:
-                    time.sleep(0.001)  # 1ms delay to reduce CPU usage
-        except Exception as e:
-            print("Subscriber thread exception:", e)
-        finally:
-            try:
-                self.joint_state_reader.Close()
-            except Exception:
-                pass
-            print("Joint state subscriber closed")
+    def _on_joint_state(self, msg):
+        if msg is None:
+            return
+        with self.lock:
+            name_to_index = {name: i for i, name in enumerate(msg.name)}
+            for i, name in enumerate(self.joint_names):
+                if name in name_to_index:
+                    idx = name_to_index[name]
+                    self.current_joint_positions[i] = msg.position[idx]
+                    if idx < len(msg.velocity):
+                        self.current_joint_velocities[i] = msg.velocity[idx]
+                    else:
+                        self.current_joint_velocities[i] = 0.0
+                else:
+                    print(f"Warning: Joint '{name}' not found in JointState message.")
+            self.has_joint_data = True
 
     def run_control_loop(self):
-        """Main control loop: samples target, computes action, and publishes joint commands."""
+        """Main control loop: sample target, compute action, and publish joint commands."""
         try:
             print("Waiting for joint state data...")
             while self.running:
@@ -146,14 +115,13 @@ class OMYReachPolicy(PolicyExecutor):
                         print(f"New target command: {np.round(self.target_command, 4)}")
 
                 if phase < command_interval:
-                    joint_trajectory_msg = self.create_trajectory_command(self.default_pos)
-                    self.joint_trajectory_writer.write(joint_trajectory_msg)
+                    joint_positions = self.default_pos
                 else:
                     joint_positions = self.run_policy_step(self.target_command)
                     if len(joint_positions) != self.num_joints:
                         raise ValueError(f"Expected {self.num_joints} joint positions, got {len(joint_positions)}")
-                    joint_trajectory_msg = self.create_trajectory_command(joint_positions)
-                    self.joint_trajectory_writer.write(joint_trajectory_msg)
+
+                self.joint_trajectory_writer.publish(**self.create_trajectory_command(joint_positions))
 
                 self.iteration += 1
                 time.sleep(self.cfg.step_size)
@@ -163,60 +131,35 @@ class OMYReachPolicy(PolicyExecutor):
         finally:
             self.shutdown()
 
-    def create_trajectory_command(self, joint_positions: np.ndarray) -> JointTrajectory_:
-        """Creates a JointTrajectory_ message from joint positions."""
-        point = JointTrajectoryPoint_(
-            positions=joint_positions.tolist(),
-            velocities=[],
-            accelerations=[],
-            effort=[],
-            time_from_start=Duration_(
-                sec=0,
-                nanosec=int(self.cfg.trajectory_time_from_start * 1e9)
-            )
-        )
-
-        header = Header_(
-            stamp=Time_(sec=0, nanosec=0),
-            frame_id=""
-        )
-
-        msg = JointTrajectory_(
-            header=header,
+    def create_trajectory_command(self, joint_positions: np.ndarray) -> dict:
+        """Create JointTrajectory publish kwargs from joint positions."""
+        return make_joint_trajectory_kwargs(
             joint_names=self.joint_names,
-            points=[point]
+            positions=joint_positions,
+            time_from_start_sec=self.cfg.trajectory_time_from_start,
         )
-        return msg
 
     def broadcast_target_pose_tf(self):
-        """Publishes a TF transform for the target pose."""
-        now = datetime.now()
-        stamp = Time_(sec=int(now.timestamp()), nanosec=now.microsecond * 1000)
-        header = Header_(stamp=stamp, frame_id="world")
-
-        transform = TransformStamped_(
-            header=header,
-            child_frame_id="target_pose",
-            transform=Transform_(
-                translation=Vector3_(
-                    x=self.target_command[0],
-                    y=self.target_command[1],
-                    z=self.target_command[2]
-                ),
-                rotation=Quaternion_(
-                    x=self.target_command[4],
-                    y=self.target_command[5],
-                    z=self.target_command[6],
-                    w=self.target_command[3]
-                )
-            )
+        """Publish a TF transform for the target pose."""
+        transform = transform_stamped_msg(
+            parent_frame="world",
+            child_frame="target_pose",
+            translation=(
+                self.target_command[0],
+                self.target_command[1],
+                self.target_command[2],
+            ),
+            rotation_xyzw=(
+                self.target_command[4],
+                self.target_command[5],
+                self.target_command[6],
+                self.target_command[3],
+            ),
         )
-
-        tf_message = TFMessage_(transforms=[transform])
-        self.tf_writer.write(tf_message)
+        self.tf_writer.publish(**make_tf_message_kwargs([transform]))
 
     def update_observation(self, command: np.ndarray) -> np.ndarray:
-        """Builds the observation vector for the policy."""
+        """Build the observation vector for the policy."""
         with self.lock:
             obs = np.concatenate([
                 self.current_joint_positions - self.default_pos,
@@ -228,7 +171,7 @@ class OMYReachPolicy(PolicyExecutor):
         return obs
 
     def run_policy_step(self, command: np.ndarray) -> np.ndarray:
-        """Runs a single step of the policy and returns the joint positions to command."""
+        """Run a single policy step and return joint positions to command."""
         observation = self.update_observation(command)
         self.action = self.update_action(observation)
         self.previous_action = self.action.copy()
@@ -237,22 +180,23 @@ class OMYReachPolicy(PolicyExecutor):
         return joint_positions
 
     def shutdown(self):
-        """Gracefully shut down the policy executor by stopping threads and closing DDS connections."""
+        """Stop the policy executor and close Zenoh ROS2 endpoints."""
+        if not self.running:
+            return
         self.running = False
-        try:
-            self.joint_state_reader.Close()
-            self.joint_trajectory_writer.Close()
-            self.tf_writer.Close()
-        except:
-            pass
-        print("DDS connections closed.")
+        close_endpoints(self.subscribers)
+        close_endpoints(self.publishers)
+        print("Zenoh ROS2 connections closed.")
+
 
 def main(args=None):
-    """Entry point to run the reach policy node with DDS."""
+    """Entry point to run the reach policy node over Zenoh ROS2."""
     parser = argparse.ArgumentParser()
     parser.add_argument(
-        "--model_dir", type=str, required=True,
-        help="Relative path to the trained policy directory under logs/rsl_rl/reach_omy/"
+        "--model_dir",
+        type=str,
+        required=True,
+        help="Relative path to the trained policy directory under logs/rsl_rl/reach_omy/",
     )
 
     parsed_args = parser.parse_args(args)
@@ -261,5 +205,5 @@ def main(args=None):
     policy.run_control_loop()
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()

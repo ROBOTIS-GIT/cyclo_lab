@@ -1,0 +1,1 @@
+"""FFW robot-specific constants."""

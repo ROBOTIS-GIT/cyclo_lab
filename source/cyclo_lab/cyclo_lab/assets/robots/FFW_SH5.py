@@ -16,22 +16,16 @@
 
 import re
 
-from isaacsim.core.utils.stage import get_current_stage
-from pxr import Sdf, Usd, UsdPhysics
-
+from cyclo_lab.assets.robots import CYCLO_LAB_ASSETS_DATA_DIR
+from cyclo_lab.robot_specs.ffw.sh5.mobile_base import SH5_SWERVE_STEERING_JOINTS as _SH5_SWERVE_STEERING_JOINTS
+from cyclo_lab.robot_specs.ffw.sh5.mobile_base import SH5_SWERVE_WHEEL_JOINTS as _SH5_SWERVE_WHEEL_JOINTS
 from isaaclab.actuators import ImplicitActuatorCfg
 from isaaclab.assets.articulation import ArticulationCfg
-from isaaclab.sim import (
-    ArticulationRootPropertiesCfg,
-    RigidBodyMaterialCfg,
-    RigidBodyPropertiesCfg,
-    UsdFileCfg,
-)
+from isaaclab.sim import ArticulationRootPropertiesCfg, RigidBodyMaterialCfg, RigidBodyPropertiesCfg, UsdFileCfg
 from isaaclab.sim.spawners.from_files import from_files
 from isaaclab.sim.utils import bind_physics_material, clone, make_uninstanceable
-
-from cyclo_lab.assets.robots import CYCLO_LAB_ASSETS_DATA_DIR
-
+from isaacsim.core.utils.stage import get_current_stage
+from pxr import Sdf, Usd, UsdPhysics
 
 _SH5_FINGER_TIP_MATERIAL = RigidBodyMaterialCfg(
     friction_combine_mode="max",
@@ -43,13 +37,6 @@ _SH5_FINGER_TIP_MATERIAL = RigidBodyMaterialCfg(
 
 _SH5_BASE_COLLISION_LINKS = (5, 6, 9, 10, 13, 14, 17, 18)
 _SH5_WHEEL_DRIVE_LINKS = ("left_wheel_drive", "right_wheel_drive", "rear_wheel_drive")
-
-SH5_SWERVE_STEERING_JOINTS = ("left_wheel_steer_joint", "right_wheel_steer_joint", "rear_wheel_steer_joint")
-SH5_SWERVE_WHEEL_JOINTS = ("left_wheel_drive_joint", "right_wheel_drive_joint", "rear_wheel_drive_joint")
-SH5_SWERVE_MODULE_X_OFFSETS = (0.1371, 0.1374, -0.289)
-SH5_SWERVE_MODULE_Y_OFFSETS = (0.2554, -0.2554, 0.0)
-SH5_SWERVE_MODULE_ANGLE_OFFSETS = (0.0, 0.0, 0.0)
-SH5_SWERVE_WHEEL_RADIUS = 0.0865
 
 
 def _is_sh5_finger_tip_prim(prim_path: str) -> bool:
@@ -188,26 +175,24 @@ FFW_SH5_CFG = ArticulationCfg(
         pos=(0.0, 0.0, -0.18),
         joint_pos={
             # Swerve base joints
-            "left_wheel_drive_joint": 0.0, "left_wheel_steer_joint": 0.0,
-            "right_wheel_drive_joint": 0.0, "right_wheel_steer_joint": 0.0,
-            "rear_wheel_drive_joint": 0.0, "rear_wheel_steer_joint": 0.0,
-
+            "left_wheel_drive_joint": 0.0,
+            "left_wheel_steer_joint": 0.0,
+            "right_wheel_drive_joint": 0.0,
+            "right_wheel_steer_joint": 0.0,
+            "rear_wheel_drive_joint": 0.0,
+            "rear_wheel_steer_joint": 0.0,
             # Left arm joints
             **{f"arm_l_joint{i}": 0.0 for i in range(1, 8)},
             # Right arm joints
             **{f"arm_r_joint{i}": 0.0 for i in range(1, 8)},
-
             **{f"arm_l_joint{4}": -1.57},
             **{f"arm_r_joint{4}": -1.57},
-
             # Left and right hand joints
             **{f"finger_l_joint{i}": 0.0 for i in range(1, 21)},
             **{f"finger_r_joint{i}": 0.0 for i in range(1, 21)},
-
             # Head joints
             "head_joint1": 0.695,
             "head_joint2": 0.0,
-
             # Lift joint
             "lift_joint": 0.0,
         },
@@ -215,20 +200,19 @@ FFW_SH5_CFG = ArticulationCfg(
     actuators={
         # Actuators for swerve base
         "base_steer": ImplicitActuatorCfg(
-            joint_names_expr=list(SH5_SWERVE_STEERING_JOINTS),
+            joint_names_expr=list(_SH5_SWERVE_STEERING_JOINTS),
             velocity_limit_sim=10.0,
             effort_limit_sim=100000.0,
             stiffness=10000.0,
             damping=100.0,
         ),
         "base_drive": ImplicitActuatorCfg(
-            joint_names_expr=list(SH5_SWERVE_WHEEL_JOINTS),
+            joint_names_expr=list(_SH5_SWERVE_WHEEL_JOINTS),
             velocity_limit_sim=50.0,
             effort_limit_sim=100000.0,
             stiffness=0.0,
             damping=100.0,
         ),
-
         # Actuator for vertical lift joint
         "lift": ImplicitActuatorCfg(
             joint_names_expr=["lift_joint"],
@@ -237,7 +221,6 @@ FFW_SH5_CFG = ArticulationCfg(
             stiffness=10000.0,
             damping=100.0,  # 0.0
         ),
-
         # Actuators for both arms
         "DY_80": ImplicitActuatorCfg(
             joint_names_expr=[
@@ -269,7 +252,6 @@ FFW_SH5_CFG = ArticulationCfg(
             stiffness=200.0,
             damping=3.0,
         ),
-
         # Actuators for hands
         "XM_335": ImplicitActuatorCfg(
             joint_names_expr=[
@@ -281,11 +263,10 @@ FFW_SH5_CFG = ArticulationCfg(
                 "finger_r_joint20",
             ],
             velocity_limit_sim=15.0,
-            effort_limit_sim=3.09,    
-            stiffness=500.0,   
+            effort_limit_sim=3.09,
+            stiffness=500.0,
             damping=30.0,
         ),
-
         # Actuators for head joints
         "head": ImplicitActuatorCfg(
             joint_names_expr=["head_joint1", "head_joint2"],

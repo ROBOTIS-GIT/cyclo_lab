@@ -31,3 +31,21 @@ LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 ```
+
+## ROBOTIS-GIT/zenoh_ros2_sdk
+
+- Source: https://github.com/ROBOTIS-GIT/zenoh_ros2_sdk
+- License: Apache-2.0
+- Used in: `source/cyclo_lab/cyclo_lab/runtime/transport`
+
+The SDK provides ROS2-compatible message transport over Zenoh without a full
+ROS installation in the Isaac Sim Python environment.
+
+## NVIDIA IsaacLab-Arena
+
+- Source: https://github.com/isaac-sim/IsaacLab-Arena
+- License: Apache-2.0
+- Used in: `source/cyclo_lab/cyclo_lab/manager_based/manipulation/pick_place/config/ffw_sg2/galileo`
+
+Cyclo Lab reuses the upstream Galileo scene, task, and metrics while supplying
+the FFW-SG2 embodiment and action configuration.
