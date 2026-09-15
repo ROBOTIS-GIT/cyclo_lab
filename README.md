@@ -80,7 +80,7 @@ Geometry is embedded; no source URDF or STL files are required at runtime.
 These are asset-only additions, not new tasks or replacements for `OMY.usd`.
 Drive gains are provisional (stiffness 100 Nm/rad, damping 1 Nm/(rad/s)); imported
 effort limits of 1000 Nm are not verified hardware ratings. Self-collision is off.
-The D405 housing is geometry only, not a configured camera sensor.
+Camera hardware and camera sensors are not included.
 
 ## Try examples
 
