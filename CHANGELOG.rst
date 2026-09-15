@@ -2,6 +2,16 @@
 Changelog for package cyclo_lab
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+2.1.1 (2026-09-15)
+------------------
+* Added standalone left- and right-hand OMY F3M + HX5 D20 USD robot assets
+  with a fixed base, six arm joints, and twenty independent hand joints.
+* Added black visual materials and mesh-based convex-decomposition colliders
+  for the wrist, flange, and hand links.
+* Documented asset limitations and the embedded RealSense D405 mesh license.
+* Existing OMY assets, task configurations, and runtime interfaces are unchanged.
+* Contributors: Taehyeong Kim
+
 2.1.0 (2026-08-26)
 ------------------
 * Unified real-world and simulation task packages under

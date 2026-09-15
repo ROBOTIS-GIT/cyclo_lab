@@ -2,6 +2,18 @@
 
 This project includes code adapted from third-party open-source projects.
 
+## RealSense/realsense-ros
+
+- Source: https://github.com/realsenseai/realsense-ros/tree/9a11121700cb4780e273e34141f6402fe184321d/realsense2_description
+- Source asset: `realsense2_description/meshes/d405.stl`
+- License: Apache-2.0; see [LICENSE-RealSense](source/cyclo_lab/data/robots/OMY/licenses/LICENSE-RealSense).
+- Copyright notice: [COPYRIGHT-RealSense](source/cyclo_lab/data/robots/OMY/licenses/COPYRIGHT-RealSense).
+- Used in: `source/cyclo_lab/data/robots/OMY/OMY_HX5_LEFT.usd` and `OMY_HX5_RIGHT.usd`.
+
+The D405 housing mesh is embedded in these USD assets after STL-to-USD conversion,
+unit scaling, placement, and application of the robot's black visual material.
+The RealSense ROS driver and its software dependencies are not bundled.
+
 ## HybridRobotics/whole_body_tracking
 
 - Source: https://github.com/HybridRobotics/whole_body_tracking
