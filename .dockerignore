@@ -1,0 +1,35 @@
+# Repository metadata
+.git
+**/.git
+
+# Local datasets and runtime artifacts
+datasets/
+logs/
+outputs/
+docker/workspace/
+docker/.cyclo-lab-docker-history
+
+# Python and native build artifacts
+**/__pycache__/
+**/*.py[cod]
+**/*.egg-info/
+**/.Python
+**/dist/
+**/build/
+
+# Tool and application caches
+**/.cache/
+**/.ruff_cache/
+third_party/IsaacLab/docs/_build/
+third_party/IsaacLab/logs/
+third_party/IsaacLab/data_storage/
+
+# Editor and temporary files
+.vscode/
+.idea/
+**/*.swp
+**/*.swo
+**/*~
+**/*.log
+**/*.tmp
+**/*.bak

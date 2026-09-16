@@ -4,9 +4,10 @@
 # Based on Isaac Lab Dockerfile structure
 
 # Base image from NVIDIA Isaac Sim
-ARG ISAACSIM_BASE_IMAGE_ARG
-ARG ISAACSIM_VERSION_ARG
+ARG ISAACSIM_BASE_IMAGE_ARG=nvcr.io/nvidia/isaac-sim
+ARG ISAACSIM_VERSION_ARG=6.0.1
 FROM ${ISAACSIM_BASE_IMAGE_ARG}:${ISAACSIM_VERSION_ARG} AS base
+ARG ISAACSIM_VERSION_ARG
 ENV ISAACSIM_VERSION=${ISAACSIM_VERSION_ARG}
 
 # Set default RUN shell to bash
@@ -77,7 +78,7 @@ RUN URDF_PREBUNDLE=${ISAACSIM_ROOT_PATH}/exts/isaacsim.asset.importer.urdf/pip_p
 
 # Copy the Cyclo Lab directory including third_party submodules
 # (files to exclude are defined in .dockerignore)
-COPY ../ ${CYCLOLAB_PATH}
+COPY . ${CYCLOLAB_PATH}
 
 # Set up Isaac Lab path from third_party
 ENV ISAACLAB_PATH=${CYCLOLAB_PATH}/third_party/IsaacLab
@@ -153,8 +154,8 @@ RUN cd ${CYCLOLAB_PATH}/third_party/cyclonedds && \
 
 # Set CycloneDDS environment variables
 ENV CYCLONEDDS_HOME=${DOCKER_USER_HOME}/cyclonedds/install
-ENV CMAKE_PREFIX_PATH=${CYCLONEDDS_HOME}:${CMAKE_PREFIX_PATH}
-ENV LD_LIBRARY_PATH=${CYCLONEDDS_HOME}/lib:${LD_LIBRARY_PATH}
+ENV CMAKE_PREFIX_PATH=${CYCLONEDDS_HOME}
+ENV LD_LIBRARY_PATH=${CYCLONEDDS_HOME}/lib
 ENV PATH=${CYCLONEDDS_HOME}/bin:${PATH}
 
 # Install robotis_dds_python from third_party submodule

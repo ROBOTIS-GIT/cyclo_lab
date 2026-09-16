@@ -7,7 +7,7 @@
 
 # Register K1 simulation environments. Real-world/AI Worker tasks are outside
 # the scope of this Newton branch and intentionally are not auto-registered.
-from .simulation_tasks import *
+from .manager_based import *
 
 # Register UI extensions only when Isaac Sim / Kit is available.  Newton can run
 # without Kit, so importing the project must not require ``omni.ui``.

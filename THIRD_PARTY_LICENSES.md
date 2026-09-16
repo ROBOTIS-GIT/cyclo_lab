@@ -6,7 +6,7 @@ This project includes code adapted from third-party open-source projects.
 
 - Source: https://github.com/HybridRobotics/whole_body_tracking
 - License: MIT
-- Used in: `source/cyclo_lab/cyclo_lab/simulation_tasks/manager_based/mimic`
+- Used in: `source/cyclo_lab/cyclo_lab/manager_based/mimic`
 
 The AI Sapiens mimic task stack adapts the reference-motion tracking MDP structure from `whole_body_tracking`.
 

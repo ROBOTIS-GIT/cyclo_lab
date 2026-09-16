@@ -1,0 +1,12 @@
+# Versions bundled with nvcr.io/nvidia/isaac-sim:5.1.0.
+torch==2.7.0
+torchvision==0.22.0
+
+# Keep Isaac Lab's optional RL and notebook dependencies mutually compatible.
+ipython<9
+stable-baselines3==2.8.0
+psutil>=5.9,<6
+
+# Cyclo Lab uses the protobuf 4 line; newer WandB releases require protobuf 5.
+protobuf>=4.25.8,<5
+wandb<0.22
