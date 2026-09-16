@@ -16,7 +16,6 @@
 
 import re
 
-from isaacsim.core.utils.stage import get_current_stage
 from pxr import Sdf, Usd, UsdPhysics
 
 from isaaclab.actuators import ImplicitActuatorCfg
@@ -28,7 +27,7 @@ from isaaclab.sim import (
     UsdFileCfg,
 )
 from isaaclab.sim.spawners.from_files import from_files
-from isaaclab.sim.utils import bind_physics_material, clone, make_uninstanceable
+from isaaclab.sim.utils import bind_physics_material, clone, get_current_stage, make_uninstanceable
 
 from cyclo_lab.assets.robots import CYCLO_LAB_ASSETS_DATA_DIR
 
