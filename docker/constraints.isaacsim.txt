@@ -1,12 +1,9 @@
-# Versions bundled with nvcr.io/nvidia/isaac-sim:5.1.0.
-torch==2.7.0
-torchvision==0.22.0
+# Match third_party/IsaacLab/pyproject.toml [tool.isaaclab.versions].
+# Lab's installer selects the CUDA wheel index. Do not reuse Sim 5.1 pins.
+torch==2.11.0
+torchvision==0.26.0
+torchaudio==2.11.0
 
-# Keep Isaac Lab's optional RL and notebook dependencies mutually compatible.
-ipython<9
-stable-baselines3==2.8.0
-psutil>=5.9,<6
-
-# Cyclo Lab uses the protobuf 4 line; newer WandB releases require protobuf 5.
-protobuf>=4.25.8,<5
-wandb<0.22
+# Match Lab's supported protobuf range and its pkg_resources compatibility cap.
+protobuf>=4.25.8,!=5.26.0
+setuptools<82

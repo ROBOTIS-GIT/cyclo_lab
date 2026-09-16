@@ -45,15 +45,16 @@ x-default-cyclo-lab-volumes: &default-cyclo-lab-volumes
   - type: volume
     source: isaac-lab-data
     target: ${DOCKER_ISAACLAB_PATH}/data_storage
-  # Bash history
-  - type: bind
-    source: .cyclo-lab-docker-history
-    target: ${DOCKER_USER_HOME}/.bash_history
+  # Persist history without binding a host path that Docker may create as a directory.
+  - type: volume
+    source: cyclo-shell-history
+    target: ${DOCKER_USER_HOME}/.local/state/cyclo_lab
 
 x-default-cyclo-lab-environment: &default-cyclo-lab-environment
   - ISAACSIM_PATH=${DOCKER_ISAACSIM_ROOT_PATH}
   - ISAACLAB_PATH=${DOCKER_ISAACLAB_PATH}
   - CYCLOLAB_PATH=${DOCKER_CYCLOLAB_PATH}
+  - HISTFILE=${DOCKER_USER_HOME}/.local/state/cyclo_lab/bash_history
   - OMNI_KIT_ALLOW_ROOT=1
   - ACCEPT_EULA=${ACCEPT_EULA}
   - PRIVACY_CONSENT=Y
@@ -106,3 +107,4 @@ volumes:
   isaac-lab-docs:
   isaac-lab-logs:
   isaac-lab-data:
+  cyclo-shell-history:

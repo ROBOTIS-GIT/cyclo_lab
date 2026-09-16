@@ -19,19 +19,17 @@ EXTENSION_TOML_DATA = toml.load(os.path.join(EXTENSION_PATH, "config", "extensio
 INSTALL_REQUIRES = [
     # generic
     "numpy",
-    "torch>=2.5.1",
-    "torchvision>=0.14.1",  # ensure compatibility with torch 1.13.1
+    "torch>=2.11.0",
+    "torchvision>=0.26.0",
     # 5.26.0 introduced a breaking change, so we restricted it for now.
     # See issue https://github.com/tensorflow/tensorboard/issues/6808 for details.
-    "protobuf>=3.20.2, < 5.0.0",
+    "protobuf>=4.25.8,!=5.26.0",
     # basic logger
     "tensorboard",
     # automate
     "scikit-learn",
     "pynput",
 ]
-
-PYTORCH_INDEX_URL = ["https://download.pytorch.org/whl/cu118"]
 
 # Installation operation
 setup(
@@ -43,17 +41,13 @@ setup(
     description=EXTENSION_TOML_DATA["package"]["description"],
     keywords=EXTENSION_TOML_DATA["package"]["keywords"],
     include_package_data=True,
-    python_requires=">=3.10",
+    python_requires=">=3.12,<3.13",
     install_requires=INSTALL_REQUIRES,
-    dependency_links=PYTORCH_INDEX_URL,
     packages=find_packages(),
     classifiers=[
         "Natural Language :: English",
-        "Programming Language :: Python :: 3.10",
-        "Programming Language :: Python :: 3.11",
-        "Isaac Sim :: 4.5.0",
-        "Isaac Sim :: 5.0.0",
-        "Isaac Sim :: 5.1.0",
+        "Programming Language :: Python :: 3.12",
+        "Isaac Sim :: 6.1.0",
     ],
     zip_safe=False,
 )

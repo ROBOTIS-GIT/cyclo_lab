@@ -1,8 +1,8 @@
 # cyclo_lab
 
-[![IsaacSim](https://img.shields.io/badge/IsaacSim-5.1.0-silver.svg)](https://docs.isaacsim.omniverse.nvidia.com/latest/index.html)
-[![Isaac Lab](https://img.shields.io/badge/IsaacLab-2.3.0-silver)](https://isaac-sim.github.io/IsaacLab/main/index.html)
-[![Python](https://img.shields.io/badge/python-3.11-blue.svg)](https://docs.python.org/3/whatsnew/3.11.html)
+[![IsaacSim](https://img.shields.io/badge/IsaacSim-6.1.0-silver.svg)](https://docs.isaacsim.omniverse.nvidia.com/latest/index.html)
+[![Isaac Lab](https://img.shields.io/badge/IsaacLab-3.0.0--development-silver)](https://isaac-sim.github.io/IsaacLab/main/index.html)
+[![Python](https://img.shields.io/badge/python-3.12-blue.svg)](https://docs.python.org/3/whatsnew/3.12.html)
 [![Linux platform](https://img.shields.io/badge/platform-linux--64-orange.svg)](https://releases.ubuntu.com/22.04/)
 [![License](https://img.shields.io/badge/license-Apache2.0-yellow.svg)](https://opensource.org/license/apache-2-0)
 
@@ -14,7 +14,10 @@ https://github.com/user-attachments/assets/28347b4b-f90c-4a4f-8916-621f917d86cb
 This project provides simulation environments, configuration tools, and task definitions tailored for Robotis hardware, leveraging NVIDIA Isaac Sim’s powerful GPU-accelerated physics engine and Isaac Lab’s modular RL pipeline.
 
 > [!IMPORTANT]
-> This repository currently depends on **IsaacLab v2.2.0** or higher.
+> This branch targets **Isaac Sim 6.1.0 / Python 3.12** and the Isaac Lab
+> **release/3.0.0** checkout pinned at `341109ef41c4c21cb3afaa14337e93cd9a682038`.
+> Environment migration is in progress; the task APIs, existing datasets, and policies
+> still need migration and runtime validation. See [environment setup](docker/README.md).
 >
 
 ## Installation (Docker)
@@ -43,6 +46,7 @@ Docker installation provides a consistent environment with all dependencies pre-
 2. Build and start the Docker container:
 
    ```bash
+   ./docker/container.sh build
    ./docker/container.sh start
    ```
 
@@ -53,15 +57,16 @@ Docker installation provides a consistent environment with all dependencies pre-
    ```
 
 **Docker Commands:**
-- `./docker/container.sh start` - Build and start the container
+- `./docker/container.sh build` - Build the image for the pinned environment
+- `./docker/container.sh start` - Start the container (builds if no image exists)
 - `./docker/container.sh enter` - Enter the running container
 - `./docker/container.sh stop` - Stop the container
 - `./docker/container.sh logs` - View container logs
 - `./docker/container.sh clean` - Remove container and image
 
 **What's included in the Docker image:**
-- Isaac Sim 5.1.0
-- Isaac Lab v2.3.0 (from third_party submodule)
+- Isaac Sim 6.1.0
+- Isaac Lab release/3.0.0 (pinned third_party submodule; development version)
 - CycloneDDS 0.10.2 (from third_party submodule)
 - robotis_dds_python (from third_party submodule)
 - LeRobot 0.3.3 (in separate virtual environment at `~/lerobot_env`)
