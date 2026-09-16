@@ -101,6 +101,7 @@ from isaaclab_tasks.utils import get_checkpoint_path
 from isaaclab_tasks.utils.hydra import hydra_task_config
 
 import cyclo_lab  # noqa: F401
+from cyclo_lab.utils.onnx_external_data import embed_onnx_external_data
 
 # PLACEHOLDER: Extension template (do not remove this comment)
 
@@ -207,6 +208,8 @@ def main(env_cfg: ManagerBasedRLEnvCfg | DirectRLEnvCfg | DirectMARLEnvCfg, agen
         # export to JIT and ONNX
         export_policy_as_jit(policy_nn, normalizer=normalizer, path=export_model_dir, filename="policy.pt")
         export_policy_as_onnx(policy_nn, normalizer=normalizer, path=export_model_dir, filename="policy.onnx")
+
+    embed_onnx_external_data(os.path.join(export_model_dir, "policy.onnx"))
 
     dt = env.unwrapped.step_dt
 
