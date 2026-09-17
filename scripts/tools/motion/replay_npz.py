@@ -78,6 +78,7 @@ from isaaclab.utils import configclass
 from isaaclab.utils.assets import ISAAC_NUCLEUS_DIR
 
 from cyclo_lab.assets.robots.K1_rev1 import K1_REV1_INERTIA_TUNED_CFG
+from cyclo_lab.utils.motion_npz import load_motion_npz
 
 
 @configclass
@@ -95,8 +96,8 @@ class ReplaySceneCfg(InteractiveSceneCfg):
     robot: ArticulationCfg = K1_REV1_INERTIA_TUNED_CFG.replace(prim_path="{ENV_REGEX_NS}/Robot")
 
 
-def _load_npz(path: str, device: str) -> tuple[torch.Tensor, torch.Tensor, torch.Tensor, float]:
-    data = np.load(path)
+def _load_npz(path: str, device: str, joint_names=None, body_names=None) -> tuple[torch.Tensor, torch.Tensor, torch.Tensor, float]:
+    data = load_motion_npz(path, joint_names=joint_names, body_names=body_names)
     missing = [key for key in REQUIRED_NPZ_KEYS if key not in data]
     if missing:
         raise KeyError(f"NPZ file is missing required keys: {missing}")
@@ -141,13 +142,15 @@ def _sleep_for_realtime(start_time: float, dt: float):
 
 
 def run_replay(sim: SimulationContext, scene: InteractiveScene):
-    root_pos, root_quat, motion_joint_pos, fps = _load_npz(args_cli.input_file, sim.device)
+    root_pos, root_quat, motion_joint_pos, fps = _load_npz(
+        args_cli.input_file, sim.device, scene["robot"].joint_names, scene["robot"].body_names
+    )
     dt = 1.0 / fps
     robot = scene["robot"]
-    if motion_joint_pos.shape[1] != robot.data.default_joint_pos.shape[1]:
+    if motion_joint_pos.shape[1] != robot.data.default_joint_pos.torch.shape[1]:
         raise ValueError(
             f"NPZ joint_pos has {motion_joint_pos.shape[1]} joints, "
-            f"but robot has {robot.data.default_joint_pos.shape[1]} joints."
+            f"but robot has {robot.data.default_joint_pos.torch.shape[1]} joints."
         )
 
     print(f"[INFO] Replaying NPZ: {args_cli.input_file}", flush=True)
@@ -159,15 +162,15 @@ def run_replay(sim: SimulationContext, scene: InteractiveScene):
     while simulation_app.is_running():
         step_start = time.perf_counter()
 
-        root_state = robot.data.default_root_state.clone()
+        root_state = robot.data.default_root_state.torch.clone()
         root_state[:, :3] = root_pos[frame_id]
         root_state[:, :2] += scene.env_origins[:, :2]
         root_state[:, 3:7] = root_quat[frame_id]
         root_state[:, 7:] = 0.0
         robot.write_root_state_to_sim(root_state)
 
-        joint_pos = robot.data.default_joint_pos.clone()
-        joint_vel = robot.data.default_joint_vel.clone()
+        joint_pos = robot.data.default_joint_pos.torch.clone()
+        joint_vel = robot.data.default_joint_vel.torch.clone()
         joint_pos[:, :] = motion_joint_pos[frame_id]
         joint_vel[:, :] = 0.0
         robot.write_joint_state_to_sim(joint_pos, joint_vel)
