@@ -2,6 +2,14 @@
 Changelog for package cyclo_lab
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+2.1.1 (2026-09-16)
+------------------
+* Applied the configured RSL-RL action clipping to exported ONNX policy outputs
+  so deployment uses the same action bounds as the simulation wrapper.
+* Preserved unclipped exports when ``clip_actions`` is ``None`` and left
+  recurrent state outputs unchanged. Existing policies require re-exporting.
+* Contributors: Kiwoong Park
+
 2.1.0 (2026-08-26)
 ------------------
 * Unified real-world and simulation task packages under
