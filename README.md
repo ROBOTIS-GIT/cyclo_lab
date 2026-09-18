@@ -67,21 +67,6 @@ Docker installation provides a consistent environment with all dependencies pre-
 - LeRobot 0.3.3 (in separate virtual environment at `~/lerobot_env`)
 - All required dependencies and configurations
 
-## OMY HX5 Robot Assets
-
-Standalone OMY F3M arms with HX5 D20 hands are available as USD assets:
-
-- [OMY_HX5_LEFT.usd](source/cyclo_lab/data/robots/OMY/OMY_HX5_LEFT.usd)
-- [OMY_HX5_RIGHT.usd](source/cyclo_lab/data/robots/OMY/OMY_HX5_RIGHT.usd)
-
-Open or reference either file in Isaac Sim. Each has a fixed base, 6 arm joints,
-20 independent hand joints, black visuals, and decomposed wrist/hand mesh colliders.
-Geometry is embedded; no source URDF or STL files are required at runtime.
-These are asset-only additions, not new tasks or replacements for `OMY.usd`.
-Drive gains are provisional (stiffness 100 Nm/rad, damping 1 Nm/(rad/s)); imported
-effort limits of 1000 Nm are not verified hardware ratings. Self-collision is off.
-Camera hardware and camera sensors are not included.
-
 ## Try examples
 
 ### Sim2Sim

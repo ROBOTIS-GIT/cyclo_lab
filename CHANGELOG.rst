@@ -8,7 +8,7 @@ Changelog for package cyclo_lab
   with a fixed base, six arm joints, and twenty independent hand joints.
 * Added black visual materials and mesh-based convex-decomposition colliders
   for the wrist, flange, and hand links.
-* Documented asset limitations; camera hardware and sensors are not included.
+* Camera hardware and sensors are not included.
 * Existing OMY assets, task configurations, and runtime interfaces are unchanged.
 * Contributors: Taehyeong Kim
 
