@@ -2,6 +2,14 @@
 Changelog for package cyclo_lab
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+2.1.2 (2026-09-17)
+------------------
+* Updated the ``ai_sapiens`` submodule to ``611a070`` for the revised K1
+  URDF/MJCF inertial properties and mesh assets.
+* Preserved the existing K1 joint names and transforms while updating the
+  robot mass, centers of mass, and inertia tensors.
+* Contributors: Kiwoong Park
+
 2.1.1 (2026-09-16)
 ------------------
 * Applied the configured RSL-RL action clipping to exported ONNX policy outputs
