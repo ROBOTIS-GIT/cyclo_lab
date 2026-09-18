@@ -2,7 +2,7 @@
 Changelog for package cyclo_lab
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-2.1.1 (2026-09-15)
+2.1.2 (2026-09-18)
 ------------------
 * Added standalone left- and right-hand OMY F3M + HX5 D20 USD robot assets
   with a fixed base, six arm joints, and twenty independent hand joints.
@@ -11,6 +11,14 @@ Changelog for package cyclo_lab
 * Documented asset limitations; camera hardware and sensors are not included.
 * Existing OMY assets, task configurations, and runtime interfaces are unchanged.
 * Contributors: Taehyeong Kim
+
+2.1.1 (2026-09-16)
+------------------
+* Applied the configured RSL-RL action clipping to exported ONNX policy outputs
+  so deployment uses the same action bounds as the simulation wrapper.
+* Preserved unclipped exports when ``clip_actions`` is ``None`` and left
+  recurrent state outputs unchanged. Existing policies require re-exporting.
+* Contributors: Kiwoong Park
 
 2.1.0 (2026-08-26)
 ------------------
