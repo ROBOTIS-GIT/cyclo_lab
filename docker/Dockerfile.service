@@ -7,8 +7,10 @@ COPY lab/ /workspace/cyclo_lab/
 COPY wheels/ /tmp/cyclo-wheels/
 COPY runtime-build.json /opt/cyclo/runtime-build.json
 RUN /isaac-sim/python.sh -m venv /opt/cyclo-agent \
+    && /opt/cyclo-agent/bin/python -m pip install --no-index --find-links=/tmp/cyclo-wheels --upgrade pip==26.2 \
     && /opt/cyclo-agent/bin/pip install --no-index --find-links=/tmp/cyclo-wheels cyclo-cloud-controller tensorboard==2.21.0 \
-    && /opt/cyclo-agent/bin/python -c "import cyclo_runtime.agent; from tensorboard.backend.event_processing.event_accumulator import EventAccumulator" \
+    && /opt/cyclo-agent/bin/python -c "import importlib.metadata as m; assert m.version('pip') == '26.2'; import cyclo_runtime.agent; from tensorboard.backend.event_processing.event_accumulator import EventAccumulator" \
+    && /opt/cyclo-agent/bin/python -m pip check \
     && /isaac-sim/python.sh -c "import importlib.metadata as m; assert m.version('viser') == '1.1.1'; assert m.version('tensorboard') == '2.21.0'" \
     && rm -rf /tmp/cyclo-wheels
 ENV CYCLO_RUNTIME_PYTHON=/isaac-sim/python.sh \
