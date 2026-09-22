@@ -9,4 +9,6 @@
 from .manager_based import *
 
 # Register UI extensions.
-from .ui_extension_example import *
+import os
+if os.environ.get("CYCLO_SERVICE_PROFILE") != "omy":
+    from .ui_extension_example import *
