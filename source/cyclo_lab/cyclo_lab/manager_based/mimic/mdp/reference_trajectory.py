@@ -42,7 +42,9 @@ class ReferenceTrajectory:
         "body_ang_vel_w",
     )
 
-    def __init__(self, trajectory_file: str, tracked_body_ids: Sequence[int], device: str = "cpu"):
+    def __init__(self, trajectory_file: str, tracked_body_ids: Sequence[int], device: str = "cpu", quaternion_order: str = "xyzw"):
+        if quaternion_order not in {"wxyz", "xyzw"}:
+            raise ValueError("Explicit quaternion order must be wxyz or xyzw")
         path = Path(trajectory_file)
         if not path.is_file():
             raise FileNotFoundError(f"Reference trajectory file does not exist: {path}")
@@ -57,6 +59,8 @@ class ReferenceTrajectory:
         self.joint_velocity = torch.tensor(data["joint_vel"], dtype=torch.float32, device=device)
         self._body_position_w = torch.tensor(data["body_pos_w"], dtype=torch.float32, device=device)
         self._body_orientation_w = torch.tensor(data["body_quat_w"], dtype=torch.float32, device=device)
+        if quaternion_order == "wxyz":
+            self._body_orientation_w = self._body_orientation_w[..., [1, 2, 3, 0]]
         self._body_linear_velocity_w = torch.tensor(data["body_lin_vel_w"], dtype=torch.float32, device=device)
         self._body_angular_velocity_w = torch.tensor(data["body_ang_vel_w"], dtype=torch.float32, device=device)
         self._tracked_body_ids = tracked_body_ids

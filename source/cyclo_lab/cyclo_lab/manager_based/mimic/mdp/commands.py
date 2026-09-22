@@ -64,7 +64,7 @@ class ReferenceTrajectoryCommand(CommandTerm):
             self.robot.find_bodies(self.cfg.body_names, preserve_order=True)[0], dtype=torch.long, device=self.device
         )
 
-        self.reference = ReferenceTrajectory(self.cfg.trajectory_file, self.tracked_body_ids, device=self.device)
+        self.reference = ReferenceTrajectory(self.cfg.trajectory_file, self.tracked_body_ids, device=self.device, quaternion_order=self.cfg.quaternion_order)
         self.frame_ids = torch.zeros(self.num_envs, dtype=torch.long, device=self.device)
         self.aligned_body_position_w = torch.zeros(self.num_envs, len(cfg.body_names), 3, device=self.device)
         self.aligned_body_orientation_w = torch.zeros(self.num_envs, len(cfg.body_names), 4, device=self.device)
@@ -366,6 +366,7 @@ class ReferenceTrajectoryCommandCfg(CommandTermCfg):
     class_type: type = ReferenceTrajectoryCommand
     asset_name: str = MISSING
     trajectory_file: str = MISSING
+    quaternion_order: str = "xyzw"
     anchor_body_name: str = MISSING
     body_names: list[str] = MISSING
     reset_pose_noise: dict[str, tuple[float, float]] = {}

@@ -97,10 +97,10 @@ WEB_EYE = (-1.2, -1.2, 0.9)
 WEB_TARGET = (0.1, 0.0, 0.2)
 
 
-def configure_web_view(sim):
+def configure_web_view(sim, eye=WEB_EYE, target=WEB_TARGET):
     """Use the pinned Newton/Viser camera lifecycle for initial and reconnecting clients."""
     import math
-    direction = tuple(b - a for a, b in zip(WEB_EYE, WEB_TARGET))
+    direction = tuple(b - a for a, b in zip(eye, target))
     pitch = math.degrees(math.atan2(direction[2], math.hypot(*direction[:2])))
     yaw = math.degrees(math.atan2(direction[1], direction[0]))
     for visualizer in sim.visualizers:
@@ -109,29 +109,31 @@ def configure_web_view(sim):
         # Isaac Lab exposes visualizers; its pinned Newton backend owns this server.
         # Keep this small compatibility boundary in service code, not the upstream checkout.
         viewer = visualizer._viewer
-        viewer.set_camera(WEB_EYE, pitch, yaw)
+        viewer.set_camera(eye, pitch, yaw)
         server = viewer._server
-        server.initial_camera.look_at = WEB_TARGET
+        server.initial_camera.look_at = target
         server.scene.add_light_directional('/cyclo/key', intensity=2.5,
                                           position=(3.0, 2.0, 4.0), cast_shadow=False)
         server.scene.add_light_directional('/cyclo/fill', intensity=1.2,
                                           position=(-3.0, -1.0, 2.0), cast_shadow=False)
-        sim.set_camera_view(WEB_EYE, WEB_TARGET)
+        sim.set_camera_view(eye, target)
         return
     raise RuntimeError('The service requires the pinned Viser visualizer')
 
 
 def main():
-    os.environ['CYCLO_SERVICE_PROFILE'] = 'omy'
     from isaaclab.app import AppLauncher
 
     parser = argparse.ArgumentParser()
-    parser.add_argument('--task', choices=['Cyclo-Reach-OMY-v0'], required=True)
+    parser.add_argument('--task', choices=['Cyclo-Reach-OMY-v0', 'Cyclo-Velocity-Flat-K1-Rev1-v0', 'Cyclo-Mimic-K1-Rev1-Dance1', 'Cyclo-Mimic-K1-Rev1-Dance2'], required=True)
     parser.add_argument('--num_envs', type=int, choices=[1], default=1)
     parser.add_argument('--state_file', type=Path, required=True)
     parser.add_argument('--commands_file', type=Path, required=True)
     AppLauncher.add_app_launcher_args(parser)
     args = parser.parse_args()
+    sapiens = args.task != "Cyclo-Reach-OMY-v0"
+    os.environ["CYCLO_SERVICE_PROFILE"] = "sapiens" if sapiens else "omy"
+    eye, target = ((2.8, 2.8, 1.8), (0.0, 0.0, 0.8)) if sapiens else (WEB_EYE, WEB_TARGET)
     args.state_file.parent.mkdir(parents=True, exist_ok=True)
     launcher = AppLauncher(args)
     app = launcher.app
@@ -144,10 +146,10 @@ def main():
 
         cfg = parse_env_cfg(args.task, device=args.device, num_envs=1)
         from isaaclab.visualizers import VisualizerCfg
-        cfg.sim.default_visualizer_cfg = VisualizerCfg(eye=WEB_EYE, lookat=WEB_TARGET)
+        cfg.sim.default_visualizer_cfg = VisualizerCfg(eye=eye, lookat=target)
         env = gym.make(args.task, cfg=cfg)
         env.reset()
-        configure_web_view(env.unwrapped.sim)
+        configure_web_view(env.unwrapped.sim, eye, target)
         control = ControlState()
         step = 0
         offset = 0
@@ -173,6 +175,8 @@ def main():
                     actions = torch.zeros(env.action_space.shape, device=env.unwrapped.device)
                     env.step(actions)
                 step += 1
+                if sapiens and step == 1:
+                    control.paused = True
                 if control.paused and control.pending_steps:
                     control.advance(step)
             else:

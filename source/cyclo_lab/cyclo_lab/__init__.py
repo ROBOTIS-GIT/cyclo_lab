@@ -10,5 +10,5 @@ from .manager_based import *
 
 # Register UI extensions.
 import os
-if os.environ.get("CYCLO_SERVICE_PROFILE") != "omy":
+if os.environ.get("CYCLO_SERVICE_PROFILE") not in {"omy", "sapiens"}:
     from .ui_extension_example import *

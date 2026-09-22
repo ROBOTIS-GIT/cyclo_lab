@@ -29,6 +29,7 @@ class K1Rev1EnvCfg(K1Rev1MimicEnvCfg):
         super().__post_init__()
         self.episode_length_s = 30.0
         self.commands.reference_trajectory.trajectory_file = TRAJECTORY_FILE
+        self.commands.reference_trajectory.quaternion_order = "wxyz"
 
 
 @configclass
