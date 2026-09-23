@@ -45,7 +45,8 @@ def test_web_view_initializes_reconnect_camera_and_directional_lights():
  from types import SimpleNamespace
  calls=[]
  scene=SimpleNamespace(add_light_directional=lambda name,**kw:calls.append(('light',name,kw)))
- server=SimpleNamespace(scene=scene,initial_camera=SimpleNamespace())
+ server=SimpleNamespace(scene=scene,initial_camera=SimpleNamespace(),gui=SimpleNamespace(
+  reset=lambda:None,configure_theme=lambda **kwargs:None))
  viewer=SimpleNamespace(_server=server,set_camera=lambda *args:calls.append(('camera',args)))
  viz=type('ViserVisualizer',(),{})();viz._viewer=viewer
  sim=SimpleNamespace(visualizers=[viz],set_camera_view=lambda *args:calls.append(('pivot',args)))

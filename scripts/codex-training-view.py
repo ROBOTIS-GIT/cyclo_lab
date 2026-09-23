@@ -1,6 +1,12 @@
 """Service-only training presentation; importable without Isaac Sim or a GPU."""
 
 import math
+import runpy
+from pathlib import Path
+
+
+_scene_view = runpy.run_path(str(Path(__file__).with_name("codex-scene-view.py")))
+configure_scene_view = _scene_view["configure_scene_view"]
 
 
 def service_view_enabled(profile, visualizers):
@@ -49,6 +55,7 @@ def configure_training_view(env):
         viewer.set_visible_worlds(list(range(len(origins))))
         viewer.set_camera(eye, pitch, yaw)
         server = viewer._server
+        _scene_view["clear_viewer_controls"](server)
         server.initial_camera.look_at = target
         server.initial_camera.fov = math.radians(fov)
         server.scene.add_light_directional("/cyclo/key", intensity=2.5,

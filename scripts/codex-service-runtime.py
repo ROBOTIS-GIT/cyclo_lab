@@ -8,8 +8,12 @@ from datetime import datetime, timezone
 import json
 import os
 from pathlib import Path
+import runpy
 import time
 from uuid import UUID
+
+
+_scene_view = runpy.run_path(str(Path(__file__).with_name("codex-scene-view.py")))
 
 
 def timestamp():
@@ -111,6 +115,7 @@ def configure_web_view(sim, eye=WEB_EYE, target=WEB_TARGET):
         viewer = visualizer._viewer
         viewer.set_camera(eye, pitch, yaw)
         server = viewer._server
+        _scene_view["clear_viewer_controls"](server)
         server.initial_camera.look_at = target
         server.scene.add_light_directional('/cyclo/key', intensity=2.5,
                                           position=(3.0, 2.0, 4.0), cast_shadow=False)
@@ -147,6 +152,7 @@ def main():
         cfg = parse_env_cfg(args.task, device=args.device, num_envs=1)
         from isaaclab.visualizers import VisualizerCfg
         cfg.sim.default_visualizer_cfg = VisualizerCfg(eye=eye, lookat=target)
+        _scene_view["configure_scene_view"](cfg)
         env = gym.make(args.task, cfg=cfg)
         env.reset()
         configure_web_view(env.unwrapped.sim, eye, target)

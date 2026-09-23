@@ -50,7 +50,9 @@ def test_invalid_origins_fail_clearly(origins):
 
 def test_initial_and_reconnecting_clients_keep_full_grid_orientation():
     lights = []
-    server = SimpleNamespace(initial_camera=SimpleNamespace(), scene=SimpleNamespace(
+    gui_calls = []
+    server = SimpleNamespace(gui=SimpleNamespace(reset=lambda: gui_calls.append("reset"),
+        configure_theme=lambda **kwargs: gui_calls.append(kwargs)), initial_camera=SimpleNamespace(), scene=SimpleNamespace(
         add_light_directional=lambda name, **kwargs: lights.append((name, kwargs))))
 
     class Viewer:
@@ -88,4 +90,5 @@ def test_initial_and_reconnecting_clients_keep_full_grid_orientation():
         length = math.sqrt(sum(value * value for value in toward))
         assert direction == pytest.approx([value / length for value in toward])
     assert len(lights) == 2
+    assert gui_calls == ["reset", {"show_logo": False, "show_share_button": False}]
     assert all(not kwargs["cast_shadow"] for _, kwargs in lights)

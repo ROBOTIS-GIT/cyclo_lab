@@ -4,6 +4,7 @@ ARG LAB_IMAGE
 FROM ${LAB_IMAGE}
 USER root
 COPY lab/ /workspace/cyclo_lab/
+COPY viewer/ /isaac-sim/kit/python/lib/python3.12/site-packages/viser/client/build/
 COPY wheels/ /tmp/cyclo-wheels/
 COPY runtime-build.json /opt/cyclo/runtime-build.json
 RUN /isaac-sim/python.sh -m venv /opt/cyclo-agent \

@@ -20,6 +20,7 @@ parser = argparse.ArgumentParser(description="Train an RL agent with RSL-RL.")
 parser.add_argument("--video", action="store_true", default=False, help="Record videos during training.")
 parser.add_argument("--video_length", type=int, default=200, help="Length of the recorded video (in steps).")
 parser.add_argument("--video_interval", type=int, default=2000, help="Interval between video recordings (in steps).")
+parser.add_argument("--reward_config", type=str, default=None, help="Server-written launch-only reward JSON.")
 parser.add_argument("--num_envs", type=int, default=None, help="Number of environments to simulate.")
 parser.add_argument("--task", type=str, default=None, help="Name of the task.")
 parser.add_argument(
@@ -132,6 +133,17 @@ def main(env_cfg: ManagerBasedRLEnvCfg | DirectRLEnvCfg | DirectMARLEnvCfg, agen
         args_cli.max_iterations if args_cli.max_iterations is not None else agent_cfg.max_iterations
     )
 
+    if args_cli.reward_config is not None:
+        import importlib.util
+        from pathlib import Path
+
+        reward_path = Path(__file__).resolve().parents[2] / "codex-service-rewards.py"
+        reward_spec = importlib.util.spec_from_file_location("cyclo_service_rewards", reward_path)
+        service_rewards = importlib.util.module_from_spec(reward_spec)
+        reward_spec.loader.exec_module(service_rewards)
+        count = service_rewards.apply_reward_file(env_cfg, args_cli.task, args_cli.reward_config)
+        print(f"[CYCLO] Applied {count} approved reward weight overrides before environment creation.")
+
     # handle deprecated configurations
     agent_cfg = handle_deprecated_rsl_rl_cfg(agent_cfg, installed_version)
 
@@ -180,10 +192,8 @@ def main(env_cfg: ManagerBasedRLEnvCfg | DirectRLEnvCfg | DirectMARLEnvCfg, agen
     # set the log directory for the environment (works for all environment types)
     env_cfg.log_dir = log_dir
 
-    # create isaac environment
-    env = gym.make(args_cli.task, cfg=env_cfg, render_mode="rgb_array" if args_cli.video else None)
-
-    # Service presentation only: frame the actual cloned worlds before training.
+    # Disable service debug overlays before their producers are constructed.
+    training_view = None
     if os.environ.get("CYCLO_SERVICE_PROFILE") in {"omy", "sapiens"}:
         import importlib.util
         from pathlib import Path
@@ -193,7 +203,14 @@ def main(env_cfg: ManagerBasedRLEnvCfg | DirectRLEnvCfg | DirectMARLEnvCfg, agen
         training_view = importlib.util.module_from_spec(view_spec)
         view_spec.loader.exec_module(training_view)
         if training_view.service_view_enabled(os.environ.get("CYCLO_SERVICE_PROFILE"), args_cli.visualizer):
-            training_view.configure_training_view(env.unwrapped)
+            training_view.configure_scene_view(env_cfg)
+        else:
+            training_view = None
+
+    # create isaac environment
+    env = gym.make(args_cli.task, cfg=env_cfg, render_mode="rgb_array" if args_cli.video else None)
+    if training_view is not None:
+        training_view.configure_training_view(env.unwrapped)
 
     # convert to single-agent instance if required by the RL algorithm
     if isinstance(env.unwrapped, DirectMARLEnv):
