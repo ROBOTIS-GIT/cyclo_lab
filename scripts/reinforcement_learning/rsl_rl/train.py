@@ -183,6 +183,18 @@ def main(env_cfg: ManagerBasedRLEnvCfg | DirectRLEnvCfg | DirectMARLEnvCfg, agen
     # create isaac environment
     env = gym.make(args_cli.task, cfg=env_cfg, render_mode="rgb_array" if args_cli.video else None)
 
+    # Service presentation only: frame the actual cloned worlds before training.
+    if os.environ.get("CYCLO_SERVICE_PROFILE") in {"omy", "sapiens"}:
+        import importlib.util
+        from pathlib import Path
+
+        view_path = Path(__file__).resolve().parents[2] / "codex-training-view.py"
+        view_spec = importlib.util.spec_from_file_location("cyclo_training_view", view_path)
+        training_view = importlib.util.module_from_spec(view_spec)
+        view_spec.loader.exec_module(training_view)
+        if training_view.service_view_enabled(os.environ.get("CYCLO_SERVICE_PROFILE"), args_cli.visualizer):
+            training_view.configure_training_view(env.unwrapped)
+
     # convert to single-agent instance if required by the RL algorithm
     if isinstance(env.unwrapped, DirectMARLEnv):
         env = multi_agent_to_single_agent(env)
