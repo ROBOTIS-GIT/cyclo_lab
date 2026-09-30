@@ -118,6 +118,7 @@ from isaaclab_tasks.utils import get_checkpoint_path
 from isaaclab_tasks.utils.hydra import hydra_task_config
 
 import cyclo_lab  # noqa: F401
+from cyclo_lab.utils.onnx_action_clipping import clip_onnx_actions
 
 # PLACEHOLDER: Extension template (do not remove this comment)
 
@@ -318,6 +319,9 @@ def _run(env_cfg: ManagerBasedRLEnvCfg | DirectRLEnvCfg | DirectMARLEnvCfg, agen
         export_policy_as_onnx(policy_nn, normalizer=normalizer, path=export_model_dir, filename="policy.onnx")
     _embed_onnx_external_data(os.path.join(export_model_dir, "policy.onnx"))
     print(f"[INFO]: Exported policy to: {export_model_dir}", flush=True)
+
+    # The policy exporters omit the environment wrapper's action clipping.
+    clip_onnx_actions(os.path.join(export_model_dir, "policy.onnx"), agent_cfg.clip_actions)
 
     dt = env.unwrapped.step_dt
 
