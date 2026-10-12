@@ -210,8 +210,8 @@ class MotionLoader:
         motion = torch.from_numpy(motion_np).to(torch.float32).to(self.device)
         self.motion_base_poss_input = motion[:, :3]
         self.motion_base_rots_input = motion[:, 3:7]
-        if self.root_quat_order == "xyzw":
-            self.motion_base_rots_input = self.motion_base_rots_input[:, [3, 0, 1, 2]]
+        if self.root_quat_order == "wxyz":
+            self.motion_base_rots_input = self.motion_base_rots_input[:, [1, 2, 3, 0]]
         self.motion_base_rots_input = self._normalize_quaternions(self.motion_base_rots_input)
         self.motion_dof_poss_input = motion[:, 7:]
         self.input_frames = motion.shape[0]
@@ -357,8 +357,7 @@ def run_simulator(sim: SimulationContext, scene: InteractiveScene):
     if len(robot_joint_indexes) != len(K1_REV1_MOTION_CSV_JOINT_NAMES):
         raise RuntimeError("Could not resolve all K1 Rev.1 23-DoF CSV joints in the robot asset.")
 
-    motion_base_rot_xyzw = motion.motion_base_rots[:, [1, 2, 3, 0]]
-    motion_csv = torch.cat((motion.motion_base_poss, motion_base_rot_xyzw, motion.motion_dof_poss), dim=1)
+    motion_csv = torch.cat((motion.motion_base_poss, motion.motion_base_rots, motion.motion_dof_poss), dim=1)
     output_csv_path = _get_output_csv_path(args_cli.output_name)
     np.savetxt(output_csv_path, motion_csv.cpu().numpy(), delimiter=",", fmt="%.9f")
     print("[INFO]: Converted K1 Rev.1 23-DoF motion csv file saved to", output_csv_path)
@@ -368,6 +367,7 @@ def run_simulator(sim: SimulationContext, scene: InteractiveScene):
 
     log = {
         "fps": [args_cli.output_fps],
+        "quat_order": "xyzw",
         "joint_pos": [],
         "joint_vel": [],
         "body_pos_w": [],

@@ -427,8 +427,7 @@ def run_simulator(sim: SimulationContext, scene: InteractiveScene):
     if len(robot_joint_indexes) != len(K1_REV1_MOTION_CSV_JOINT_NAMES):
         raise RuntimeError("Could not resolve all K1 Rev.1 23-DoF joints in the robot asset.")
 
-    motion_base_rot_xyzw = motion.motion_base_rots[:, [1, 2, 3, 0]]
-    motion_csv = torch.cat((motion.motion_base_poss, motion_base_rot_xyzw, motion.motion_dof_poss), dim=1)
+    motion_csv = torch.cat((motion.motion_base_poss, motion.motion_base_rots, motion.motion_dof_poss), dim=1)
     output_csv_path = _get_output_csv_path(args_cli.output_name)
     np.savetxt(output_csv_path, motion_csv.cpu().numpy(), delimiter=",", fmt="%.9f")
     print("[INFO]: Mimic-style motion csv file saved to", output_csv_path)
@@ -438,6 +437,7 @@ def run_simulator(sim: SimulationContext, scene: InteractiveScene):
 
     log = {
         "fps": [args_cli.output_fps],
+        "quat_order": "xyzw",
         "joint_pos": [],
         "joint_vel": [],
         "body_pos_w": [],

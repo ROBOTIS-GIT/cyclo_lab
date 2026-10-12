@@ -22,7 +22,7 @@ from isaaclab.managers import RewardTermCfg as RewTerm
 from isaaclab.managers import SceneEntityCfg
 from isaaclab.managers import TerminationTermCfg as DoneTerm
 from isaaclab.utils import configclass
-from isaaclab.utils.noise import AdditiveUniformNoiseCfg as Unoise
+from isaaclab.utils.noise import UniformNoiseCfg as Unoise
 
 import cyclo_lab.manager_based.locomotion.velocity.mdp as mdp
 from cyclo_lab.manager_based.locomotion.velocity.velocity_env_cfg import (

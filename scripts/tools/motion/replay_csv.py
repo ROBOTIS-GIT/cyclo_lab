@@ -132,8 +132,8 @@ def _load_csv(path: str, root_quat_order: str, device: str) -> tuple[torch.Tenso
     motion = torch.as_tensor(motion_np, dtype=torch.float32, device=device)
     root_pos = motion[:, :3]
     root_quat = motion[:, 3:7]
-    if root_quat_order == "xyzw":
-        root_quat = root_quat[:, [3, 0, 1, 2]]
+    if root_quat_order == "wxyz":
+        root_quat = root_quat[:, [1, 2, 3, 0]]
     root_quat_norm = torch.sqrt(torch.clamp(torch.sum(root_quat * root_quat, dim=1, keepdim=True), min=1.0e-8))
     root_quat = root_quat / root_quat_norm
     joint_pos = motion[:, 7:]

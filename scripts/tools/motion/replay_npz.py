@@ -104,6 +104,11 @@ def _load_npz(path: str, device: str) -> tuple[torch.Tensor, torch.Tensor, torch
     joint_pos_np = data["joint_pos"]
     body_pos_np = data["body_pos_w"]
     body_quat_np = data["body_quat_w"]
+    quat_order = str(data["quat_order"].item()) if "quat_order" in data else "wxyz"
+    if quat_order not in ("wxyz", "xyzw"):
+        raise ValueError(f"Unsupported NPZ quaternion order: {quat_order}")
+    if quat_order == "wxyz":
+        body_quat_np = body_quat_np[..., [1, 2, 3, 0]]
     if joint_pos_np.ndim != 2:
         raise ValueError(f"joint_pos must be rank 2, got shape {joint_pos_np.shape}.")
     if body_pos_np.ndim != 3 or body_pos_np.shape[-1] != 3:

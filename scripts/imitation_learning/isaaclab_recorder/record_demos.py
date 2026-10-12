@@ -65,6 +65,8 @@ parser.add_argument(
 
 # append AppLauncher cli args
 AppLauncher.add_app_launcher_args(parser)
+parser.add_argument("--headless", action="store_true", help="Run without a window.")
+parser.add_argument("--enable_cameras", action="store_true", help="Enable camera rendering.")
 # parse the arguments
 args_cli = parser.parse_args()
 
@@ -106,8 +108,8 @@ import isaaclab_mimic.envs  # noqa: F401
 from isaaclab_mimic.ui.instruction_display import InstructionDisplay, show_subtask_instructions
 
 if args_cli.enable_pinocchio:
-    import isaaclab_tasks.manager_based.manipulation.pick_place  # noqa: F401
-    import isaaclab_tasks.manager_based.locomanipulation.pick_place  # noqa: F401
+    import isaaclab_tasks.contrib.pick_place  # noqa: F401
+    import isaaclab_tasks.contrib.locomanip_pick_place  # noqa: F401
 
 from collections.abc import Callable
 

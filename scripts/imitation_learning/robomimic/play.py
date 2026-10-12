@@ -45,6 +45,8 @@ parser.add_argument("--enable_pinocchio", default=False, action="store_true", he
 
 # append AppLauncher cli args
 AppLauncher.add_app_launcher_args(parser)
+parser.add_argument("--headless", action="store_true", help="Run without a window.")
+parser.add_argument("--enable_cameras", action="store_true", help="Enable camera rendering.")
 # parse the arguments
 args_cli = parser.parse_args()
 
@@ -67,7 +69,7 @@ import robomimic.utils.file_utils as FileUtils
 import robomimic.utils.torch_utils as TorchUtils
 
 if args_cli.enable_pinocchio:
-    import isaaclab_tasks.manager_based.manipulation.pick_place  # noqa: F401
+    import isaaclab_tasks.contrib.pick_place  # noqa: F401
 
 from isaaclab_tasks.utils import parse_env_cfg
 

@@ -13,7 +13,9 @@
 set -e
 
 # Set tab-spaces
-tabs 4
+if [ -t 1 ]; then
+    tabs 4
+fi
 
 # get source directory
 export CYCLOLAB_PATH="$( cd "$( dirname "${BASH_SOURCE[0]}" )/.." &> /dev/null && pwd )"

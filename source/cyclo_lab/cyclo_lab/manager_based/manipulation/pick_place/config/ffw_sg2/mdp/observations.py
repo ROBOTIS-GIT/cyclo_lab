@@ -39,7 +39,7 @@ def eef_pose(env: ManagerBasedRLEnv, eef_cfg: SceneEntityCfg = SceneEntityCfg("e
     Return the state of the end effector frame in the robot coordinate system.
     """
     robot = env.scene[robot_cfg.name]
-    robot_root_pos, robot_root_quat = robot.data.root_pos_w, robot.data.root_quat_w
+    robot_root_pos, robot_root_quat = robot.data.root_pos_w.torch, robot.data.root_quat_w.torch
     eef: FrameTransformer = env.scene[eef_cfg.name]
     eef_pos, eef_quat = eef.data.target_pos_w[:, 0, :], eef.data.target_quat_w[:, 0, :]
     eef_pos_robot, eef_quat_robot = math_utils.subtract_frame_transforms(

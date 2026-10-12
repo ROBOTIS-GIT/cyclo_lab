@@ -46,6 +46,8 @@ parser.add_argument(
 )
 
 AppLauncher.add_app_launcher_args(parser)
+parser.add_argument("--headless", action="store_true", help="Run without a window.")
+parser.add_argument("--enable_cameras", action="store_true", help="Enable camera rendering.")
 args_cli = parser.parse_args()
 
 app_launcher = AppLauncher(args_cli)
@@ -504,7 +506,7 @@ class SH5DdsBridge:
                 child_pose_w[3:7].unsqueeze(0),
             )
             pos = child_pos_b.squeeze(0).detach().cpu().tolist()
-            quat_wxyz = child_quat_b.squeeze(0).detach().cpu().tolist()
+            quat_xyzw = child_quat_b.squeeze(0).detach().cpu().tolist()
 
             transforms.append(
                 TransformStamped_(
@@ -513,10 +515,10 @@ class SH5DdsBridge:
                     transform=Transform_(
                         translation=Vector3_(x=float(pos[0]), y=float(pos[1]), z=float(pos[2])),
                         rotation=Quaternion_(
-                            x=float(quat_wxyz[1]),
-                            y=float(quat_wxyz[2]),
-                            z=float(quat_wxyz[3]),
-                            w=float(quat_wxyz[0]),
+                            x=float(quat_xyzw[0]),
+                            y=float(quat_xyzw[1]),
+                            z=float(quat_xyzw[2]),
+                            w=float(quat_xyzw[3]),
                         ),
                     ),
                 )
@@ -650,7 +652,7 @@ def _set_viewport_camera(
 
 
 def _setup_camera_views():
-    from isaacsim.core.utils.stage import get_current_stage
+    from isaaclab.sim.utils import get_current_stage
 
     stage = get_current_stage()
 

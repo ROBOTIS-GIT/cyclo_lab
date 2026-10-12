@@ -14,6 +14,6 @@ TOOTH_BRUSH_CFG = RigidObjectCfg(
     ),
     init_state=RigidObjectCfg.InitialStateCfg(
         pos=[0.0, 0.0, 0.0],
-        rot=[0.0, 0.0, 0.0, 0.0],
+        rot=[0.0, 0.0, 0.0, 1.0],
     ),
 )

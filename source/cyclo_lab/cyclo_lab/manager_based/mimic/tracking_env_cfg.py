@@ -23,6 +23,7 @@ from __future__ import annotations
 from dataclasses import MISSING
 
 import isaaclab.sim as sim_utils
+from isaaclab_physx.physics import PhysxCfg
 from isaaclab.assets import ArticulationCfg, AssetBaseCfg
 from isaaclab.envs import ManagerBasedRLEnvCfg
 from isaaclab.managers import EventTermCfg as EventTerm
@@ -39,7 +40,7 @@ from isaaclab.terrains import TerrainImporterCfg
 # Pre-defined configs
 ##
 from isaaclab.utils import configclass
-from isaaclab.utils.noise import AdditiveUniformNoiseCfg as Unoise
+from isaaclab.utils.noise import UniformNoiseCfg as Unoise
 
 import cyclo_lab.manager_based.mimic.mdp as mdp
 
@@ -211,7 +212,7 @@ class EventCfg:
     )
 
     torso_com_offset_noise = EventTerm(
-        func=mdp.apply_link_com_offset_noise,
+        func=mdp.randomize_rigid_body_com,
         mode="startup",
         params={
             "asset_cfg": SceneEntityCfg("robot", body_names=MISSING),
@@ -338,4 +339,4 @@ class TrackingEnvCfg(ManagerBasedRLEnvCfg):
         self.sim.dt = 0.005
         self.sim.render_interval = self.decimation
         self.sim.physics_material = self.scene.terrain.physics_material
-        self.sim.physx.gpu_max_rigid_patch_count = 10 * 2**15
+        self.sim.physics = PhysxCfg(gpu_max_rigid_patch_count=10 * 2**15)

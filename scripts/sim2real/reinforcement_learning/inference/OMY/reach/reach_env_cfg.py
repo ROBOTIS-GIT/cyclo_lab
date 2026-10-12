@@ -36,10 +36,10 @@ class ReachEnvConfig:
         self.policy_env_path = repo_root / "logs/rsl_rl/reach_omy" / model_dir / "params/env.yaml"
 
     def sample_random_pose(self) -> np.ndarray:
-        """Return a random 6D target pose: [x, y, z, qw, qx, qy, qz]."""
+        """Return a random target pose: [x, y, z, qx, qy, qz, qw]."""
         pos = np.random.uniform([0.25, -0.2, 0.3], [0.45, 0.2, 0.45])
         roll = np.random.uniform(-math.pi / 4, math.pi / 4)
         pitch = 0.0 
         yaw = np.random.uniform(math.pi / 4, math.pi * 3 / 4)
         quat = Rotation.from_euler("zyx", [yaw, pitch, roll]).as_quat()  # [x, y, z, w]
-        return np.concatenate([pos, [quat[3], quat[0], quat[1], quat[2]]])  # [x, y, z, qw, qx, qy, qz]
+        return np.concatenate([pos, quat])  # [x, y, z, qx, qy, qz, qw]

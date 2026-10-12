@@ -56,7 +56,13 @@ class ReferenceTrajectory:
         self.joint_position = torch.tensor(data["joint_pos"], dtype=torch.float32, device=device)
         self.joint_velocity = torch.tensor(data["joint_vel"], dtype=torch.float32, device=device)
         self._body_position_w = torch.tensor(data["body_pos_w"], dtype=torch.float32, device=device)
-        self._body_orientation_w = torch.tensor(data["body_quat_w"], dtype=torch.float32, device=device)
+        quat_order = str(data["quat_order"].item()) if "quat_order" in data else "wxyz"
+        if quat_order not in ("wxyz", "xyzw"):
+            raise ValueError(f"Unsupported reference trajectory quaternion order: {quat_order}")
+        body_quat_w = data["body_quat_w"]
+        if quat_order == "wxyz":
+            body_quat_w = body_quat_w[..., [1, 2, 3, 0]]
+        self._body_orientation_w = torch.tensor(body_quat_w, dtype=torch.float32, device=device)
         self._body_linear_velocity_w = torch.tensor(data["body_lin_vel_w"], dtype=torch.float32, device=device)
         self._body_angular_velocity_w = torch.tensor(data["body_ang_vel_w"], dtype=torch.float32, device=device)
         self._tracked_body_ids = tracked_body_ids

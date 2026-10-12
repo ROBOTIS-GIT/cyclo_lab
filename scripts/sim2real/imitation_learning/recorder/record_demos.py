@@ -42,6 +42,8 @@ parser.add_argument("--num_demos", type=int, default=0, help="Number of demonstr
 
 # append AppLauncher cli args
 AppLauncher.add_app_launcher_args(parser)
+parser.add_argument("--headless", action="store_true", help="Run without a window.")
+parser.add_argument("--enable_cameras", action="store_true", help="Enable camera rendering.")
 # parse the arguments
 args_cli = parser.parse_args()
 
@@ -93,6 +95,15 @@ class RateLimiter:
         if self.last_time < time.time():
             while self.last_time < time.time():
                 self.last_time += self.sleep_duration
+
+
+def refresh_scene_after_reset(env):
+    """Advance physics once so reset poses appear before recording starts."""
+    env.sim.step(render=True)
+    env.scene.update(dt=env.physics_dt)
+    env.obs_buf = env.observation_manager.compute(update_history=True)
+    env.recorder_manager._clear_episode_cache()
+    env.recorder_manager.record_post_reset(torch.arange(env.num_envs, dtype=torch.int32, device=env.device))
 
 
 def main():
@@ -169,6 +180,7 @@ def main():
 
     # reset environment
     env.reset()
+    refresh_scene_after_reset(env)
     teleop_interface.reset()
 
     current_recorded_demo_count = 0
@@ -211,6 +223,7 @@ def main():
                     print(f"Exception details: {type(e).__name__}: {str(e)}")
 
                 env.reset()
+                refresh_scene_after_reset(env)
                 should_reset_recording_instance = False
                 if start_record_state:
                     print("Stop Recording!!!")

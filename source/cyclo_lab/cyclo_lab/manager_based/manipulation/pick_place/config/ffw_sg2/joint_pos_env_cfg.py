@@ -189,8 +189,8 @@ class FFWSG2PickPlaceEnvCfg(PickPlaceEnvCfg):
             ),
             offset=CameraCfg.OffsetCfg(
                 pos=(0.0, 0.03, 0.0),
-                rot=(0.5, 0.5, -0.5, -0.5),
-                convention="isaac",
+                rot=(0.5, -0.5, -0.5, 0.5),
+                convention="opengl",
             )
         )
 

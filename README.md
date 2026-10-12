@@ -85,7 +85,7 @@ Docker installation provides a consistent environment with all dependencies pre-
 python scripts/reinforcement_learning/rsl_rl/train.py --task Cyclo-Reach-OMY-v0 --num_envs=512 --headless
 
 # Play
-python scripts/reinforcement_learning/rsl_rl/play.py --task Cyclo-Reach-OMY-v0 --num_envs=16
+python scripts/reinforcement_learning/rsl_rl/play.py --task Cyclo-Reach-OMY-v0 --num_envs=16 --viz kit
 ```
 
 **OMY Lift Task**
@@ -95,7 +95,7 @@ python scripts/reinforcement_learning/rsl_rl/play.py --task Cyclo-Reach-OMY-v0 -
 python scripts/reinforcement_learning/rsl_rl/train.py --task Cyclo-Lift-Cube-OMY-v0 --num_envs=512 --headless
 
 # Play
-python scripts/reinforcement_learning/rsl_rl/play.py --task Cyclo-Lift-Cube-OMY-v0 --num_envs=16
+python scripts/reinforcement_learning/rsl_rl/play.py --task Cyclo-Lift-Cube-OMY-v0 --num_envs=16 --viz kit
 ```
 
 **OMY Open drawer Task**
@@ -105,7 +105,7 @@ python scripts/reinforcement_learning/rsl_rl/play.py --task Cyclo-Lift-Cube-OMY-
 python scripts/reinforcement_learning/rsl_rl/train.py --task Cyclo-Open-Drawer-OMY-v0 --num_envs=512 --headless
 
 # Play
-python scripts/reinforcement_learning/rsl_rl/play.py --task Cyclo-Open-Drawer-OMY-v0 --num_envs=16
+python scripts/reinforcement_learning/rsl_rl/play.py --task Cyclo-Open-Drawer-OMY-v0 --num_envs=16 --viz kit
 ```
 
 **FFW-BG2 reach Task**
@@ -115,7 +115,7 @@ python scripts/reinforcement_learning/rsl_rl/play.py --task Cyclo-Open-Drawer-OM
 python scripts/reinforcement_learning/rsl_rl/train.py --task Cyclo-Reach-FFW-BG2-v0 --num_envs=512 --headless
 
 # Play
-python scripts/reinforcement_learning/rsl_rl/play.py --task Cyclo-Reach-FFW-BG2-v0 --num_envs=16
+python scripts/reinforcement_learning/rsl_rl/play.py --task Cyclo-Reach-FFW-BG2-v0 --num_envs=16 --viz kit
 ```
 
 </details>
@@ -145,7 +145,7 @@ python scripts/reinforcement_learning/rsl_rl/play.py --task Cyclo-Reach-FFW-BG2-
 
 ```bash
 # Teleop and record
-python scripts/imitation_learning/isaaclab_recorder/record_demos.py --task Cyclo-Stack-Cube-OMY-IK-Rel-v0 --teleop_device keyboard --dataset_file ./datasets/dataset.hdf5 --num_demos 10
+python scripts/imitation_learning/isaaclab_recorder/record_demos.py --task Cyclo-Stack-Cube-OMY-IK-Rel-v0 --teleop_device keyboard --dataset_file ./datasets/dataset.hdf5 --num_demos 10 --viz kit
 
 # Annotate
 python scripts/imitation_learning/isaaclab_mimic/annotate_demos.py --device cuda --task Cyclo-Stack-Cube-OMY-IK-Rel-Mimic-v0 --auto --input_file ./datasets/dataset.hdf5 --output_file ./datasets/annotated_dataset.hdf5 --headless
@@ -163,17 +163,17 @@ python scripts/imitation_learning/robomimic/train.py \
 # Play
 python scripts/imitation_learning/robomimic/play.py \
 --device cuda --task Cyclo-Stack-Cube-OMY-IK-Rel-v0 --num_rollouts 50 \
---checkpoint /PATH/TO/desired_model_checkpoint.pth
+--checkpoint /PATH/TO/desired_model_checkpoint.pth --viz kit
 ```
 
 **FFW-BG2 Pick and Place Task** (Move the red stick into the basket.)
 
 ```bash
 # Teleop and record
-python scripts/imitation_learning/isaaclab_recorder/record_demos.py --task Cyclo-PickPlace-FFW-BG2-IK-Rel-v0 --teleop_device keyboard --dataset_file ./datasets/dataset.hdf5 --num_demos 10 --enable_cameras
+python scripts/imitation_learning/isaaclab_recorder/record_demos.py --task Cyclo-PickPlace-FFW-BG2-IK-Rel-v0 --teleop_device keyboard --dataset_file ./datasets/dataset.hdf5 --num_demos 10 --enable_cameras --viz kit
 
 # Annotate
-python scripts/imitation_learning/isaaclab_mimic/annotate_demos.py --device cuda --task Cyclo-PickPlace-FFW-BG2-Mimic-v0 --input_file ./datasets/dataset.hdf5 --output_file ./datasets/annotated_dataset.hdf5 --enable_cameras
+python scripts/imitation_learning/isaaclab_mimic/annotate_demos.py --device cuda --task Cyclo-PickPlace-FFW-BG2-Mimic-v0 --input_file ./datasets/dataset.hdf5 --output_file ./datasets/annotated_dataset.hdf5 --enable_cameras --viz kit
 
 # Mimic data
 python scripts/imitation_learning/isaaclab_mimic/generate_dataset.py \
@@ -188,7 +188,7 @@ python scripts/imitation_learning/robomimic/train.py \
 # Play
 python scripts/imitation_learning/robomimic/play.py \
 --device cuda --task Cyclo-PickPlace-FFW-BG2-IK-Rel-v0  --num_rollouts 50 \
---checkpoint /PATH/TO/desired_model_checkpoint.pth --enable_cameras
+--checkpoint /PATH/TO/desired_model_checkpoint.pth --enable_cameras --viz kit
 ```
 </details>
 
@@ -222,10 +222,10 @@ Launch the AI Worker SH5 model and DDS bridge
 
 ```bash
 # Grid with SH5 AI Worker
-python scripts/sim2real/bringup/sh5_dds_bringup.py --domain_id 30 --enable_gravity --enable_camera_views
+python scripts/sim2real/bringup/sh5_dds_bringup.py --domain_id 30 --enable_gravity --enable_camera_views --viz kit
 
 # NVIDIA Simple Warehouse environment
-python scripts/sim2real/bringup/sh5_dds_bringup.py --domain_id 30 --enable_gravity --enable_camera_views --enable_environment
+python scripts/sim2real/bringup/sh5_dds_bringup.py --domain_id 30 --enable_gravity --enable_camera_views --enable_environment --viz kit
 ```
 
 </details>
@@ -245,7 +245,7 @@ Run Sim2Real Reach Policy on OMY
 python scripts/reinforcement_learning/rsl_rl/train.py --task Cyclo-Reach-OMY-v0 --num_envs=512 --headless
 
 # Play (You must run rsl_rl play in order to generate the policy file.)
-python scripts/reinforcement_learning/rsl_rl/play.py --task Cyclo-Reach-OMY-v0 --num_envs=16
+python scripts/reinforcement_learning/rsl_rl/play.py --task Cyclo-Reach-OMY-v0 --num_envs=16 --viz kit
 
 # Sim2Real
 python scripts/sim2real/reinforcement_learning/inference/OMY/reach/run_omy_reach.py --model_dir=<2025-07-10_08-47-09>
@@ -273,7 +273,7 @@ https://github.com/user-attachments/assets/8ec9d245-f8e0-4bcc-b683-0ea2864de495
 
 * Teleop and record demos
 ```bash
-python scripts/sim2real/imitation_learning/recorder/record_demos.py --task=Cyclo-Real-Pick-Place-Bottle-OMY-v0 --robot_type OMY --dataset_file ./datasets/omy_pick_place_task.hdf5 --num_demos 10 --enable_cameras
+python scripts/sim2real/imitation_learning/recorder/record_demos.py --task=Cyclo-Real-Pick-Place-Bottle-OMY-v0 --robot_type OMY --dataset_file ./datasets/omy_pick_place_task.hdf5 --num_demos 10 --enable_cameras --viz kit
 
 ```
 
@@ -305,7 +305,7 @@ lerobot-python scripts/sim2real/imitation_learning/data_converter/isaaclab2lerob
 
 * Inference in simulation
 ```bash
-python scripts/sim2real/imitation_learning/inference/inference_demos.py --task Cyclo-Real-Pick-Place-Bottle-OMY-v0 --robot_type OMY --enable_cameras
+python scripts/sim2real/imitation_learning/inference/inference_demos.py --task Cyclo-Real-Pick-Place-Bottle-OMY-v0 --robot_type OMY --enable_cameras --viz kit
 
 ```
 
@@ -315,7 +315,7 @@ https://github.com/user-attachments/assets/cdb3afca-f0db-4fb6-bf17-e361f3aa254b
 
 * Teleop and record demos
 ```bash
-python scripts/sim2real/imitation_learning/recorder/record_demos.py --task=Cyclo-Real-Pick-Place-FFW-SG2-v0 --robot_type FFW_SG2 --dataset_file ./datasets/ffw_sg2_raw.hdf5 --num_demos 4 --enable_cameras
+python scripts/sim2real/imitation_learning/recorder/record_demos.py --task=Cyclo-Real-Pick-Place-FFW-SG2-v0 --robot_type FFW_SG2 --dataset_file ./datasets/ffw_sg2_raw.hdf5 --num_demos 4 --enable_cameras --viz kit
 
 ```
 
@@ -347,7 +347,7 @@ lerobot-python scripts/sim2real/imitation_learning/data_converter/isaaclab2lerob
 
 * Inference in simulation
 ```bash
-python scripts/sim2real/imitation_learning/inference/inference_demos.py --task Cyclo-Real-Pick-Place-FFW-SG2-v0  --robot_type FFW_SG2 --enable_cameras
+python scripts/sim2real/imitation_learning/inference/inference_demos.py --task Cyclo-Real-Pick-Place-FFW-SG2-v0  --robot_type FFW_SG2 --enable_cameras --viz kit
 
 ```
 

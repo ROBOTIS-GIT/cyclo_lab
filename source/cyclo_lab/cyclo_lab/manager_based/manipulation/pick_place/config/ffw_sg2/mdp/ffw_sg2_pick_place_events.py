@@ -26,6 +26,7 @@ import random
 import torch
 from typing import TYPE_CHECKING
 
+import isaaclab.sim as sim_utils
 import isaaclab.utils.math as math_utils
 from isaaclab.assets import Articulation, AssetBase
 from isaaclab.sensors.camera import Camera
@@ -180,7 +181,7 @@ def randomize_scene_lighting_domelight(
     asset_cfg: SceneEntityCfg = SceneEntityCfg("light"),
 ):
     asset: AssetBase = env.scene[asset_cfg.name]
-    light_prim = asset.prims[0]
+    light_prim = sim_utils.find_matching_prims(asset.prim_path)[0]
 
     # Random intensity
     new_intensity = random.uniform(intensity_range[0], intensity_range[1])

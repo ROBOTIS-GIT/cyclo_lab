@@ -22,6 +22,7 @@
 from dataclasses import MISSING
 
 import isaaclab.sim as sim_utils
+from isaaclab_physx.physics import PhysxCfg
 from isaaclab.assets import ArticulationCfg, AssetBaseCfg, RigidObjectCfg
 from isaaclab.devices.openxr import XrCfg
 from isaaclab.envs import ManagerBasedRLEnvCfg
@@ -59,7 +60,7 @@ class ObjectTableSceneCfg(InteractiveSceneCfg):
         prim_path="/World/envs/env_.*/PackingTable",
         init_state=AssetBaseCfg.InitialStateCfg(
             pos=[0.70, -0.1, 0.0],
-            rot=[-0.70710678, 0.0, 0.0, 0.70710678]
+            rot=[0.0, 0.0, 0.70710678, -0.70710678]
         ),
         spawn=UsdFileCfg(
             usd_path=f"{ISAAC_NUCLEUS_DIR}/Props/PackingTable/packing_table.usd",
@@ -71,7 +72,7 @@ class ObjectTableSceneCfg(InteractiveSceneCfg):
     # Object
     object = RigidObjectCfg(
         prim_path="{ENV_REGEX_NS}/Object",
-        init_state=RigidObjectCfg.InitialStateCfg(pos=[2.60, 0.0, 1.1413], rot=[1, 0, 0, 0]),
+        init_state=RigidObjectCfg.InitialStateCfg(pos=[2.60, 0.0, 1.1413], rot=[0, 0, 0, 1]),
         spawn=sim_utils.CylinderCfg(
             radius=0.018,
             height=0.35,
@@ -193,7 +194,7 @@ class PickPlaceEnvCfg(ManagerBasedRLEnvCfg):
 
     xr: XrCfg = XrCfg(
         anchor_pos=(-0.1, -0.5, -1.05),
-        anchor_rot=(0.866, 0, 0, -0.5),
+        anchor_rot=(0, 0, -0.5, 0.866),
     )
 
     def __post_init__(self):
@@ -205,7 +206,4 @@ class PickPlaceEnvCfg(ManagerBasedRLEnvCfg):
         self.sim.dt = 0.01  # 100Hz
         self.sim.render_interval = 2
 
-        self.sim.physx.bounce_threshold_velocity = 0.01
-        self.sim.physx.gpu_found_lost_aggregate_pairs_capacity = 1024 * 1024 * 4
-        self.sim.physx.gpu_total_aggregate_pairs_capacity = 16 * 1024
-        self.sim.physx.friction_correlation_distance = 0.00625
+        self.sim.physics = PhysxCfg(bounce_threshold_velocity=0.01, gpu_found_lost_aggregate_pairs_capacity=1024 * 1024 * 4, gpu_total_aggregate_pairs_capacity=16 * 1024, friction_correlation_distance=0.00625)

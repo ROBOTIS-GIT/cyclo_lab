@@ -168,7 +168,7 @@ RUN python3 -m venv ${LEROBOT_VENV}
 RUN --mount=type=cache,target=${DOCKER_USER_HOME}/.cache/pip \
     ${LEROBOT_VENV}/bin/python3 -m pip install --upgrade pip && \
     echo "Installing LeRobot from PyPI..." && \
-    ${LEROBOT_VENV}/bin/python3 -m pip install lerobot==0.3.3 && \
+    ${LEROBOT_VENV}/bin/python3 -m pip install lerobot==0.3.3 av==14.2.0 && \
     echo "Installing h5py..." && \
     ${LEROBOT_VENV}/bin/python3 -m pip install h5py
 
