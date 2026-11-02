@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
-# Author: Howon Kim
+# Author: Howon Kim, Sunghyun Park
 
 import argparse
 import os
@@ -43,6 +43,11 @@ parser.add_argument(
     "--enable_camera_views",
     action="store_true",
     help="Open Isaac Sim viewport windows for overview, Head_Camera, Left_Camera, and Right_Camera.",
+)
+parser.add_argument(
+    "--enable_tactile",
+    action="store_true",
+    help="Read the HX5-D20 fingertip tactile sensors of both hands and show a heatmap window for each hand.",
 )
 
 AppLauncher.add_app_launcher_args(parser)
@@ -90,6 +95,7 @@ from cyclo_lab.assets.robots import (
     SH5_SWERVE_WHEEL_RADIUS,
     SH5_SWERVE_WHEEL_JOINTS,
 )
+from cyclo_lab.sensors import HandTactileCfg, TactileHeatmapCfg
 from common.environment import (
     make_card_boxes_graspable,
     make_simple_warehouse_environment_cfg,
@@ -109,6 +115,8 @@ class SH5BringupSceneCfg(InteractiveSceneCfg):
     )
     environment: AssetBaseCfg = None
     robot: ArticulationCfg = None
+    tactile_left: HandTactileCfg = None
+    tactile_right: HandTactileCfg = None
 
 
 def _make_robot_cfg(usd_path: str) -> ArticulationCfg:
@@ -116,7 +124,23 @@ def _make_robot_cfg(usd_path: str) -> ArticulationCfg:
     robot_cfg.spawn.usd_path = usd_path
     robot_cfg.spawn.rigid_props.disable_gravity = not args_cli.enable_gravity
     robot_cfg.init_state.pos = cfg.ROBOT_POS
+    if args_cli.enable_tactile:
+        # The tactile sensors read the fingertips' contacts, which PhysX reports only once contact sensors are on.
+        robot_cfg.spawn.activate_contact_sensors = True
     return robot_cfg
+
+
+def _make_tactile_cfg(hand: str) -> HandTactileCfg:
+    # Teleoperated hands touch objects at many angles, so the pad checks are looser than the sensor's defaults. The
+    # heatmap shows light grasps brighter than the real viewer's default (color_max 60 instead of 125).
+    return HandTactileCfg(
+        prim_path="{ENV_REGEX_NS}/Robot",
+        hand=hand,
+        debug_vis=True,
+        depth_tolerance=0.003,
+        min_normal_alignment=0.3,
+        heatmap=TactileHeatmapCfg(color_max=60.0),
+    )
 
 
 # ========== DDS Topic Parsing and Matching ==========
@@ -733,6 +757,9 @@ def main():
     if args_cli.enable_environment:
         scene_cfg.environment = make_simple_warehouse_environment_cfg()
     scene_cfg.robot = _make_robot_cfg(usd_path).replace(prim_path="{ENV_REGEX_NS}/Robot")
+    if args_cli.enable_tactile:
+        scene_cfg.tactile_left = _make_tactile_cfg("left")
+        scene_cfg.tactile_right = _make_tactile_cfg("right")
     scene = InteractiveScene(scene_cfg)
     if args_cli.enable_environment:
         make_card_boxes_graspable()
@@ -770,6 +797,8 @@ def main():
     print(f"[INFO] FFW SH5 DDS bringup ready. ROS_DOMAIN_ID={domain_id}")
     if args_cli.enable_environment:
         print("[INFO] Environment: Simple Warehouse")
+    if args_cli.enable_tactile:
+        print("[INFO] Tactile: HX5-D20 fingertip sensors on both hands, one heatmap window per hand")
     print("[DDS] JointTrajectory subscriber reliability: best_effort")
     print(f"[DDS] Publishing joint states: {cfg.JOINT_STATES_TOPIC}")
     print(f"[DDS] Publishing odometry: {cfg.ODOM_TOPIC} ({cfg.ODOM_FRAME} -> {cfg.BASE_FRAME})")
