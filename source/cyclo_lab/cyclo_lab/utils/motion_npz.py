@@ -26,12 +26,17 @@ def load_motion_npz(path, joint_names: Sequence[str] | None = None, body_names: 
     """Read named motion data; legacy NPZ files use wxyz and native articulation order."""
     with np.load(path, allow_pickle=False) as archive:
         data = {key: archive[key] for key in archive.files}
-    order = str(np.asarray(data.get("quaternion_order", "wxyz")).item())
+    orders = [str(np.asarray(data[key]).item()) for key in ("quaternion_order", "quat_order") if key in data]
+    if len(set(orders)) > 1:
+        raise ValueError("Conflicting motion quaternion_order and quat_order metadata")
+    order = orders[0] if orders else "wxyz"
     if order not in ("wxyz", "xyzw"):
         raise ValueError(f"Unsupported motion quaternion order: {order}")
     if "body_quat_w" in data and order == "wxyz":
         data["body_quat_w"] = data["body_quat_w"][..., [1, 2, 3, 0]]
     data["quaternion_order"] = np.asarray("xyzw")
+    if "quat_order" in data:
+        data["quat_order"] = np.asarray("xyzw")
 
     for key, target, fields in (
         ("joint_names", joint_names, ("joint_pos", "joint_vel")),

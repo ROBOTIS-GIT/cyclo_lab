@@ -213,7 +213,7 @@ class EventCfg:
     )
 
     torso_com_offset_noise = EventTerm(
-        func=mdp.apply_link_com_offset_noise,
+        func=mdp.randomize_rigid_body_com,
         mode="startup",
         params={
             "asset_cfg": SceneEntityCfg("robot", body_names=MISSING),
