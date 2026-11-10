@@ -23,9 +23,8 @@ from isaaclab.managers import SceneEntityCfg
 from isaaclab.managers import TerminationTermCfg as DoneTerm
 from isaaclab.utils import configclass
 from isaaclab.utils.noise import UniformNoiseCfg as Unoise
-from isaaclab_tasks.utils import preset
 
-from cyclo_lab.utils.k1_physics import K1PhysicsCfg
+from cyclo_lab.utils.k1_physics import configure_k1_physics
 
 import cyclo_lab.manager_based.locomotion.velocity.mdp as mdp
 from cyclo_lab.manager_based.locomotion.velocity.velocity_env_cfg import (
@@ -294,11 +293,7 @@ class K1Rev1FlatEnvCfg(LocomotionVelocityEnvCfg):
         if self.scene.height_scanner:
             self.scene.height_scanner.prim_path = "{ENV_REGEX_NS}/Robot/torso_link"
 
-        self.sim.physics = K1PhysicsCfg()
-        self.sim.use_newton_actuators = True
-        self.scene.contact_forces.force_threshold = preset(
-            default=1.0, newton_mjwarp=1.0, isaacsim_physx=None, physx=None
-        )
+        configure_k1_physics(self, locomotion=True)
 
         # Flat terrain
         self.scene.terrain.terrain_type = "plane"

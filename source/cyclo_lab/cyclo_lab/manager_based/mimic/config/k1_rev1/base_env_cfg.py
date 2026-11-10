@@ -21,9 +21,8 @@ from __future__ import annotations
 from isaaclab.managers import RewardTermCfg as RewTerm
 from isaaclab.managers import SceneEntityCfg
 from isaaclab.utils import configclass
-from isaaclab_tasks.utils import preset
 
-from cyclo_lab.utils.k1_physics import K1PhysicsCfg
+from cyclo_lab.utils.k1_physics import configure_k1_physics
 
 from cyclo_lab.assets.robots.K1_rev1 import K1_REV1_INERTIA_TUNED_ACTION_SCALE, K1_REV1_INERTIA_TUNED_CFG
 from cyclo_lab.manager_based.mimic.tracking_env_cfg import (
@@ -90,9 +89,5 @@ class K1Rev1MimicEnvCfg(TrackingEnvCfg):
         self.commands.reference_trajectory.anchor_body_name = "torso_link"
         self.commands.reference_trajectory.body_names = TRACKED_BODY_NAMES
         self.events.torso_com_offset_noise.params["asset_cfg"].body_names = "torso_link"
-        self.sim.physics = K1PhysicsCfg()
-        self.sim.use_newton_actuators = True
-        self.scene.contact_forces.force_threshold = preset(
-            default=1.0, newton_mjwarp=1.0, isaacsim_physx=None, physx=None
-        )
+        configure_k1_physics(self)
         self.terminations.end_body_pos.params["body_names"] = END_BODY_NAMES
