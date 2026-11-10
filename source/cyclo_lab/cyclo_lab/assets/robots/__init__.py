@@ -37,3 +37,4 @@ from .FFW_BG2 import *
 from .FFW_SG2 import *
 from .FFW_SH5 import *
 from .K1_rev1 import *
+from .HX5_D20 import *
