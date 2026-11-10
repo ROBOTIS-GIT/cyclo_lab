@@ -22,9 +22,11 @@
 from dataclasses import MISSING
 
 import isaaclab.sim as sim_utils
+from isaaclab_physx.physics import PhysxCfg
 from isaaclab.envs.mdp.recorders.recorders_cfg import ActionStateRecorderManagerCfg as RecordTerm
 from isaaclab.assets import ArticulationCfg, AssetBaseCfg
 from isaaclab.envs import ManagerBasedRLEnvCfg
+from isaaclab.managers import ActionTermCfg
 from isaaclab.managers import ObservationGroupCfg as ObsGroup
 from isaaclab.managers import ObservationTermCfg as ObsTerm
 from isaaclab.managers import SceneEntityCfg
@@ -88,12 +90,12 @@ class ActionsCfg:
     """Action specifications for the MDP."""
 
     # will be set by agent env cfg
-    arm_l_action: mdp.ActionTermCfg = MISSING
-    gripper_l_action: mdp.ActionTermCfg = MISSING
-    arm_r_action: mdp.ActionTermCfg = MISSING
-    gripper_r_action: mdp.ActionTermCfg = MISSING
-    lift_action: mdp.ActionTermCfg = MISSING
-    head_action: mdp.ActionTermCfg = MISSING
+    arm_l_action: ActionTermCfg = MISSING
+    gripper_l_action: ActionTermCfg = MISSING
+    arm_r_action: ActionTermCfg = MISSING
+    gripper_r_action: ActionTermCfg = MISSING
+    lift_action: ActionTermCfg = MISSING
+    head_action: ActionTermCfg = MISSING
 
 
 @configclass
@@ -196,10 +198,7 @@ class PickPlaceEnvCfg(ManagerBasedRLEnvCfg):
         self.sim.dt = 0.01  # 100Hz
         self.sim.render_interval = 2
 
-        self.sim.physx.bounce_threshold_velocity = 0.01
-        self.sim.physx.gpu_found_lost_aggregate_pairs_capacity = 1024 * 1024 * 4
-        self.sim.physx.gpu_total_aggregate_pairs_capacity = 16 * 1024
-        self.sim.physx.friction_correlation_distance = 0.00625
+        self.sim.physics = PhysxCfg(bounce_threshold_velocity=0.01, gpu_found_lost_aggregate_pairs_capacity=1024 * 1024 * 4, gpu_total_aggregate_pairs_capacity=16 * 1024, friction_correlation_distance=0.00625)
 
         # Determine eef and gripper based on target_side
         if self.target_side == "left":

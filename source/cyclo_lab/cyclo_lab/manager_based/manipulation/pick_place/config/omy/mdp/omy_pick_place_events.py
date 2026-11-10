@@ -26,6 +26,7 @@ import random
 import torch
 from typing import TYPE_CHECKING
 
+import isaaclab.sim as sim_utils
 import isaaclab.utils.math as math_utils
 from isaaclab.assets import Articulation, AssetBase
 from isaaclab.sensors.camera import Camera
@@ -46,7 +47,7 @@ def set_default_joint_pose(
 ):
     # Set the default pose for robots in all envs
     asset = env.scene[asset_cfg.name]
-    asset.data.default_joint_pos = torch.tensor(default_pose, device=env.device).repeat(env.num_envs, 1)
+    asset.data.default_joint_pos.torch[env_ids] = torch.tensor(default_pose, device=env.device).repeat(len(env_ids), 1)
 
 
 def randomize_joint_by_gaussian_offset(
@@ -148,7 +149,7 @@ def randomize_scene_lighting_domelight(
     asset_cfg: SceneEntityCfg = SceneEntityCfg("light"),
 ):
     asset: AssetBase = env.scene[asset_cfg.name]
-    light_prim = asset.prims[0]
+    light_prim = sim_utils.find_matching_prims(asset.prim_path)[0]
 
     # Random intensity
     new_intensity = random.uniform(intensity_range[0], intensity_range[1])

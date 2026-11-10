@@ -60,18 +60,18 @@ def convert_joint_to_ik_ffw_sg2(ep_data: EpisodeData) -> EpisodeData:
         # [arm_l(7), gripper_l(1), arm_r(7), gripper_r(1), lift(1), head(2)]
         gripper_l_action = joint_actions[:, 7:8]  # Index 7: gripper_l_joint1
         gripper_r_action = joint_actions[:, 15:16]  # Index 15: gripper_r_joint1
-        lift_action = joint_actions[:, 18:19]       # Index 18: lift_joint
-        head_action = joint_actions[:, 16:18]       # Index 16-17: head_joint[1-2]
+        lift_action = joint_actions[:, 16:17]       # Index 16: lift_joint
+        head_action = joint_actions[:, 17:19]       # Index 17-18: head_joint[1-2]
 
         # IK action order (total 19):
-        # [left_eef(7), gripper_l(1), right_eef(7), gripper_r(1), head(2), lift(1)]
+        # [left_eef(7), gripper_l(1), right_eef(7), gripper_r(1), lift(1), head(2)]
         new_actions = torch.cat([
             left_eef_pose,    # 0-6: left EEF (pos + quat)
             gripper_l_action,  # 7: left gripper
             right_eef_pose,   # 8-14: right EEF (pos + quat)
             gripper_r_action,  # 15: right gripper
-            head_action,        # 16-17: head joints
-            lift_action       # 18: lift joint
+            lift_action,       # 16: lift joint
+            head_action,       # 17-18: head joints
         ], dim=1)
 
         ep_data.data["actions"] = new_actions
@@ -88,10 +88,13 @@ def convert_joint_to_ik(ep_data: EpisodeData, robot_type: str) -> EpisodeData:
     else:
         raise ValueError(f"Unknown robot type: {robot_type}")
 
-def convert_ik_to_joint(ep_data: EpisodeData) -> EpisodeData:
+def convert_ik_to_joint(ep_data: EpisodeData, robot_type: str) -> EpisodeData:
     """Convert IK actions to joint targets."""
     try:
         joint_targets = ep_data.data["obs"]["joint_pos_target"]
+        if robot_type == "FFW_SG2":
+            # Observations publish head before lift; Isaac Lab actions use lift before head.
+            joint_targets = torch.cat((joint_targets[:, :16], joint_targets[:, 18:19], joint_targets[:, 16:18]), dim=1)
         ep_data.data["actions"] = joint_targets
         return ep_data
     except (KeyError, IndexError, TypeError) as e:
@@ -125,7 +128,7 @@ def process_dataset(input_file: str, output_file: str, action_type: str, robot_t
                 if action_type == "ik":
                     processed = convert_joint_to_ik(processed, robot_type)
                 elif action_type == "joint":
-                    processed = convert_ik_to_joint(processed)
+                    processed = convert_ik_to_joint(processed, robot_type)
                 
                 output_handler.write_episode(processed)
                 

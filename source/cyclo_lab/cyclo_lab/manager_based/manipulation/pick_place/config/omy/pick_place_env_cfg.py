@@ -22,9 +22,11 @@
 from dataclasses import MISSING
 
 import isaaclab.sim as sim_utils
+from isaaclab_physx.physics import PhysxCfg
 from isaaclab.envs.mdp.recorders.recorders_cfg import ActionStateRecorderManagerCfg as RecordTerm
 from isaaclab.assets import ArticulationCfg, AssetBaseCfg
 from isaaclab.envs import ManagerBasedRLEnvCfg
+from isaaclab.managers import ActionTermCfg
 from isaaclab.managers import ObservationGroupCfg as ObsGroup
 from isaaclab.managers import ObservationTermCfg as ObsTerm
 from isaaclab.managers import SceneEntityCfg
@@ -81,8 +83,8 @@ class ActionsCfg:
 
     # will be set by agent env cfg
     print("ActionsCfg: arm_action and gripper_action will be set by agent env cfg")
-    arm_action: mdp.ActionTermCfg = MISSING
-    gripper_action: mdp.ActionTermCfg = MISSING
+    arm_action: ActionTermCfg = MISSING
+    gripper_action: ActionTermCfg = MISSING
 
 
 @configclass
@@ -196,10 +198,7 @@ class PickPlaceEnvCfg(ManagerBasedRLEnvCfg):
         self.sim.dt = 0.01  # 100Hz
         self.sim.render_interval = 2
 
-        self.sim.physx.bounce_threshold_velocity = 0.01
-        self.sim.physx.gpu_found_lost_aggregate_pairs_capacity = 1024 * 1024 * 4
-        self.sim.physx.gpu_total_aggregate_pairs_capacity = 16 * 1024
-        self.sim.physx.friction_correlation_distance = 0.00625
+        self.sim.physics = PhysxCfg(bounce_threshold_velocity=0.01, gpu_found_lost_aggregate_pairs_capacity=1024 * 1024 * 4, gpu_total_aggregate_pairs_capacity=16 * 1024, friction_correlation_distance=0.00625)
 
     def init_action_cfg(self, mode: str):
         print(f"Initializing action configuration for device: {mode}")

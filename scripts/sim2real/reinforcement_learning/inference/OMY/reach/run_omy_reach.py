@@ -60,7 +60,7 @@ class OMYReachPolicy(PolicyExecutor):
         self.joint_names = self.get_observation_joint_names()
         self.default_pos = self.get_default_joint_positions(self.joint_names)
 
-        self.target_command = np.zeros(7)  # [x, y, z, qw, qx, qy, qz]
+        self.target_command = np.zeros(7)  # [x, y, z, qx, qy, qz, qw]
         self.num_joints = len(self.joint_names)
         self.previous_action = np.zeros(self.num_joints)
         self.current_joint_positions = np.zeros(self.num_joints)
@@ -204,10 +204,10 @@ class OMYReachPolicy(PolicyExecutor):
                     z=self.target_command[2]
                 ),
                 rotation=Quaternion_(
-                    x=self.target_command[4],
-                    y=self.target_command[5],
-                    z=self.target_command[6],
-                    w=self.target_command[3]
+                    x=self.target_command[3],
+                    y=self.target_command[4],
+                    z=self.target_command[5],
+                    w=self.target_command[6]
                 )
             )
         )

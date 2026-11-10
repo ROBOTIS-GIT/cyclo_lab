@@ -87,6 +87,8 @@ services:
       network: host
     stdin_open: true
     tty: true
+    healthcheck:
+      disable: true
     network_mode: host
     privileged: true
     shm_size: "16gb"

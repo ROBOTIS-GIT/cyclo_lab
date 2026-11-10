@@ -22,7 +22,7 @@ import isaaclab.sim as sim_utils
 from isaaclab.assets import AssetBaseCfg
 from isaaclab.sim.spawners.from_files import from_files
 from isaaclab.sim.utils import bind_physics_material, clone, make_uninstanceable
-from isaacsim.core.utils.stage import get_current_stage
+from isaaclab.sim.utils import get_current_stage
 
 
 SIMPLE_WAREHOUSE_ENVIRONMENT_USD_PATH = (
@@ -32,7 +32,7 @@ SIMPLE_WAREHOUSE_ENVIRONMENT_USD_PATH = (
 
 ENVIRONMENT_SCALE = 0.7
 ENVIRONMENT_POS = (1.25, 0.5, 0.0)
-ENVIRONMENT_ROT = (1.0, 0.0, 0.0, 0.0)
+ENVIRONMENT_ROT = (0.0, 0.0, 0.0, 1.0)
 
 GRASPABLE_CARD_BOX_MASS = 0.2
 GRASPABLE_CARD_BOX_PRIM_PATHS = tuple(
