@@ -2,6 +2,12 @@
 Changelog for package cyclo_lab
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+2.2.1 (2026-11-10)
+------------------
+* Add standalone HX5-D20 (rev2) left and right hand assets, converted from the official robotis_hand 1.0.2 description.
+* Add HX5_D20_LEFT_CFG and HX5_D20_RIGHT_CFG. The hand base is fixed by default; set fix_root_link=False to free it.
+* Contributors: Sunghyun Park
+
 2.2.0 (2026-10-29)
 ------------------
 * Replaced direct DDS bindings with ROS2-compatible Zenoh transport for
