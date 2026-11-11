@@ -20,3 +20,12 @@ source/cyclo_lab/data/robots/FFW/FFW_BG2.usd -filter -diff -merge -text
 source/cyclo_lab/data/robots/FFW/FFW_BG2_without_mimic.usd -filter -diff -merge -text
 source/cyclo_lab/data/robots/FFW/FFW_SG2.usd -filter -diff -merge -text
 source/cyclo_lab/data/robots/OMY/OMY.usd -filter -diff -merge -text
+
+# Store only the newly added high-resolution object textures in LFS. A global
+# PNG rule would also rewrite all legacy texture blobs when staging this change.
+source/cyclo_lab/data/object/texture/jelly_bag/*.png filter=lfs diff=lfs merge=lfs -text
+source/cyclo_lab/data/object/texture/peanut_mix_bag/*.png filter=lfs diff=lfs merge=lfs -text
+source/cyclo_lab/data/object/texture/roasted_chestnut_bag/*.png filter=lfs diff=lfs merge=lfs -text
+
+# Keep the primitive-only showroom human-readable and reviewable in Git.
+source/cyclo_lab/data/environments/robotis_showroom/robotis_showroom.usda -filter -merge diff text

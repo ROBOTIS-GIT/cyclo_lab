@@ -1,0 +1,1 @@
+"""Showroom manipulation tasks."""

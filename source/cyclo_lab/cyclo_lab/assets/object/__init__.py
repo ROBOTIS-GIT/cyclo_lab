@@ -17,6 +17,7 @@
 """Package containing asset and sensor configurations."""
 
 import os
+
 import toml
 
 # Conveniences to other module directories via relative paths
@@ -32,15 +33,18 @@ CYCLO_LAB_OBJECT_ASSETS_METADATA = toml.load(os.path.join(CYCLO_LAB_OBJECT_ASSET
 # Configure the module-level variables
 __version__ = CYCLO_LAB_OBJECT_ASSETS_METADATA["package"]["version"]
 
-from .robotis_omy_table import *
-from .plastic_bottle import *
+from .brush_ring import *
+from .jelly_bag import *
+from .peanut_mix_bag import *
 from .plastic_basket import *
 from .plastic_basket2 import *
+from .plastic_bottle import *
+from .pliers_ring import *
+from .roasted_chestnut_bag import *
 from .robotis_aiworker_table import *
 from .robotis_net_table import *
-from .brush_ring import *
+from .robotis_omy_table import *
+from .scissors_ring import *
+from .screw_driver_ring import *
 from .silicone_tube_ring import *
 from .tooth_brush import *
-from .scissors_ring import *
-from .pliers_ring import *
-from .screw_driver_ring import *

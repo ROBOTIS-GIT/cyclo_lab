@@ -19,13 +19,13 @@
 #
 # SPDX-License-Identifier: BSD-3-Clause
 
-import isaaclab.sim as sim_utils
 from isaaclab.managers import EventTermCfg as EventTerm
 from isaaclab.managers import SceneEntityCfg
-from isaaclab.sensors import FrameTransformerCfg
+from isaaclab.sensors import CameraCfg, FrameTransformerCfg
 from isaaclab.sensors.frame_transformer.frame_transformer_cfg import OffsetCfg
 from isaaclab.utils import configclass
-from isaaclab.sensors import CameraCfg
+
+from cyclo_lab.sensors import RtxLidarCfg
 
 from cyclo_lab.manager_based.manipulation.pick_place.config.ffw_sg2.mdp import ffw_sg2_pick_place_events
 from cyclo_lab.manager_based.manipulation.pick_place.config.ffw_sg2.pick_place_env_cfg import PickPlaceEnvCfg
@@ -162,6 +162,9 @@ class FFWSG2PickPlaceEnvCfg(PickPlaceEnvCfg):
         # ========== Scene Setup ==========
         # Robot
         self.scene.robot = FFW_SG2_CFG.replace(prim_path="{ENV_REGEX_NS}/Robot")
+        # The pick-and-place task keeps its original fixed base and gravity setting.
+        self.scene.robot.spawn.articulation_props.fix_root_link = True
+        self.scene.robot.spawn.rigid_props.disable_gravity = True
         self.scene.robot.spawn.semantic_tags = [("class", "robot")]
 
         # Table and Objects
@@ -178,20 +181,46 @@ class FFWSG2PickPlaceEnvCfg(PickPlaceEnvCfg):
         self.scene.background_cube = BACKGROUND_CUBE_CFG.replace(prim_path="{ENV_REGEX_NS}/BackgroundCube")
         self.scene.plane.semantic_tags = [("class", "ground")]
 
+        # Cameras are authored in FFW_SG2.usd; retain their mounting poses.
         self.scene.cam_head = CameraCfg(
             prim_path="{ENV_REGEX_NS}/Robot/ffw_sg2_follower/head_link2/zed/cam_head",
             update_period=0.0,
             height=376,
             width=672,
             data_types=["rgb"],
-            spawn=sim_utils.PinholeCameraCfg(
-                focal_length=10.4, focus_distance=200.0, horizontal_aperture=20.955, clipping_range=(0.01, 100.0)
+            spawn=None,
+        )
+        # RealSense D405 published RGB mode: 1280x720 at 30 fps.
+        # https://www.realsenseai.com/products/d405-series/ (RGB specifications)
+        # Depth is ideal rendered geometry, rather than calibrated stereo depth.
+        self.scene.cam_wrist_left = CameraCfg(
+            prim_path=(
+                "{ENV_REGEX_NS}/Robot/ffw_sg2_follower/arm_l_link7/"
+                "camera_l_bottom_screw_frame/camera_l_link/cam_wrist_left"
             ),
-            offset=CameraCfg.OffsetCfg(
-                pos=(0.0, 0.03, 0.0),
-                rot=(0.5, -0.5, -0.5, 0.5),
-                convention="opengl",
-            )
+            update_period=1.0 / 30.0,
+            height=720,
+            width=1280,
+            data_types=["rgb", "distance_to_image_plane"],
+            spawn=None,
+        )
+        self.scene.cam_wrist_right = CameraCfg(
+            prim_path=(
+                "{ENV_REGEX_NS}/Robot/ffw_sg2_follower/arm_r_link7/"
+                "camera_r_bottom_screw_frame/camera_r_link/cam_wrist_right"
+            ),
+            update_period=1.0 / 30.0,
+            height=720,
+            width=1280,
+            data_types=["rgb", "distance_to_image_plane"],
+            spawn=None,
+        )
+        # URDF mounting poses and 10 Hz scan profiles are stored in the USD.
+        self.scene.lidar_l = RtxLidarCfg(
+            prim_path="{ENV_REGEX_NS}/Robot/ffw_sg2_follower/world/lidar_l_link/lidar_l",
+        )
+        self.scene.lidar_r = RtxLidarCfg(
+            prim_path="{ENV_REGEX_NS}/Robot/ffw_sg2_follower/world/lidar_r_link/lidar_r",
         )
 
         # Listens to the required transforms
