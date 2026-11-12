@@ -27,7 +27,6 @@ from . import (
     ik_rel_env_cfg,
 )
 
-from .mimic_env import OMYStackMimicEnv
 from .mimic_env_cfg import OMYStackMimicEnvCfg
 
 ##
@@ -46,7 +45,7 @@ gym.register(
 
 gym.register(
     id="Cyclo-Stack-Cube-OMY-IK-Rel-Mimic-v0",
-    entry_point="cyclo_lab.manager_based.manipulation.stack.config.omy:OMYStackMimicEnv",
+    entry_point="cyclo_lab.manager_based.manipulation.stack.config.omy.mimic_env:OMYStackMimicEnv",
     kwargs={
         "env_cfg_entry_point": OMYStackMimicEnvCfg,
     },

@@ -27,7 +27,6 @@ from . import (
     ik_rel_env_cfg,
 )
 
-from .mimic_env import PickPlaceFFWBG2MimicEnv
 from .mimic_env_cfg import PickPlaceFFWBG2MimicEnvCfg
 
 gym.register(
@@ -42,7 +41,7 @@ gym.register(
 
 gym.register(
     id="Cyclo-PickPlace-FFW-BG2-Mimic-v0",
-    entry_point="cyclo_lab.manager_based.manipulation.pick_place.config.ffw_bg2:PickPlaceFFWBG2MimicEnv",
+    entry_point="cyclo_lab.manager_based.manipulation.pick_place.config.ffw_bg2.mimic_env:PickPlaceFFWBG2MimicEnv",
     kwargs={
         "env_cfg_entry_point": PickPlaceFFWBG2MimicEnvCfg,
     },

@@ -27,10 +27,9 @@ from typing import TYPE_CHECKING
 from isaaclab.assets import Articulation, RigidObject, RigidObjectCollection
 from isaaclab.managers import SceneEntityCfg
 from isaaclab.sensors import FrameTransformer
-from isaaclab.envs import ManagerBasedEnv
 
 if TYPE_CHECKING:
-    from isaaclab.envs import ManagerBasedRLEnv
+    from isaaclab.envs import ManagerBasedEnv, ManagerBasedRLEnv
 
 
 def joint_pos_rel_name(env: ManagerBasedEnv, joint_names: list[str], asset_name: str = "robot") -> torch.Tensor:

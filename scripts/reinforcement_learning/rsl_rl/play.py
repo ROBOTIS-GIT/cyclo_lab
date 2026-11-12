@@ -5,12 +5,12 @@
 
 """Script to play a checkpoint if an RL agent from RSL-RL."""
 
-"""Launch Isaac Sim Simulator first."""
-
 import argparse
+import contextlib
 import sys
 
-from isaaclab.app import AppLauncher
+from isaaclab.app import add_launcher_args, launch_simulation
+from isaaclab.utils.version import standalone_importers_available
 
 # local imports
 import cli_args  # isort: skip
@@ -39,12 +39,13 @@ parser.add_argument(
 parser.add_argument("--real-time", action="store_true", default=False, help="Run in real-time, if possible.")
 # append RSL-RL cli arguments
 cli_args.add_rsl_rl_args(parser)
-# append AppLauncher cli args
-AppLauncher.add_app_launcher_args(parser)
+# append simulation launcher arguments
+add_launcher_args(parser)
 parser.add_argument("--headless", action="store_true", help="Run without a window.")
 parser.add_argument("--enable_cameras", action="store_true", help="Enable camera rendering.")
 # parse the arguments
 args_cli, hydra_args = parser.parse_known_args()
+args_cli.require_kit = not standalone_importers_available()
 cli_args.validate_task_exists(args_cli.task)
 # always enable cameras to record video
 if args_cli.video:
@@ -52,10 +53,6 @@ if args_cli.video:
 
 # clear out sys.argv for Hydra
 sys.argv = [sys.argv[0]] + hydra_args
-
-# launch omniverse app
-app_launcher = AppLauncher(args_cli)
-simulation_app = app_launcher.app
 
 """Check for installed RSL-RL version."""
 
@@ -104,6 +101,7 @@ except ImportError:
 import isaaclab_tasks  # noqa: F401
 from isaaclab_tasks.utils import get_checkpoint_path
 from isaaclab_tasks.utils.hydra import resolve_task_config
+from isaaclab_rl.entrypoints.common import pre_launch_video_config
 
 import cyclo_lab  # noqa: F401
 from cyclo_lab.utils.onnx_external_data import embed_onnx_external_data
@@ -224,29 +222,30 @@ def main(env_cfg: ManagerBasedRLEnvCfg | DirectRLEnvCfg | DirectMARLEnvCfg, agen
     obs = env.get_observations()
     timestep = 0
     # simulate environment
-    while simulation_app.is_running():
-        start_time = time.time()
-        # run everything in inference mode
-        with torch.inference_mode():
-            # agent stepping
-            actions = policy(obs)
-            # env stepping
-            obs, _, dones, _ = env.step(actions)
-            # reset recurrent states for episodes that have terminated
-            if version.parse(installed_version) >= version.parse("4.0.0"):
-                policy.reset(dones)
-            else:
-                policy_nn.reset(dones)
-        if args_cli.video:
-            timestep += 1
-            # Exit the play loop after recording one video
-            if timestep == args_cli.video_length:
-                break
+    with contextlib.suppress(KeyboardInterrupt):
+        while env.unwrapped.sim.is_running():
+            start_time = time.time()
+            # run everything in inference mode
+            with torch.inference_mode():
+                # agent stepping
+                actions = policy(obs)
+                # env stepping
+                obs, _, dones, _ = env.step(actions)
+                # reset recurrent states for episodes that have terminated
+                if version.parse(installed_version) >= version.parse("4.0.0"):
+                    policy.reset(dones)
+                else:
+                    policy_nn.reset(dones)
+            if args_cli.video:
+                timestep += 1
+                # Exit the play loop after recording one video
+                if timestep == args_cli.video_length:
+                    break
 
-        # time delay for real-time evaluation
-        sleep_time = dt - (time.time() - start_time)
-        if args_cli.real_time and sleep_time > 0:
-            time.sleep(sleep_time)
+            # time delay for real-time evaluation
+            sleep_time = dt - (time.time() - start_time)
+            if args_cli.real_time and sleep_time > 0:
+                time.sleep(sleep_time)
 
     # close the simulator
     env.close()
@@ -257,6 +256,6 @@ if __name__ == "__main__":
     # Legacy -Play tasks already apply playback settings in their config classes.
     apply_play_mode = not args_cli.train_env_cfg and "-Play" not in args_cli.task
     env_cfg, agent_cfg = resolve_task_config(args_cli.task, args_cli.agent, play_mode=apply_play_mode)
-    main(env_cfg, agent_cfg)
-    # close sim app
-    simulation_app.close()
+    pre_launch_video_config(env_cfg, args_cli)
+    with launch_simulation(env_cfg, args_cli):
+        main(env_cfg, agent_cfg)

@@ -16,14 +16,12 @@
 
 import re
 
-from pxr import Sdf, Usd, UsdPhysics
 from cyclo_lab.assets.robots import CYCLO_LAB_ASSETS_DATA_DIR
 from cyclo_lab.robot_specs.ffw.sh5.mobile_base import SH5_SWERVE_STEERING_JOINTS as _SH5_SWERVE_STEERING_JOINTS
 from cyclo_lab.robot_specs.ffw.sh5.mobile_base import SH5_SWERVE_WHEEL_JOINTS as _SH5_SWERVE_WHEEL_JOINTS
 from isaaclab.actuators import ImplicitActuatorCfg
 from isaaclab.assets.articulation import ArticulationCfg
 from isaaclab.sim import ArticulationRootPropertiesCfg, RigidBodyMaterialCfg, RigidBodyPropertiesCfg, UsdFileCfg
-from isaaclab.sim.spawners.from_files import from_files
 from isaaclab.sim.utils import bind_physics_material, clone, get_current_stage, make_uninstanceable
 
 _SH5_FINGER_TIP_MATERIAL = RigidBodyMaterialCfg(
@@ -45,6 +43,8 @@ def _is_sh5_finger_tip_prim(prim_path: str) -> bool:
 
 
 def _iter_robot_prims(stage, prim_path: str):
+    from pxr import Usd
+
     robot_prim = stage.GetPrimAtPath(prim_path)
     if not robot_prim.IsValid():
         return ()
@@ -53,6 +53,8 @@ def _iter_robot_prims(stage, prim_path: str):
 
 def _filter_sh5_base_finger_collisions(stage, prim_path: str) -> None:
     """Disable collision checks between each hand base and the MCP/PIP finger links."""
+    from pxr import Sdf, UsdPhysics
+
     collision_paths_by_link_name = {}
     base_collision_paths_by_side = {"l": [], "r": []}
     for child_prim in _iter_robot_prims(stage, prim_path):
@@ -93,6 +95,8 @@ def _filter_sh5_base_finger_collisions(stage, prim_path: str) -> None:
 
 
 def _add_filtered_collision_pairs(stage, source_paths: list[str], target_paths: list[str]) -> None:
+    from pxr import Sdf, UsdPhysics
+
     for source_path in source_paths:
         source_prim = stage.GetPrimAtPath(source_path)
         filtered_pairs_api = UsdPhysics.FilteredPairsAPI.Apply(source_prim)
@@ -129,6 +133,8 @@ def _filter_sh5_base_wheel_drive_collisions(stage, prim_path: str) -> None:
 @clone
 def spawn_sh5_with_finger_tip_friction(prim_path, cfg, translation=None, orientation=None, **kwargs):
     """Spawn SH5 and bind high-friction material to fingertip bodies."""
+    from isaaclab.sim.spawners.from_files import from_files
+
     prim = from_files.spawn_from_usd(prim_path, cfg, translation, orientation, **kwargs)
 
     material_path = f"{prim_path}/fingerTipPhysicsMaterial"

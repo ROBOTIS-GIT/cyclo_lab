@@ -88,7 +88,7 @@ COPY docker/entrypoint.sh /entrypoint.sh
 RUN chmod +x /entrypoint.sh
 
 # Use the same optional workflows and lockfile as the official Lab image.
-ARG IMAGE_EXTRAS="--extra sb3 --extra skrl --extra rl-games --extra rsl-rl --extra viser --extra rerun --extra mimic --extra teleop --extra test --extra tetrahedralization --extra ov"
+ARG IMAGE_EXTRAS="--extra sb3 --extra skrl --extra rl-games --extra rsl-rl --extra viser --extra rerun --extra mimic --extra teleop --extra test --extra tetrahedralization --extra ov --extra importers"
 RUN uv venv --seed "${VIRTUAL_ENV}"
 RUN --mount=type=cache,target=/root/.cache/uv \
     cd ${ISAACLAB_PATH} && \

@@ -5,12 +5,11 @@
 
 """Script to train RL agent with RSL-RL."""
 
-"""Launch Isaac Sim Simulator first."""
-
 import argparse
 import sys
 
-from isaaclab.app import AppLauncher
+from isaaclab.app import add_launcher_args, launch_simulation
+from isaaclab.utils.version import standalone_importers_available
 
 # local imports
 import cli_args  # isort: skip
@@ -36,11 +35,12 @@ parser.add_argument(
 )
 # append RSL-RL cli arguments
 cli_args.add_rsl_rl_args(parser)
-# append AppLauncher cli args
-AppLauncher.add_app_launcher_args(parser)
+# append simulation launcher arguments
+add_launcher_args(parser)
 parser.add_argument("--headless", action="store_true", help="Run without a window.")
 parser.add_argument("--enable_cameras", action="store_true", help="Enable camera rendering.")
 args_cli, hydra_args = parser.parse_known_args()
+args_cli.require_kit = not standalone_importers_available()
 cli_args.validate_task_exists(args_cli.task)
 
 # always enable cameras to record video
@@ -49,10 +49,6 @@ if args_cli.video:
 
 # clear out sys.argv for Hydra
 sys.argv = [sys.argv[0]] + hydra_args
-
-# launch omniverse app
-app_launcher = AppLauncher(args_cli)
-simulation_app = app_launcher.app
 
 """Check for minimum supported RSL-RL version."""
 
@@ -108,6 +104,7 @@ except ImportError:
 import isaaclab_tasks  # noqa: F401
 from isaaclab_tasks.utils import get_checkpoint_path
 from isaaclab_tasks.utils.hydra import resolve_task_config
+from isaaclab_rl.entrypoints.common import pre_launch_video_config
 
 import cyclo_lab  # noqa: F401
 from cyclo_lab.utils.export_git_state import export_git_state
@@ -139,7 +136,8 @@ def main(env_cfg: ManagerBasedRLEnvCfg | DirectRLEnvCfg | DirectMARLEnvCfg, agen
     # set the environment seed
     # note: certain randomizations occur in the environment initialization so we set the seed here
     env_cfg.seed = agent_cfg.seed
-    env_cfg.sim.device = args_cli.device if args_cli.device is not None else env_cfg.sim.device
+    if not args_cli.distributed:
+        env_cfg.sim.device = args_cli.device if args_cli.device is not None else env_cfg.sim.device
     # check for invalid combination of CPU device with distributed training
     if args_cli.distributed and args_cli.device is not None and "cpu" in args_cli.device:
         raise ValueError(
@@ -149,11 +147,10 @@ def main(env_cfg: ManagerBasedRLEnvCfg | DirectRLEnvCfg | DirectMARLEnvCfg, agen
 
     # multi-gpu training configuration
     if args_cli.distributed:
-        env_cfg.sim.device = f"cuda:{app_launcher.local_rank}"
-        agent_cfg.device = f"cuda:{app_launcher.local_rank}"
+        agent_cfg.device = env_cfg.sim.device
 
         # set seed to have diversity in different threads
-        seed = agent_cfg.seed + app_launcher.local_rank
+        seed = agent_cfg.seed + int(os.getenv("RANK", "0"))
         env_cfg.seed = seed
         agent_cfg.seed = seed
 
@@ -241,6 +238,7 @@ def main(env_cfg: ManagerBasedRLEnvCfg | DirectRLEnvCfg | DirectMARLEnvCfg, agen
 
 if __name__ == "__main__":
     # run the main function
-    main(*resolve_task_config(args_cli.task, args_cli.agent))
-    # close sim app
-    simulation_app.close()
+    env_cfg, agent_cfg = resolve_task_config(args_cli.task, args_cli.agent)
+    pre_launch_video_config(env_cfg, args_cli)
+    with launch_simulation(env_cfg, args_cli):
+        main(env_cfg, agent_cfg)

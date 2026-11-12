@@ -18,14 +18,16 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 import os
-from typing import Any, TypeAlias
+from typing import TYPE_CHECKING, Any, TypeAlias
 
 import yaml
 
-from isaaclab.assets import Articulation
-from isaaclab.envs import ManagerBasedRLEnv
 from isaaclab.utils import class_to_dict
 from isaaclab.utils.dict import replace_slices_with_strings
+
+if TYPE_CHECKING:
+    from isaaclab.assets import Articulation
+    from isaaclab.envs import ManagerBasedRLEnv
 
 
 class _FlowList(list):
