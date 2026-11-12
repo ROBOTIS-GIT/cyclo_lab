@@ -14,4 +14,10 @@
 #
 # Author: Sunghyun Park
 
+from .hand_tactile import (
+    HandTactile,
+    HandTactileCfg,
+    HandTactileData,
+    TactileHeatmapCfg,
+)
 from .rtx_lidar import RtxLidar, RtxLidarCfg, RtxLidarData
