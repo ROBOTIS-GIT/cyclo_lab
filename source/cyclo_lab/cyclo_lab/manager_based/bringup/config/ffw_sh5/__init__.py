@@ -21,3 +21,12 @@ gym.register(
     },
     disable_env_checker=True,
 )
+
+gym.register(
+    id="Cyclo-Bringup-FFW-SH5-Tactile-v0",
+    entry_point=_ENTRY_POINT,
+    kwargs={
+        "env_cfg_entry_point": f"{__name__}.tactile_env_cfg:FFWSH5TactileBringupEnvCfg",
+    },
+    disable_env_checker=True,
+)
