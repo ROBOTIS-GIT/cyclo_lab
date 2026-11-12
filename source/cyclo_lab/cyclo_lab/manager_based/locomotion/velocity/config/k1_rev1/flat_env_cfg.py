@@ -315,11 +315,8 @@ class K1Rev1FlatEnvCfg(LocomotionVelocityEnvCfg):
 
         self.rewards.joint_deviation_ankle_pitch = None
 
-
-class K1Rev1FlatEnvCfg_PLAY(K1Rev1FlatEnvCfg):
-    def __post_init__(self) -> None:
-        # post init of parent
-        super().__post_init__()
+    def play_mode(self) -> None:
+        """Apply K1 playback settings while preserving other observation groups."""
 
         # make a smaller scene for play
         self.scene.num_envs = 50

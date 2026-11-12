@@ -91,3 +91,11 @@ class K1Rev1MimicEnvCfg(TrackingEnvCfg):
         self.events.torso_com_offset_noise.params["asset_cfg"].body_names = "torso_link"
         configure_k1_physics(self)
         self.terminations.end_body_pos.params["body_names"] = END_BODY_NAMES
+
+    def play_mode(self) -> None:
+        """Apply K1 playback settings while preserving other observation groups."""
+        self.scene.num_envs = 1
+        self.episode_length_s = 1e9
+        self.commands.reference_trajectory.start_from_zero = True
+        self.events.push_robot = None
+        self.observations.policy.enable_corruption = False

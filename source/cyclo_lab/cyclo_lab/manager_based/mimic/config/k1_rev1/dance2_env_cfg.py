@@ -29,14 +29,3 @@ class K1Rev1EnvCfg(K1Rev1MimicEnvCfg):
         super().__post_init__()
         self.episode_length_s = 30.0
         self.commands.reference_trajectory.trajectory_file = TRAJECTORY_FILE
-
-
-@configclass
-class K1Rev1PlayEnvCfg(K1Rev1EnvCfg):
-    def __post_init__(self):
-        super().__post_init__()
-        self.scene.num_envs = 1
-        self.episode_length_s = 1e9
-        self.commands.reference_trajectory.start_from_zero = True
-        self.events.push_robot = None
-        self.observations.policy.enable_corruption = False

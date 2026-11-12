@@ -27,6 +27,9 @@ parser.add_argument("--task", type=str, default=None, help="Name of the task.")
 parser.add_argument(
     "--agent", type=str, default="rsl_rl_cfg_entry_point", help="Name of the RL agent configuration entry point."
 )
+parser.add_argument(
+    "--train_env_cfg", action="store_true", help="Use the training environment configuration without play-mode overrides."
+)
 parser.add_argument("--seed", type=int, default=None, help="Seed used for the environment")
 parser.add_argument(
     "--use_pretrained_checkpoint",
@@ -251,6 +254,9 @@ def main(env_cfg: ManagerBasedRLEnvCfg | DirectRLEnvCfg | DirectMARLEnvCfg, agen
 
 if __name__ == "__main__":
     # run the main function
-    main(*resolve_task_config(args_cli.task, args_cli.agent))
+    # Legacy -Play tasks already apply playback settings in their config classes.
+    apply_play_mode = not args_cli.train_env_cfg and "-Play" not in args_cli.task
+    env_cfg, agent_cfg = resolve_task_config(args_cli.task, args_cli.agent, play_mode=apply_play_mode)
+    main(env_cfg, agent_cfg)
     # close sim app
     simulation_app.close()
