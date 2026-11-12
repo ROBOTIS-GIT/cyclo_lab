@@ -1,0 +1,1 @@
+"""Reusable environment asset configurations."""
