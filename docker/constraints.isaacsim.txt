@@ -1,9 +1,5 @@
-# Match third_party/IsaacLab/pyproject.toml [tool.isaaclab.versions].
-# Lab's installer selects the CUDA wheel index. Do not reuse Sim 5.1 pins.
+# Protect Lab's core versions when installing Cyclo Lab dependencies.
+# Isaac Lab itself is installed from the pinned checkout's uv.lock.
 torch==2.11.0
 torchvision==0.26.0
-torchaudio==2.11.0
-
-# Match Lab's supported protobuf range and its pkg_resources compatibility cap.
 protobuf>=4.25.8,!=5.26.0
-setuptools<82

@@ -132,7 +132,7 @@ class ObservationsCfg:
         right_eef_pose = ObsTerm(func=mdp.eef_pose, params={"eef_cfg": SceneEntityCfg("right_eef"), "robot_cfg": SceneEntityCfg("robot")})
 
         cam_head = ObsTerm(
-            func=mdp.image,
+            func=mdp.image_rgb,
             params={"sensor_cfg": SceneEntityCfg("cam_head"), "data_type": "rgb", "normalize": False},
         )
 

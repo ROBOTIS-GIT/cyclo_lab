@@ -22,9 +22,9 @@ for package in ("torch", "torchvision"):
     actual = module.__version__
     assert actual.split("+")[0] == versions[package], (package, actual, versions[package])
     print(f"{package}: {actual}")
-for package in ("isaaclab", "isaaclab-physx", "isaaclab-rl", "isaaclab-mimic", "isaaclab-teleop", "cyclo_lab", "robotis_dds_python", "cyclonedds"):
+for package in ("isaaclab", "isaaclab-physx", "isaaclab-rl", "isaaclab-mimic", "isaaclab-teleop", "cyclo_lab", "zenoh_ros2_sdk", "eclipse-zenoh"):
     print(f"{package}: {metadata.version(package)}")
-importlib.import_module("cyclonedds")
+importlib.import_module("zenoh")
 for distribution, module_name in (("rerun-sdk", "rerun"), ("viser", "viser")):
     importlib.import_module(module_name)
     print(f"{distribution}: {metadata.version(distribution)}")
@@ -39,7 +39,7 @@ if args.gpu:
     try:
         from isaacsim.core.version import get_version
         actual_sim = ".".join(str(part) for part in get_version()[2:5])
-        assert actual_sim == "6.1.0", actual_sim
+        assert actual_sim == ".".join(versions["isaacsim"].split(".")[:3]), actual_sim
         print(f"Isaac Sim: {actual_sim}")
         launcher.app.update()
         print("Headless Sim launch: OK")

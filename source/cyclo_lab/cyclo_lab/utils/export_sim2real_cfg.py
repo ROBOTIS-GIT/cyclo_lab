@@ -25,6 +25,7 @@ import yaml
 from isaaclab.assets import Articulation
 from isaaclab.envs import ManagerBasedRLEnv
 from isaaclab.utils import class_to_dict
+from isaaclab.utils.dict import replace_slices_with_strings
 
 
 class _FlowList(list):
@@ -318,6 +319,7 @@ def _write_yaml(cfg: _CfgDict, log_dir: str) -> None:
     filename = os.path.join(log_dir, "params", _SIM2REAL_YAML_FILENAME)
     os.makedirs(os.path.dirname(filename), exist_ok=True)
     cfg = class_to_dict(cfg) if not isinstance(cfg, dict) else cfg
+    cfg = replace_slices_with_strings(cfg)
     with open(filename, "w") as file:
         yaml.dump(_format_yaml(cfg), file, Dumper=_Sim2RealYamlDumper, default_flow_style=False, sort_keys=False)
 

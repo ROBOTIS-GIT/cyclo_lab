@@ -5,7 +5,8 @@
 
 # Base image from NVIDIA Isaac Sim
 ARG ISAACSIM_BASE_IMAGE_ARG=nvcr.io/nvidia/isaac-sim
-ARG ISAACSIM_VERSION_ARG=6.1.0
+ARG ISAACSIM_VERSION_ARG=6.2.0
+FROM ghcr.io/astral-sh/uv:0.12.9@sha256:8b940d3a9d65bed080436972241af2e21c84b5e8c9193f7014ed71479ee795ff AS uv
 FROM ${ISAACSIM_BASE_IMAGE_ARG}:${ISAACSIM_VERSION_ARG} AS base
 ARG ISAACSIM_VERSION_ARG
 ENV ISAACSIM_VERSION=${ISAACSIM_VERSION_ARG}
@@ -28,6 +29,14 @@ ENV CYCLOLAB_PATH=${CYCLOLAB_PATH_ARG}
 ARG DOCKER_USER_HOME_ARG
 ENV DOCKER_USER_HOME=${DOCKER_USER_HOME_ARG}
 ENV HOME=${DOCKER_USER_HOME}
+
+# Match Isaac Lab's locked environment, using Kit's Python interpreter.
+ENV VIRTUAL_ENV=/opt/isaaclab-venv
+ENV UV_PROJECT_ENVIRONMENT=${VIRTUAL_ENV}
+ENV UV_PYTHON=${ISAACSIM_ROOT_PATH}/kit/python/bin/python3
+ENV UV_PYTHON_PREFERENCE=only-system
+ENV UV_HTTP_RETRIES=12
+COPY --from=uv /uv /uvx /usr/local/bin/
 
 # Set environment variables
 ENV LANG=C.UTF-8
@@ -78,8 +87,19 @@ RUN ln -sf ${ISAACSIM_ROOT_PATH} ${ISAACLAB_PATH}/_isaac_sim
 COPY docker/entrypoint.sh /entrypoint.sh
 RUN chmod +x /entrypoint.sh
 
-# Install toml dependency for Isaac Lab
-RUN ${ISAACLAB_PATH}/isaaclab.sh -p -m pip install toml
+# Use the same optional workflows and lockfile as the official Lab image.
+ARG IMAGE_EXTRAS="--extra sb3 --extra skrl --extra rl-games --extra rsl-rl --extra viser --extra rerun --extra mimic --extra teleop --extra test --extra tetrahedralization --extra ov"
+RUN uv venv --seed "${VIRTUAL_ENV}"
+RUN --mount=type=cache,target=/root/.cache/uv \
+    cd ${ISAACLAB_PATH} && \
+    uv sync --frozen --inexact ${IMAGE_EXTRAS} --no-install-package imageio-ffmpeg && \
+    chown -R cyclolab:cyclolab ${VIRTUAL_ENV} && \
+    chmod -R a+rwX ${VIRTUAL_ENV}/lib ${VIRTUAL_ENV}/bin
+
+# Prevent Sim's bundled packages from shadowing Lab's locked dependencies.
+RUN ${ISAACLAB_PATH}/isaaclab.sh -p -c \
+    "from isaaclab.cli.commands.install import _repoint_prebundle_packages; _repoint_prebundle_packages()"
+ENV UV_PYTHON=${VIRTUAL_ENV}/bin/python
 
 # Install apt dependencies for Isaac Lab extensions
 RUN --mount=type=cache,target=/var/cache/apt \
@@ -107,13 +127,6 @@ RUN touch /bin/nvidia-smi && \
     mkdir -p /var/run/nvidia-persistenced && \
     touch /var/run/nvidia-persistenced/socket
 
-# Install the pinned Isaac Lab checkout and its optional workflows. Its installer
-# selects CUDA wheels; constraints track the checkout rather than the old Sim bundle.
-RUN --mount=type=cache,target=${DOCKER_USER_HOME}/.cache/pip \
-    PIP_CONSTRAINT=${CYCLOLAB_PATH}/docker/constraints.isaacsim.txt \
-    ${ISAACLAB_PATH}/isaaclab.sh --install && \
-    ${ISAACLAB_PATH}/isaaclab.sh -p -c "import isaaclab"
-
 # Copy project code and remaining submodules after the heavy Lab install.
 COPY --chown=cyclolab:cyclolab . ${CYCLOLAB_PATH}
 
@@ -140,7 +153,7 @@ RUN --mount=type=cache,target=${DOCKER_USER_HOME}/.cache/pip \
         tqdm && \
     cd ${ZENOH_SDK_PATH} && \
     ${ISAACLAB_PATH}/isaaclab.sh -p -m pip install -e . && \
-    ln -sf ${ISAACSIM_ROOT_PATH}/kit/python/bin/zenoh-ros2 /usr/local/bin/zenoh-ros2
+    ln -sf ${VIRTUAL_ENV}/bin/zenoh-ros2 /usr/local/bin/zenoh-ros2
 
 # Keep GUI-enabled OpenCV isolated from Isaac Sim's headless OpenCV package.
 ENV CYCLO_CAMERA_VIEWER_VENV=/opt/cyclo-camera-viewer
@@ -215,11 +228,11 @@ RUN echo "# Environment variables" >> ${DOCKER_USER_HOME}/.bashrc && \
     echo "" >> ${DOCKER_USER_HOME}/.bashrc && \
     echo "# Isaac Lab aliases" >> ${DOCKER_USER_HOME}/.bashrc && \
     echo "alias isaaclab=${ISAACLAB_PATH}/isaaclab.sh" >> ${DOCKER_USER_HOME}/.bashrc && \
-    echo "alias python=${ISAACLAB_PATH}/_isaac_sim/python.sh" >> ${DOCKER_USER_HOME}/.bashrc && \
-    echo "alias python3=${ISAACLAB_PATH}/_isaac_sim/python.sh" >> ${DOCKER_USER_HOME}/.bashrc && \
-    echo "alias pip='${ISAACLAB_PATH}/_isaac_sim/python.sh -m pip'" >> ${DOCKER_USER_HOME}/.bashrc && \
-    echo "alias pip3='${ISAACLAB_PATH}/_isaac_sim/python.sh -m pip'" >> ${DOCKER_USER_HOME}/.bashrc && \
-    echo "alias tensorboard='${ISAACLAB_PATH}/_isaac_sim/python.sh ${ISAACLAB_PATH}/_isaac_sim/tensorboard'" >> ${DOCKER_USER_HOME}/.bashrc && \
+    echo "alias python='${ISAACLAB_PATH}/isaaclab.sh -p'" >> ${DOCKER_USER_HOME}/.bashrc && \
+    echo "alias python3='${ISAACLAB_PATH}/isaaclab.sh -p'" >> ${DOCKER_USER_HOME}/.bashrc && \
+    echo "alias pip='uv pip'" >> ${DOCKER_USER_HOME}/.bashrc && \
+    echo "alias pip3='uv pip'" >> ${DOCKER_USER_HOME}/.bashrc && \
+    echo "alias tensorboard='${VIRTUAL_ENV}/bin/tensorboard'" >> ${DOCKER_USER_HOME}/.bashrc && \
     echo "" >> ${DOCKER_USER_HOME}/.bashrc && \
     echo "# LeRobot venv aliases" >> ${DOCKER_USER_HOME}/.bashrc && \
     echo "alias lerobot-activate='source \${LEROBOT_VENV}/bin/activate'" >> ${DOCKER_USER_HOME}/.bashrc && \
@@ -238,7 +251,7 @@ RUN mkdir -p ${ISAACSIM_ROOT_PATH}/kit/logs ${ISAACSIM_ROOT_PATH}/kit/data /var/
 # Resolve Cyclo Lab's named volumes with Isaac Lab's helper, then prepare their ownership.
 RUN export DOCKER_ISAACSIM_ROOT_PATH=${ISAACSIM_ROOT_PATH} \
            DOCKER_ISAACLAB_PATH=${ISAACLAB_PATH} && \
-    dirs="$( ${ISAACSIM_ROOT_PATH}/python.sh -c "import runpy; \
+    dirs="$( ${ISAACLAB_PATH}/isaaclab.sh -p -c "import runpy; \
 resolver = runpy.run_path('${ISAACLAB_PATH}/docker/utils/volume_mounts.py'); \
 targets = resolver['resolved_targets']('${CYCLOLAB_PATH}/docker/docker-compose.yaml', 'x-default-cyclo-lab-volumes'); \
 assert targets and all('\$' not in p for p in targets), targets; \

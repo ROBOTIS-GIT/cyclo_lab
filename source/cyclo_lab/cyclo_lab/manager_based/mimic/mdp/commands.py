@@ -243,7 +243,10 @@ class ReferenceTrajectoryCommand(CommandTerm):
         self.metrics["start_sampling_top1_prob"][:] = top1_prob
         self.metrics["start_sampling_top1_bin"][:] = top1_bin.float() / self.start_bin_count
 
-    def _resample_command(self, env_ids: Sequence[int]):
+    def _resample_command(self, env_ids: Sequence[int] | slice):
+        if isinstance(env_ids, slice):
+            env_ids = torch.arange(self.num_envs, device=self.device)[env_ids]
+
         if len(env_ids) == 0:
             return
         self._sample_start_frames(env_ids)
