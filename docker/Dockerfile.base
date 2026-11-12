@@ -182,17 +182,14 @@ RUN --mount=type=cache,target=${DOCKER_USER_HOME}/.cache/pip \
     fi
 
 #==
-# Install Isaac Lab Arena for Isaac Sim 5.1 and Isaac Lab 2.3
+# Install Isaac Lab Arena for Isaac Sim 6.2 and Isaac Lab 3.0
 #==
 ENV ISAACLAB_ARENA_PATH=${CYCLOLAB_PATH}/third_party/IsaacLab-Arena
 ENV LW_API_ENDPOINT=https://api-dev.lightwheel.net
-RUN --mount=type=cache,target=${DOCKER_USER_HOME}/.cache/pip \
-    ${ISAACLAB_PATH}/isaaclab.sh -p -m pip install \
-        onnxruntime \
-        lightwheel-sdk \
-        pyzmq && \
-    cd ${ISAACLAB_ARENA_PATH} && \
-    ${ISAACLAB_PATH}/isaaclab.sh -p -m pip install --no-deps -e .
+RUN --mount=type=cache,target=/root/.cache/uv \
+    uv sync --project ${ISAACLAB_ARENA_PATH} --frozen --inexact --no-default-groups && \
+    chown -R cyclolab:cyclolab ${VIRTUAL_ENV} && \
+    chmod -R a+rwX ${VIRTUAL_ENV}/lib ${VIRTUAL_ENV}/bin
 
 
 # Let OmniHub start instead of repeatedly retrying the base image's detect-only mode.
