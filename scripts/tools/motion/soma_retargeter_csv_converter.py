@@ -28,7 +28,7 @@ Example:
     ./third_party/IsaacLab/isaaclab.sh -p scripts/tools/motion/soma_retargeter_csv_converter.py \
         -f source/cyclo_lab/data/motions/K1_rev1/dance1/dance1_soma.csv \
         --output_name source/cyclo_lab/data/motions/K1_rev1/dance1/dance1.npz \
-        --headless
+        --viz none
 
 This writes:
     source/cyclo_lab/data/motions/K1_rev1/dance1/dance1.csv
@@ -324,24 +324,34 @@ class MotionLoader:
         smoothed = F.conv1d(x, kernel, groups=channels)
         return smoothed.squeeze(0).transpose(0, 1)
 
-    def _smooth_quaternions(self, quats_wxyz: torch.Tensor, window: int) -> torch.Tensor:
-        quats = self._normalize_quaternions(quats_wxyz)
+    def _smooth_quaternions(self, quats_xyzw: torch.Tensor, window: int) -> torch.Tensor:
+        quats = self._normalize_quaternions(quats_xyzw)
         quats = self._make_quaternion_sign_continuous(quats)
         quats = self._moving_average(quats, window)
         return self._normalize_quaternions(quats)
 
-    def _normalize_quaternions(self, quats_wxyz: torch.Tensor) -> torch.Tensor:
-        return quats_wxyz / torch.clamp(torch.linalg.norm(quats_wxyz, dim=1, keepdim=True), min=1.0e-8)
+    def _normalize_quaternions(self, quats_xyzw: torch.Tensor) -> torch.Tensor:
+        return quats_xyzw / torch.clamp(torch.linalg.norm(quats_xyzw, dim=1, keepdim=True), min=1.0e-8)
 
-    def _make_quaternion_sign_continuous(self, quats_wxyz: torch.Tensor) -> torch.Tensor:
-        out = quats_wxyz.clone()
+    def _make_quaternion_sign_continuous(self, quats_xyzw: torch.Tensor) -> torch.Tensor:
+        out = quats_xyzw.clone()
         for idx in range(1, out.shape[0]):
             if torch.dot(out[idx - 1], out[idx]) < 0.0:
                 out[idx] = -out[idx]
         return out
 
     def _interpolate_motion(self):
-        times = torch.arange(0, self.duration, self.output_dt, device=self.device, dtype=torch.float32)
+        # Preserve exact samples when no resampling is requested.
+        if self.input_fps == self.output_fps:
+            self.output_frames = self.input_frames
+            self.motion_base_poss = self.motion_base_poss_input.clone()
+            self.motion_base_rots = self.motion_base_rots_input.clone()
+            self.motion_dof_poss = self.motion_dof_poss_input.clone()
+            return
+
+        frame_count = int(self.duration / self.output_dt + 1.0e-6) + 1
+        times = torch.arange(frame_count, device=self.device, dtype=torch.float32) * self.output_dt
+        times = times.clamp(max=self.duration)
         self.output_frames = times.shape[0]
         index_0, index_1, blend = self._compute_frame_blend(times)
         self.motion_base_poss = self._lerp(
@@ -427,7 +437,7 @@ def run_simulator(sim: SimulationContext, scene: InteractiveScene):
     if len(robot_joint_indexes) != len(K1_REV1_MOTION_CSV_JOINT_NAMES):
         raise RuntimeError("Could not resolve all K1 Rev.1 23-DoF joints in the robot asset.")
 
-    motion_base_rot_xyzw = motion.motion_base_rots[:, [1, 2, 3, 0]]
+    motion_base_rot_xyzw = motion.motion_base_rots
     motion_csv = torch.cat((motion.motion_base_poss, motion_base_rot_xyzw, motion.motion_dof_poss), dim=1)
     output_csv_path = _get_output_csv_path(args_cli.output_name)
     np.savetxt(output_csv_path, motion_csv.cpu().numpy(), delimiter=",", fmt="%.9f")
@@ -438,6 +448,9 @@ def run_simulator(sim: SimulationContext, scene: InteractiveScene):
 
     log = {
         "fps": [args_cli.output_fps],
+        "quaternion_order": np.asarray("xyzw"),
+        "joint_names": np.asarray(robot.joint_names),
+        "body_names": np.asarray(robot.body_names),
         "joint_pos": [],
         "joint_vel": [],
         "body_pos_w": [],
@@ -458,7 +471,7 @@ def run_simulator(sim: SimulationContext, scene: InteractiveScene):
             reset_flag,
         ) = motion.get_next_state()
 
-        root_states = robot.data.default_root_state.clone()
+        root_states = robot.data.default_root_state.torch.clone()
         root_states[:, :3] = motion_base_pos
         root_states[:, :2] += scene.env_origins[:, :2]
         root_states[:, 3:7] = motion_base_rot
@@ -466,8 +479,8 @@ def run_simulator(sim: SimulationContext, scene: InteractiveScene):
         root_states[:, 10:] = motion_base_ang_vel
         robot.write_root_state_to_sim(root_states)
 
-        joint_pos = robot.data.default_joint_pos.clone()
-        joint_vel = robot.data.default_joint_vel.clone()
+        joint_pos = robot.data.default_joint_pos.torch.clone()
+        joint_vel = robot.data.default_joint_vel.torch.clone()
         joint_pos[:, robot_joint_indexes] = motion_dof_pos
         joint_vel[:, robot_joint_indexes] = motion_dof_vel
         robot.write_joint_state_to_sim(joint_pos, joint_vel)
@@ -477,12 +490,12 @@ def run_simulator(sim: SimulationContext, scene: InteractiveScene):
         pos_lookat = root_states[0, :3].cpu().numpy()
         sim.set_camera_view(pos_lookat + np.array([2.0, 2.0, 0.5]), pos_lookat)
 
-        log["joint_pos"].append(robot.data.joint_pos[0, :].cpu().numpy().copy())
-        log["joint_vel"].append(robot.data.joint_vel[0, :].cpu().numpy().copy())
-        log["body_pos_w"].append(robot.data.body_pos_w[0, :].cpu().numpy().copy())
-        log["body_quat_w"].append(robot.data.body_quat_w[0, :].cpu().numpy().copy())
-        log["body_lin_vel_w"].append(robot.data.body_lin_vel_w[0, :].cpu().numpy().copy())
-        log["body_ang_vel_w"].append(robot.data.body_ang_vel_w[0, :].cpu().numpy().copy())
+        log["joint_pos"].append(robot.data.joint_pos.torch[0, :].cpu().numpy().copy())
+        log["joint_vel"].append(robot.data.joint_vel.torch[0, :].cpu().numpy().copy())
+        log["body_pos_w"].append(robot.data.body_pos_w.torch[0, :].cpu().numpy().copy())
+        log["body_quat_w"].append(robot.data.body_quat_w.torch[0, :].cpu().numpy().copy())
+        log["body_lin_vel_w"].append(robot.data.body_lin_vel_w.torch[0, :].cpu().numpy().copy())
+        log["body_ang_vel_w"].append(robot.data.body_ang_vel_w.torch[0, :].cpu().numpy().copy())
 
         if reset_flag:
             break

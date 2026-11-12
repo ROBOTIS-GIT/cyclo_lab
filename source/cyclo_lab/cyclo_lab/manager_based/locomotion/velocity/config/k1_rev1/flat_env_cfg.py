@@ -22,7 +22,9 @@ from isaaclab.managers import RewardTermCfg as RewTerm
 from isaaclab.managers import SceneEntityCfg
 from isaaclab.managers import TerminationTermCfg as DoneTerm
 from isaaclab.utils import configclass
-from isaaclab.utils.noise import AdditiveUniformNoiseCfg as Unoise
+from isaaclab.utils.noise import UniformNoiseCfg as Unoise
+
+from cyclo_lab.utils.k1_physics import configure_k1_physics
 
 import cyclo_lab.manager_based.locomotion.velocity.mdp as mdp
 from cyclo_lab.manager_based.locomotion.velocity.velocity_env_cfg import (
@@ -291,10 +293,7 @@ class K1Rev1FlatEnvCfg(LocomotionVelocityEnvCfg):
         if self.scene.height_scanner:
             self.scene.height_scanner.prim_path = "{ENV_REGEX_NS}/Robot/torso_link"
 
-        # Randomization
-        self.events.add_base_mass.params["asset_cfg"].body_names = "torso_link"
-        self.events.base_com.params["asset_cfg"].body_names = "torso_link"
-        self.events.base_external_force_torque.params["asset_cfg"].body_names = "torso_link"
+        configure_k1_physics(self, locomotion=True)
 
         # Flat terrain
         self.scene.terrain.terrain_type = "plane"
@@ -303,6 +302,9 @@ class K1Rev1FlatEnvCfg(LocomotionVelocityEnvCfg):
         self.curriculum.terrain_levels = None
 
         # Randomization
+        self.events.add_base_mass.params["asset_cfg"].body_names = "torso_link"
+        self.events.base_com.params["asset_cfg"].body_names = "torso_link"
+        self.events.base_external_force_torque.params["asset_cfg"].body_names = "torso_link"
         self.events.physics_material.params["static_friction_range"] = (0.8, 0.8)
         self.events.physics_material.params["dynamic_friction_range"] = (0.6, 0.6)
         self.events.push_robot.interval_range_s = (10.0, 15.0)
@@ -325,7 +327,6 @@ class K1Rev1FlatEnvCfg_PLAY(K1Rev1FlatEnvCfg):
         # disable randomization for play
         self.observations.policy.enable_corruption = False
         self.events.physics_material = None
-        # remove random pushing
         self.events.add_base_mass = None
         self.events.base_com = None
         self.events.base_external_force_torque = None
