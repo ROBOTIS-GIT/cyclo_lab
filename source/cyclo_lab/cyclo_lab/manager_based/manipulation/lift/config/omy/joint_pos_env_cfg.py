@@ -99,14 +99,8 @@ class OMYCubeLiftEnvCfg(LiftEnvCfg):
             ],
         )
 
-
-@configclass
-class OMYCubeLiftEnvCfg_PLAY(OMYCubeLiftEnvCfg):
-    def __post_init__(self):
-        # post init of parent
-        super().__post_init__()
-        # make a smaller scene for play
+    def play_mode(self):
+        """Configure the environment for policy playback."""
         self.scene.num_envs = 50
         self.scene.env_spacing = 2.5
-        # disable randomization for play
         self.observations.policy.enable_corruption = False

@@ -253,9 +253,7 @@ def main(env_cfg: ManagerBasedRLEnvCfg | DirectRLEnvCfg | DirectMARLEnvCfg, agen
 
 if __name__ == "__main__":
     # run the main function
-    # Legacy -Play tasks already apply playback settings in their config classes.
-    apply_play_mode = not args_cli.train_env_cfg and "-Play" not in args_cli.task
-    env_cfg, agent_cfg = resolve_task_config(args_cli.task, args_cli.agent, play_mode=apply_play_mode)
+    env_cfg, agent_cfg = resolve_task_config(args_cli.task, args_cli.agent, play_mode=not args_cli.train_env_cfg)
     pre_launch_video_config(env_cfg, args_cli)
     with launch_simulation(env_cfg, args_cli):
         main(env_cfg, agent_cfg)

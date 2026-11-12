@@ -96,14 +96,8 @@ class OMYCabinetEnvCfg(CabinetEnvCfg):
         self.rewards.grasp_handle.params["open_joint_pos"] = 0.0
         self.rewards.grasp_handle.params["asset_cfg"].joint_names = ["rh_r1_joint"]
 
-
-@configclass
-class OMYCabinetEnvCfg_PLAY(OMYCabinetEnvCfg):
-    def __post_init__(self):
-        # post init of parent
-        super().__post_init__()
-        # make a smaller scene for play
+    def play_mode(self):
+        """Configure the environment for policy playback."""
         self.scene.num_envs = 50
         self.scene.env_spacing = 2.5
-        # disable randomization for play
         self.observations.policy.enable_corruption = False

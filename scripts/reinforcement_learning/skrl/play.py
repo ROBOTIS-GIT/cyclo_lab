@@ -25,6 +25,7 @@ parser.add_argument(
 )
 parser.add_argument("--num_envs", type=int, default=None, help="Number of environments to simulate.")
 parser.add_argument("--task", type=str, default=None, help="Name of the task.")
+parser.add_argument("--train_env_cfg", action="store_true", help="Use training settings instead of play mode.")
 parser.add_argument("--checkpoint", type=str, default=None, help="Path to model checkpoint.")
 parser.add_argument(
     "--use_pretrained_checkpoint",
@@ -49,7 +50,7 @@ parser.add_argument("--real-time", action="store_true", default=False, help="Run
 
 # append AppLauncher cli args
 AppLauncher.add_app_launcher_args(parser)
-args_cli = parser.parse_args()
+args_cli, hydra_args = parser.parse_known_args()
 # always enable cameras to record video
 if args_cli.video:
     args_cli.enable_cameras = True
@@ -84,12 +85,12 @@ elif args_cli.ml_framework.startswith("jax"):
 
 from isaaclab.envs import DirectMARLEnv, multi_agent_to_single_agent
 from isaaclab.utils.dict import print_dict
-from isaaclab.utils.pretrained_checkpoint import get_published_pretrained_checkpoint
 
 from isaaclab_rl.skrl import SkrlVecEnvWrapper
+from isaaclab_rl.utils.pretrained_checkpoint import get_published_pretrained_checkpoint
 
 import isaaclab_tasks  # noqa: F401
-from isaaclab_tasks.utils import get_checkpoint_path, load_cfg_from_registry, parse_env_cfg
+from isaaclab_tasks.utils import get_checkpoint_path, resolve_task_config
 
 import cyclo_lab  # noqa: F401
 # PLACEHOLDER: Extension template (do not remove this comment)
@@ -98,7 +99,7 @@ import cyclo_lab  # noqa: F401
 algorithm = args_cli.algorithm.lower()
 
 
-def main():
+def main(env_cfg, experiment_cfg):
     """Play with skrl agent."""
     # configure the ML framework into the global skrl variable
     if args_cli.ml_framework.startswith("jax"):
@@ -106,14 +107,14 @@ def main():
 
     task_name = args_cli.task.split(":")[-1]
 
-    # parse configuration
-    env_cfg = parse_env_cfg(
-        args_cli.task, device=args_cli.device, num_envs=args_cli.num_envs, use_fabric=not args_cli.disable_fabric
-    )
-    try:
-        experiment_cfg = load_cfg_from_registry(task_name, f"skrl_{algorithm}_cfg_entry_point")
-    except ValueError:
-        experiment_cfg = load_cfg_from_registry(task_name, "skrl_cfg_entry_point")
+    # Apply explicit CLI settings after play-mode defaults.
+    if args_cli.device is not None:
+        env_cfg.sim.device = args_cli.device
+
+    if args_cli.num_envs is not None:
+        env_cfg.scene.num_envs = args_cli.num_envs
+
+    env_cfg.sim.use_fabric = not args_cli.disable_fabric
 
     # specify directory for logging experiments (load checkpoint)
     log_root_path = os.path.join("logs", "skrl", experiment_cfg["agent"]["experiment"]["directory"])
@@ -208,7 +209,13 @@ def main():
 
 
 if __name__ == "__main__":
-    # run the main function
-    main()
+    agent_cfg_entry_point = f"skrl_{algorithm}_cfg_entry_point"
+    if agent_cfg_entry_point not in gym.spec(args_cli.task).kwargs:
+        agent_cfg_entry_point = "skrl_cfg_entry_point"
+
+    env_cfg, agent_cfg = resolve_task_config(
+        args_cli.task, agent_cfg_entry_point, play_mode=not args_cli.train_env_cfg, overrides=hydra_args
+    )
+    main(env_cfg, agent_cfg)
     # close sim app
     simulation_app.close()
