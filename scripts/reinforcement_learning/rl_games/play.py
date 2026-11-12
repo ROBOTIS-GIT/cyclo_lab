@@ -35,6 +35,8 @@ parser.add_argument(
 parser.add_argument("--real-time", action="store_true", default=False, help="Run in real-time, if possible.")
 # append AppLauncher cli args
 AppLauncher.add_app_launcher_args(parser)
+parser.add_argument("--headless", action="store_true", help="Run without a window.")
+parser.add_argument("--enable_cameras", action="store_true", help="Enable camera rendering.")
 # parse the arguments
 args_cli, hydra_args = parser.parse_known_args()
 # always enable cameras to record video
@@ -83,7 +85,8 @@ def main(env_cfg, agent_cfg):
     if args_cli.num_envs is not None:
         env_cfg.scene.num_envs = args_cli.num_envs
 
-    env_cfg.sim.use_fabric = not args_cli.disable_fabric
+    if args_cli.disable_fabric:
+        env_cfg.sim.use_fabric = False
 
     # specify directory for logging experiments
     log_root_path = os.path.join("logs", "rl_games", agent_cfg["params"]["config"]["name"])

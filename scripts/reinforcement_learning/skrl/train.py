@@ -34,7 +34,7 @@ parser.add_argument(
     "--ml_framework",
     type=str,
     default="torch",
-    choices=["torch", "jax", "jax-numpy"],
+    choices=["torch", "jax"],
     help="The ML framework used for training the skrl agent.",
 )
 parser.add_argument(
@@ -47,6 +47,8 @@ parser.add_argument(
 
 # append AppLauncher cli args
 AppLauncher.add_app_launcher_args(parser)
+parser.add_argument("--headless", action="store_true", help="Run without a window.")
+parser.add_argument("--enable_cameras", action="store_true", help="Enable camera rendering.")
 # parse the arguments
 args_cli, hydra_args = parser.parse_known_args()
 # always enable cameras to record video
@@ -68,21 +70,6 @@ import random
 from datetime import datetime
 
 import skrl
-from packaging import version
-
-# check for minimum supported skrl version
-SKRL_VERSION = "1.4.2"
-if version.parse(skrl.__version__) < version.parse(SKRL_VERSION):
-    skrl.logger.error(
-        f"Unsupported skrl version: {skrl.__version__}. "
-        f"Install supported version using 'pip install skrl>={SKRL_VERSION}'"
-    )
-    exit()
-
-if args_cli.ml_framework.startswith("torch"):
-    from skrl.utils.runner.torch import Runner
-elif args_cli.ml_framework.startswith("jax"):
-    from skrl.utils.runner.jax import Runner
 
 from isaaclab.envs import (
     DirectMARLEnv,
@@ -95,7 +82,13 @@ from isaaclab.utils.assets import retrieve_file_path
 from isaaclab.utils.dict import print_dict
 from isaaclab.utils.io import dump_yaml
 
-from isaaclab_rl.skrl import SkrlVecEnvWrapper
+from isaaclab_rl.skrl import (
+    SkrlVecEnvWrapper,
+    check_skrl_version,
+    import_skrl_runner,
+    resolve_skrl_agent_cfg_entry_point,
+    resolve_skrl_algorithm,
+)
 
 import isaaclab_tasks  # noqa: F401
 from isaaclab_tasks.utils.hydra import resolve_task_config
@@ -104,27 +97,26 @@ import cyclo_lab  # noqa: F401
 
 # PLACEHOLDER: Extension template (do not remove this comment)
 
-# config shortcuts
+check_skrl_version()
+Runner = import_skrl_runner(args_cli.ml_framework)
 algorithm = args_cli.algorithm.lower()
-agent_cfg_entry_point = "skrl_cfg_entry_point" if algorithm in ["ppo"] else f"skrl_{algorithm}_cfg_entry_point"
+agent_cfg_entry_point = resolve_skrl_agent_cfg_entry_point(None, args_cli.algorithm)
 
 
 def main(env_cfg: ManagerBasedRLEnvCfg | DirectRLEnvCfg | DirectMARLEnvCfg, agent_cfg: dict):
     """Train with skrl agent."""
+    resolve_skrl_algorithm(agent_cfg, args_cli.algorithm)
     # override configurations with non-hydra CLI arguments
     env_cfg.scene.num_envs = args_cli.num_envs if args_cli.num_envs is not None else env_cfg.scene.num_envs
     env_cfg.sim.device = args_cli.device if args_cli.device is not None else env_cfg.sim.device
 
-    # multi-gpu training config
-    if args_cli.distributed:
-        env_cfg.sim.device = f"cuda:{app_launcher.local_rank}"
     # max iterations for training
     if args_cli.max_iterations:
         agent_cfg["trainer"]["timesteps"] = args_cli.max_iterations * agent_cfg["agent"]["rollouts"]
     agent_cfg["trainer"]["close_environment_at_exit"] = False
     # configure the ML framework into the global skrl variable
     if args_cli.ml_framework.startswith("jax"):
-        skrl.config.jax.backend = "jax" if args_cli.ml_framework == "jax" else "numpy"
+        skrl.config.jax.backend = "jax"
 
     # randomly sample a seed if seed = -1
     if args_cli.seed == -1:
@@ -133,6 +125,9 @@ def main(env_cfg: ManagerBasedRLEnvCfg | DirectRLEnvCfg | DirectMARLEnvCfg, agen
     # set the agent and environment seed from command line
     # note: certain randomization occur in the environment initialization so we set the seed here
     agent_cfg["seed"] = args_cli.seed if args_cli.seed is not None else agent_cfg["seed"]
+    if args_cli.distributed:
+        rank_env = "JAX_RANK" if args_cli.ml_framework == "jax" else "RANK"
+        agent_cfg["seed"] += int(os.getenv(rank_env, "0"))
     env_cfg.seed = agent_cfg["seed"]
 
     # specify directory for logging experiments
@@ -191,6 +186,9 @@ def main(env_cfg: ManagerBasedRLEnvCfg | DirectRLEnvCfg | DirectMARLEnvCfg, agen
 
     # run training
     runner.run()
+    if int(os.getenv("JAX_RANK" if args_cli.ml_framework == "jax" else "RANK", "0")) == 0:
+        total_timesteps = agent_cfg["trainer"]["timesteps"]
+        runner.agent.write_checkpoint(timestep=total_timesteps, timesteps=total_timesteps)
 
     # close the simulator
     env.close()

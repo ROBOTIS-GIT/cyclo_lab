@@ -36,7 +36,7 @@ parser.add_argument(
     "--ml_framework",
     type=str,
     default="torch",
-    choices=["torch", "jax", "jax-numpy"],
+    choices=["torch", "jax"],
     help="The ML framework used for training the skrl agent.",
 )
 parser.add_argument(
@@ -50,6 +50,8 @@ parser.add_argument("--real-time", action="store_true", default=False, help="Run
 
 # append AppLauncher cli args
 AppLauncher.add_app_launcher_args(parser)
+parser.add_argument("--headless", action="store_true", help="Run without a window.")
+parser.add_argument("--enable_cameras", action="store_true", help="Enable camera rendering.")
 args_cli, hydra_args = parser.parse_known_args()
 # always enable cameras to record video
 if args_cli.video:
@@ -67,26 +69,17 @@ import time
 import torch
 
 import skrl
-from packaging import version
-
-# check for minimum supported skrl version
-SKRL_VERSION = "1.4.2"
-if version.parse(skrl.__version__) < version.parse(SKRL_VERSION):
-    skrl.logger.error(
-        f"Unsupported skrl version: {skrl.__version__}. "
-        f"Install supported version using 'pip install skrl>={SKRL_VERSION}'"
-    )
-    exit()
-
-if args_cli.ml_framework.startswith("torch"):
-    from skrl.utils.runner.torch import Runner
-elif args_cli.ml_framework.startswith("jax"):
-    from skrl.utils.runner.jax import Runner
 
 from isaaclab.envs import DirectMARLEnv, multi_agent_to_single_agent
 from isaaclab.utils.dict import print_dict
 
-from isaaclab_rl.skrl import SkrlVecEnvWrapper
+from isaaclab_rl.skrl import (
+    SkrlVecEnvWrapper,
+    check_skrl_version,
+    import_skrl_runner,
+    resolve_skrl_agent_cfg_entry_point,
+    resolve_skrl_algorithm,
+)
 from isaaclab_rl.utils.pretrained_checkpoint import get_published_pretrained_checkpoint
 
 import isaaclab_tasks  # noqa: F401
@@ -95,15 +88,17 @@ from isaaclab_tasks.utils import get_checkpoint_path, resolve_task_config
 import cyclo_lab  # noqa: F401
 # PLACEHOLDER: Extension template (do not remove this comment)
 
-# config shortcuts
+check_skrl_version()
+Runner = import_skrl_runner(args_cli.ml_framework)
 algorithm = args_cli.algorithm.lower()
 
 
 def main(env_cfg, experiment_cfg):
     """Play with skrl agent."""
+    resolve_skrl_algorithm(experiment_cfg, args_cli.algorithm)
     # configure the ML framework into the global skrl variable
     if args_cli.ml_framework.startswith("jax"):
-        skrl.config.jax.backend = "jax" if args_cli.ml_framework == "jax" else "numpy"
+        skrl.config.jax.backend = "jax"
 
     task_name = args_cli.task.split(":")[-1]
 
@@ -114,7 +109,8 @@ def main(env_cfg, experiment_cfg):
     if args_cli.num_envs is not None:
         env_cfg.scene.num_envs = args_cli.num_envs
 
-    env_cfg.sim.use_fabric = not args_cli.disable_fabric
+    if args_cli.disable_fabric:
+        env_cfg.sim.use_fabric = False
 
     # specify directory for logging experiments (load checkpoint)
     log_root_path = os.path.join("logs", "skrl", experiment_cfg["agent"]["experiment"]["directory"])
@@ -172,10 +168,11 @@ def main(env_cfg, experiment_cfg):
     print(f"[INFO] Loading model checkpoint from: {resume_path}")
     runner.agent.load(resume_path)
     # set agent to evaluation mode
-    runner.agent.set_running_mode("eval")
+    runner.agent.enable_training_mode(False, apply_to_models=True)
 
     # reset environment
     obs, _ = env.reset()
+    states = env.state()
     timestep = 0
     # simulate environment
     while simulation_app.is_running():
@@ -184,7 +181,7 @@ def main(env_cfg, experiment_cfg):
         # run everything in inference mode
         with torch.inference_mode():
             # agent stepping
-            outputs = runner.agent.act(obs, timestep=0, timesteps=0)
+            outputs = runner.agent.act(obs, states, timestep=0, timesteps=0)
             # - multi-agent (deterministic) actions
             if hasattr(env, "possible_agents"):
                 actions = {a: outputs[-1][a].get("mean_actions", outputs[0][a]) for a in env.possible_agents}
@@ -193,6 +190,7 @@ def main(env_cfg, experiment_cfg):
                 actions = outputs[-1].get("mean_actions", outputs[0])
             # env stepping
             obs, _, _, _, _ = env.step(actions)
+            states = env.state()
         if args_cli.video:
             timestep += 1
             # exit the play loop after recording one video
@@ -209,9 +207,7 @@ def main(env_cfg, experiment_cfg):
 
 
 if __name__ == "__main__":
-    agent_cfg_entry_point = f"skrl_{algorithm}_cfg_entry_point"
-    if agent_cfg_entry_point not in gym.spec(args_cli.task).kwargs:
-        agent_cfg_entry_point = "skrl_cfg_entry_point"
+    agent_cfg_entry_point = resolve_skrl_agent_cfg_entry_point(None, args_cli.algorithm)
 
     env_cfg, agent_cfg = resolve_task_config(
         args_cli.task, agent_cfg_entry_point, play_mode=not args_cli.train_env_cfg, overrides=hydra_args

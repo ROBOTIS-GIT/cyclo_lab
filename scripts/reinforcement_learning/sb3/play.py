@@ -35,6 +35,8 @@ parser.add_argument(
 parser.add_argument("--real-time", action="store_true", default=False, help="Run in real-time, if possible.")
 # append AppLauncher cli args
 AppLauncher.add_app_launcher_args(parser)
+parser.add_argument("--headless", action="store_true", help="Run without a window.")
+parser.add_argument("--enable_cameras", action="store_true", help="Enable camera rendering.")
 # parse the arguments
 args_cli, hydra_args = parser.parse_known_args()
 # always enable cameras to record video
@@ -48,10 +50,10 @@ simulation_app = app_launcher.app
 """Rest everything follows."""
 
 import gymnasium as gym
-import numpy as np
 import os
 import time
 import torch
+from pathlib import Path
 
 from stable_baselines3 import PPO
 from stable_baselines3.common.vec_env import VecNormalize
@@ -78,7 +80,8 @@ def main(env_cfg, agent_cfg):
     if args_cli.num_envs is not None:
         env_cfg.scene.num_envs = args_cli.num_envs
 
-    env_cfg.sim.use_fabric = not args_cli.disable_fabric
+    if args_cli.disable_fabric:
+        env_cfg.sim.use_fabric = False
 
     task_name = args_cli.task.split(":")[-1]
 
@@ -102,7 +105,7 @@ def main(env_cfg, agent_cfg):
     log_dir = os.path.dirname(checkpoint_path)
 
     # post-process agent configuration
-    agent_cfg = process_sb3_cfg(agent_cfg)
+    agent_cfg = process_sb3_cfg(agent_cfg, env_cfg.scene.num_envs)
 
     # create isaac environment
     env = gym.make(args_cli.task, cfg=env_cfg, render_mode="rgb_array" if args_cli.video else None)
@@ -125,16 +128,23 @@ def main(env_cfg, agent_cfg):
     # wrap around environment for stable baselines
     env = Sb3VecEnvWrapper(env)
 
-    # normalize environment (if needed)
-    if "normalize_input" in agent_cfg:
+    # Restore the observation statistics saved with this checkpoint.
+    checkpoint_file = Path(checkpoint_path)
+    vec_norm_path = checkpoint_file.with_name(
+        checkpoint_file.stem.replace("model", "model_vecnormalize", 1) + ".pkl"
+    )
+    if vec_norm_path.exists():
+        print(f"Loading saved normalization: {vec_norm_path}")
+        env = VecNormalize.load(vec_norm_path, env)
+        env.training = False
+        env.norm_reward = False
+    elif "normalize_input" in agent_cfg:
+        print("[WARN] No saved normalization found; using the Isaac Lab fallback with fresh statistics.")
         env = VecNormalize(
             env,
             training=True,
-            norm_obs="normalize_input" in agent_cfg and agent_cfg.pop("normalize_input"),
-            norm_reward="normalize_value" in agent_cfg and agent_cfg.pop("normalize_value"),
+            norm_obs=agent_cfg.pop("normalize_input"),
             clip_obs="clip_obs" in agent_cfg and agent_cfg.pop("clip_obs"),
-            gamma=agent_cfg["gamma"],
-            clip_reward=np.inf,
         )
 
     # create agent from stable baselines

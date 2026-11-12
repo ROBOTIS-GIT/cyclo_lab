@@ -40,6 +40,8 @@ parser.add_argument(
 )
 # append AppLauncher cli args
 AppLauncher.add_app_launcher_args(parser)
+parser.add_argument("--headless", action="store_true", help="Run without a window.")
+parser.add_argument("--enable_cameras", action="store_true", help="Enable camera rendering.")
 # parse the arguments
 args_cli, hydra_args = parser.parse_known_args()
 # always enable cameras to record video
@@ -108,12 +110,12 @@ def main(env_cfg: ManagerBasedRLEnvCfg | DirectRLEnvCfg | DirectMARLEnvCfg, agen
 
     # multi-gpu training config
     if args_cli.distributed:
-        agent_cfg["params"]["seed"] += app_launcher.global_rank
-        agent_cfg["params"]["config"]["device"] = f"cuda:{app_launcher.local_rank}"
-        agent_cfg["params"]["config"]["device_name"] = f"cuda:{app_launcher.local_rank}"
+        agent_cfg["params"]["seed"] += int(os.getenv("RANK", "0"))
+        agent_cfg["params"]["config"]["device"] = args_cli.device
+        agent_cfg["params"]["config"]["device_name"] = args_cli.device
         agent_cfg["params"]["config"]["multi_gpu"] = True
         # update env config device
-        env_cfg.sim.device = f"cuda:{app_launcher.local_rank}"
+        env_cfg.sim.device = args_cli.device
 
     # set the environment seed (after multi-gpu config for updated rank from agent seed)
     # note: certain randomizations occur in the environment initialization so we set the seed here

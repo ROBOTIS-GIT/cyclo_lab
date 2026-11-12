@@ -28,6 +28,8 @@ parser.add_argument("--seed", type=int, default=None, help="Seed used for the en
 parser.add_argument("--max_iterations", type=int, default=None, help="RL Policy training iterations.")
 # append AppLauncher cli args
 AppLauncher.add_app_launcher_args(parser)
+parser.add_argument("--headless", action="store_true", help="Run without a window.")
+parser.add_argument("--enable_cameras", action="store_true", help="Enable camera rendering.")
 # parse the arguments
 args_cli, hydra_args = parser.parse_known_args()
 # always enable cameras to record video
@@ -148,11 +150,15 @@ def main(env_cfg: ManagerBasedRLEnvCfg | DirectRLEnvCfg | DirectMARLEnvCfg, agen
     agent.set_logger(new_logger)
 
     # callbacks for agent
-    checkpoint_callback = CheckpointCallback(save_freq=1000, save_path=log_dir, name_prefix="model", verbose=2)
+    checkpoint_callback = CheckpointCallback(
+        save_freq=1000, save_path=log_dir, name_prefix="model", save_vecnormalize=True, verbose=2
+    )
     # train the agent
     agent.learn(total_timesteps=n_timesteps, callback=checkpoint_callback)
     # save the final model
     agent.save(os.path.join(log_dir, "model"))
+    if isinstance(env, VecNormalize):
+        env.save(os.path.join(log_dir, "model_vecnormalize.pkl"))
 
     # close the simulator
     env.close()
