@@ -280,10 +280,12 @@ class ReferenceTrajectoryCommand(CommandTerm):
         joint_pos[env_ids] = torch.clip(
             joint_pos[env_ids], soft_joint_pos_limits[:, :, 0], soft_joint_pos_limits[:, :, 1]
         )
-        self.robot.write_joint_state_to_sim(joint_pos[env_ids], joint_vel[env_ids], env_ids=env_ids)
-        self.robot.write_root_state_to_sim(
-            torch.cat([root_pos[env_ids], root_ori[env_ids], root_lin_vel[env_ids], root_ang_vel[env_ids]], dim=-1),
-            env_ids=env_ids,
+        self.robot.write_joint_state_to_sim_index(position=joint_pos[env_ids], velocity=joint_vel[env_ids], env_ids=env_ids)
+        self.robot.write_root_link_pose_to_sim_index(
+            root_pose=torch.cat([root_pos[env_ids], root_ori[env_ids]], dim=-1), env_ids=env_ids
+        )
+        self.robot.write_root_com_velocity_to_sim_index(
+            root_velocity=torch.cat([root_lin_vel[env_ids], root_ang_vel[env_ids]], dim=-1), env_ids=env_ids
         )
 
     def _update_command(self):

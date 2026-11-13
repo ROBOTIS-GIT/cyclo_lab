@@ -55,21 +55,21 @@ def randomize_joint_by_gaussian_offset(
     asset: Articulation = env.scene[asset_cfg.name]
 
     # Add gaussian noise to joint states
-    joint_pos = asset.data.default_joint_pos[env_ids].clone()
-    joint_vel = asset.data.default_joint_vel[env_ids].clone()
+    joint_pos = asset.data.default_joint_pos.torch[env_ids].clone()
+    joint_vel = asset.data.default_joint_vel.torch[env_ids].clone()
     joint_pos += math_utils.sample_gaussian(mean, std, joint_pos.shape, joint_pos.device)
 
     # Clamp joint pos to limits
-    joint_pos_limits = asset.data.soft_joint_pos_limits[env_ids]
+    joint_pos_limits = asset.data.soft_joint_pos_limits.torch[env_ids]
     joint_pos = joint_pos.clamp_(joint_pos_limits[..., 0], joint_pos_limits[..., 1])
 
     # Don't noise the gripper poses
-    joint_pos[:, -2:] = asset.data.default_joint_pos[env_ids, -2:]
+    joint_pos[:, -2:] = asset.data.default_joint_pos.torch[env_ids, -2:]
 
     # Set into the physics simulation
-    asset.set_joint_position_target(joint_pos, env_ids=env_ids)
-    asset.set_joint_velocity_target(joint_vel, env_ids=env_ids)
-    asset.write_joint_state_to_sim(joint_pos, joint_vel, env_ids=env_ids)
+    asset.actuators.target_command.set_position_index(value=joint_pos, env_ids=env_ids)
+    asset.actuators.target_command.set_velocity_index(value=joint_vel, env_ids=env_ids)
+    asset.write_joint_state_to_sim_index(position=joint_pos, velocity=joint_vel, env_ids=env_ids)
 
 
 def randomize_scene_lighting_domelight(
@@ -146,11 +146,11 @@ def randomize_object_pose(
             pose_tensor = torch.tensor([pose_list[i]], device=env.device)
             positions = pose_tensor[:, 0:3] + env.scene.env_origins[cur_env, 0:3]
             orientations = math_utils.quat_from_euler_xyz(pose_tensor[:, 3], pose_tensor[:, 4], pose_tensor[:, 5])
-            asset.write_root_pose_to_sim(
-                torch.cat([positions, orientations], dim=-1), env_ids=torch.tensor([cur_env], device=env.device)
+            asset.write_root_pose_to_sim_index(
+                root_pose=torch.cat([positions, orientations], dim=-1), env_ids=torch.tensor([cur_env], device=env.device)
             )
-            asset.write_root_velocity_to_sim(
-                torch.zeros(1, 6, device=env.device), env_ids=torch.tensor([cur_env], device=env.device)
+            asset.write_root_velocity_to_sim_index(
+                root_velocity=torch.zeros(1, 6, device=env.device), env_ids=torch.tensor([cur_env], device=env.device)
             )
 
 
@@ -184,19 +184,22 @@ def randomize_rigid_objects_in_focus(
             asset = env.scene[asset_cfg.name]
 
             # Randomly select an object to bring into focus
-            object_id = random.randint(0, asset.num_objects - 1)
+            object_id = random.randint(0, asset.num_bodies - 1)
             selected_ids.append(object_id)
 
             # Create object state tensor
-            object_states = torch.stack([out_focus_state] * asset.num_objects).to(device=env.device)
+            object_states = torch.stack([out_focus_state] * asset.num_bodies).to(device=env.device)
             pose_tensor = torch.tensor([pose_list[asset_idx]], device=env.device)
             positions = pose_tensor[:, 0:3] + env.scene.env_origins[cur_env, 0:3]
             orientations = math_utils.quat_from_euler_xyz(pose_tensor[:, 3], pose_tensor[:, 4], pose_tensor[:, 5])
             object_states[object_id, 0:3] = positions
             object_states[object_id, 3:7] = orientations
 
-            asset.write_object_state_to_sim(
-                object_state=object_states, env_ids=torch.tensor([cur_env], device=env.device)
+            asset.write_body_link_pose_to_sim_index(
+                body_poses=object_states[None, :, :7], env_ids=torch.tensor([cur_env], device=env.device)
+            )
+            asset.write_body_com_velocity_to_sim_index(
+                body_velocities=object_states[None, :, 7:], env_ids=torch.tensor([cur_env], device=env.device)
             )
 
         env.rigid_objects_in_focus.append(selected_ids)

@@ -63,7 +63,7 @@ def make_sg2_showroom_robot_cfg() -> ArticulationCfg:
     robot_cfg.init_state.joint_pos.update(SG2_SHOWROOM_INITIAL_JOINT_POSITIONS)
     base_drive_actuator = robot_cfg.actuators.get("base_drive")
     if base_drive_actuator is not None:
-        base_drive_actuator.velocity_limit_sim *= FFW_SG2_SWERVE_DRIVE_SPEED_SCALE
+        base_drive_actuator.joint_velocity_limit *= FFW_SG2_SWERVE_DRIVE_SPEED_SCALE
     return robot_cfg
 
 

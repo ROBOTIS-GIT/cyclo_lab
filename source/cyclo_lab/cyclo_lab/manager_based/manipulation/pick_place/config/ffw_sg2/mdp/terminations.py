@@ -46,8 +46,8 @@ def task_done(env: ManagerBasedRLEnv, object_cfg: SceneEntityCfg, basket_cfg: Sc
     object: RigidObject = env.scene[object_cfg.name]
     basket: RigidObject = env.scene[basket_cfg.name]
 
-    object_pos = object.data.root_pos_w
-    basket_pos = basket.data.root_pos_w
+    object_pos = object.data.root_pos_w.torch
+    basket_pos = basket.data.root_pos_w.torch
 
     # Check 3D distance between object and basket
     distance_3d = torch.linalg.vector_norm(object_pos - basket_pos, dim=1)
@@ -71,7 +71,7 @@ def object_dropped(env: ManagerBasedRLEnv, object_cfg: SceneEntityCfg, velocity_
     object: RigidObject = env.scene[object_cfg.name]
 
     # Get linear velocity of the object
-    object_vel = object.data.root_lin_vel_w
+    object_vel = object.data.root_lin_vel_w.torch
 
     # Calculate velocity magnitude (3D vector norm)
     velocity_magnitude = torch.linalg.vector_norm(object_vel, dim=1)

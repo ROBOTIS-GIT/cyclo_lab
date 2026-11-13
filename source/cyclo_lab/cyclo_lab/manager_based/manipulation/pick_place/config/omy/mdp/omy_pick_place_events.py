@@ -62,21 +62,21 @@ def randomize_joint_by_gaussian_offset(
     asset: Articulation = env.scene[asset_cfg.name]
 
     # Add gaussian noise to joint states
-    joint_pos = asset.data.default_joint_pos[env_ids].clone()
-    joint_vel = asset.data.default_joint_vel[env_ids].clone()
+    joint_pos = asset.data.default_joint_pos.torch[env_ids].clone()
+    joint_vel = asset.data.default_joint_vel.torch[env_ids].clone()
     joint_pos += math_utils.sample_gaussian(mean, std, joint_pos.shape, joint_pos.device)
 
     # Clamp joint pos to limits
-    joint_pos_limits = asset.data.soft_joint_pos_limits[env_ids]
+    joint_pos_limits = asset.data.soft_joint_pos_limits.torch[env_ids]
     joint_pos = joint_pos.clamp_(joint_pos_limits[..., 0], joint_pos_limits[..., 1])
 
     # Don't noise the gripper poses
-    joint_pos[:, -2:] = asset.data.default_joint_pos[env_ids, -2:]
+    joint_pos[:, -2:] = asset.data.default_joint_pos.torch[env_ids, -2:]
 
     # Set into the physics simulation
-    asset.set_joint_position_target(joint_pos, env_ids=env_ids)
-    asset.set_joint_velocity_target(joint_vel, env_ids=env_ids)
-    asset.write_joint_state_to_sim(joint_pos, joint_vel, env_ids=env_ids)
+    asset.actuators.target_command.set_position_index(value=joint_pos, env_ids=env_ids)
+    asset.actuators.target_command.set_velocity_index(value=joint_vel, env_ids=env_ids)
+    asset.write_joint_state_to_sim_index(position=joint_pos, velocity=joint_vel, env_ids=env_ids)
 
 
 def sample_object_poses(
@@ -138,11 +138,11 @@ def randomize_object_pose(
             pose_tensor = torch.tensor([pose_list[i]], device=env.device)
             positions = pose_tensor[:, 0:3] + env.scene.env_origins[cur_env, 0:3]
             orientations = math_utils.quat_from_euler_xyz(pose_tensor[:, 3], pose_tensor[:, 4], pose_tensor[:, 5])
-            asset.write_root_pose_to_sim(
-                torch.cat([positions, orientations], dim=-1), env_ids=torch.tensor([cur_env], device=env.device)
+            asset.write_root_pose_to_sim_index(
+                root_pose=torch.cat([positions, orientations], dim=-1), env_ids=torch.tensor([cur_env], device=env.device)
             )
-            asset.write_root_velocity_to_sim(
-                torch.zeros(1, 6, device=env.device), env_ids=torch.tensor([cur_env], device=env.device)
+            asset.write_root_velocity_to_sim_index(
+                root_velocity=torch.zeros(1, 6, device=env.device), env_ids=torch.tensor([cur_env], device=env.device)
             )
 
 
@@ -196,10 +196,10 @@ def randomize_camera_pose(
 
     # Store initial positions and quaternions once
     if not hasattr(asset, "_initial_pos_w"):
-        asset._initial_pos_w = asset.data.pos_w.clone()
-        asset._initial_quat_w_ros = asset.data.quat_w_ros.clone()
-        asset._initial_quat_w_opengl = asset.data.quat_w_opengl.clone()
-        asset._initial_quat_w_world = asset.data.quat_w_world.clone()
+        asset._initial_pos_w = asset.data.pos_w.torch.clone()
+        asset._initial_quat_w_ros = asset.data.quat_w_ros.torch.clone()
+        asset._initial_quat_w_opengl = asset.data.quat_w_opengl.torch.clone()
+        asset._initial_quat_w_world = asset.data.quat_w_world.torch.clone()
 
     ori_pos_w = asset._initial_pos_w
     if convention == "ros":

@@ -41,7 +41,7 @@ def eef_pose(env: ManagerBasedRLEnv, ee_frame_cfg: SceneEntityCfg = SceneEntityC
     robot = env.scene[robot_cfg.name]
     robot_root_pos, robot_root_quat = robot.data.root_pos_w.torch, robot.data.root_quat_w.torch
     ee_frame: FrameTransformer = env.scene[ee_frame_cfg.name]
-    ee_frame_pos, ee_frame_quat = ee_frame.data.target_pos_w[:, 0, :], ee_frame.data.target_quat_w[:, 0, :]
+    ee_frame_pos, ee_frame_quat = ee_frame.data.target_pos_w.torch[:, 0, :], ee_frame.data.target_quat_w.torch[:, 0, :]
     ee_frame_pos_robot, ee_frame_quat_robot = math_utils.subtract_frame_transforms(
         robot_root_pos, robot_root_quat, ee_frame_pos, ee_frame_quat
     )
@@ -78,7 +78,7 @@ def joint_pos_name(env: ManagerBasedEnv, joint_names: list[str], asset_name: str
 
     joint_ids = [asset.joint_names.index(name) for name in joint_names]
 
-    joint_pos = asset.data.joint_pos[:, joint_ids]
+    joint_pos = asset.data.joint_pos.torch[:, joint_ids]
 
     return joint_pos
 
@@ -99,7 +99,7 @@ def joint_vel_name(env: ManagerBasedEnv, joint_names: list[str], asset_name: str
 
     joint_ids = [asset.joint_names.index(name) for name in joint_names]
 
-    return asset.data.joint_vel[:, joint_ids]
+    return asset.data.joint_vel.torch[:, joint_ids]
 
 
 def object_grasped(
@@ -115,29 +115,29 @@ def object_grasped(
     ee_frame: FrameTransformer = env.scene[ee_frame_cfg.name]
     object: RigidObject = env.scene[object_cfg.name]
 
-    object_pos = object.data.root_pos_w
-    end_effector_pos = ee_frame.data.target_pos_w[:, 0, :]
+    object_pos = object.data.root_pos_w.torch
+    end_effector_pos = ee_frame.data.target_pos_w.torch[:, 0, :]
     pose_diff = torch.linalg.vector_norm(object_pos - end_effector_pos, dim=1)
     grasped = torch.logical_and(
         pose_diff < diff_threshold,
-        robot.data.joint_pos[:, -1] >= gripper_close_threshold.to(env.device),
+        robot.data.joint_pos.torch[:, -1] >= gripper_close_threshold.to(env.device),
     )
     grasped = torch.logical_and(
-        grasped, robot.data.joint_pos[:, -2] >= gripper_close_threshold.to(env.device)
+        grasped, robot.data.joint_pos.torch[:, -2] >= gripper_close_threshold.to(env.device)
     )
     return grasped
 
 
 def ee_frame_pos(env: ManagerBasedRLEnv, ee_frame_cfg: SceneEntityCfg = SceneEntityCfg("ee_frame")) -> torch.Tensor:
     ee_frame: FrameTransformer = env.scene[ee_frame_cfg.name]
-    ee_frame_pos = ee_frame.data.target_pos_w[:, 0, :] - env.scene.env_origins[:, 0:3]
+    ee_frame_pos = ee_frame.data.target_pos_w.torch[:, 0, :] - env.scene.env_origins[:, 0:3]
 
     return ee_frame_pos
 
 
 def ee_frame_quat(env: ManagerBasedRLEnv, ee_frame_cfg: SceneEntityCfg = SceneEntityCfg("ee_frame")) -> torch.Tensor:
     ee_frame: FrameTransformer = env.scene[ee_frame_cfg.name]
-    ee_frame_quat = ee_frame.data.target_quat_w[:, 0, :]
+    ee_frame_quat = ee_frame.data.target_quat_w.torch[:, 0, :]
 
     return ee_frame_quat
 
@@ -152,7 +152,7 @@ def joint_pos_target_name(env: ManagerBasedEnv, joint_names: list[str], asset_na
 
     joint_ids = [asset.joint_names.index(name) for name in joint_names]
 
-    joint_pos_target = asset.data.joint_pos_target[:, joint_ids]
+    joint_pos_target = asset.actuators.target_command.position.torch[:, joint_ids]
 
     return joint_pos_target
 
@@ -167,8 +167,8 @@ def bottle_in_basket(
     bottle: RigidObject = env.scene[bottle_cfg.name]
     basket: RigidObject = env.scene[basket_cfg.name]
 
-    bottle_pos = bottle.data.root_pos_w
-    basket_pos = basket.data.root_pos_w
+    bottle_pos = bottle.data.root_pos_w.torch
+    basket_pos = basket.data.root_pos_w.torch
 
     # Check if bottle is close to basket horizontally (x, y)
     horizontal_distance = torch.linalg.vector_norm(bottle_pos[:, :2] - basket_pos[:, :2], dim=1)

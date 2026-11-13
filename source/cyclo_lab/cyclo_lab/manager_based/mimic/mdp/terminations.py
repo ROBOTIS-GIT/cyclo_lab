@@ -28,10 +28,7 @@ import torch
 from isaaclab.assets import Articulation, RigidObject
 from isaaclab.managers import SceneEntityCfg
 
-try:
-    from isaaclab.utils.math import quat_apply_inverse
-except ImportError:
-    from isaaclab.utils.math import quat_rotate_inverse as quat_apply_inverse
+from isaaclab.utils.math import quat_apply_inverse
 
 from .commands import ReferenceTrajectoryCommand
 from .rewards import _tracked_body_ids

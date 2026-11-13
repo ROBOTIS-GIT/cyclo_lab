@@ -167,13 +167,14 @@ def run_replay(sim: SimulationContext, scene: InteractiveScene):
         root_state[:, :2] += scene.env_origins[:, :2]
         root_state[:, 3:7] = root_quat[frame_id]
         root_state[:, 7:] = 0.0
-        robot.write_root_state_to_sim(root_state)
+        robot.write_root_link_pose_to_sim_index(root_pose=root_state[:, :7])
+        robot.write_root_com_velocity_to_sim_index(root_velocity=root_state[:, 7:])
 
         joint_pos = robot.data.default_joint_pos.torch.clone()
         joint_vel = robot.data.default_joint_vel.torch.clone()
         joint_pos[:, :] = motion_joint_pos[frame_id]
         joint_vel[:, :] = 0.0
-        robot.write_joint_state_to_sim(joint_pos, joint_vel)
+        robot.write_joint_state_to_sim_index(position=joint_pos, velocity=joint_vel)
 
         sim.render()
         scene.update(dt)

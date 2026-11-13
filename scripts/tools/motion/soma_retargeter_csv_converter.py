@@ -477,13 +477,14 @@ def run_simulator(sim: SimulationContext, scene: InteractiveScene):
         root_states[:, 3:7] = motion_base_rot
         root_states[:, 7:10] = motion_base_lin_vel
         root_states[:, 10:] = motion_base_ang_vel
-        robot.write_root_state_to_sim(root_states)
+        robot.write_root_link_pose_to_sim_index(root_pose=root_states[:, :7])
+        robot.write_root_com_velocity_to_sim_index(root_velocity=root_states[:, 7:])
 
         joint_pos = robot.data.default_joint_pos.torch.clone()
         joint_vel = robot.data.default_joint_vel.torch.clone()
         joint_pos[:, robot_joint_indexes] = motion_dof_pos
         joint_vel[:, robot_joint_indexes] = motion_dof_vel
-        robot.write_joint_state_to_sim(joint_pos, joint_vel)
+        robot.write_joint_state_to_sim_index(position=joint_pos, velocity=joint_vel)
         sim.render()
         scene.update(sim.get_physics_dt())
 
