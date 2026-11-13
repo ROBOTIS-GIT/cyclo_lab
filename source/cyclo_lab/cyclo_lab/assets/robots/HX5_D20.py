@@ -39,8 +39,8 @@ HX5_D20_LEFT_CFG = ArticulationCfg(
     actuators={
         "XM_335": ImplicitActuatorCfg(
             joint_names_expr=["finger_l_joint.*"],
-            velocity_limit_sim=4.8,  # robotis_hand URDF joint limit
-            effort_limit_sim=1.03,  # XM335-T323-T stall torque at 11.1 V
+            joint_velocity_limit=4.8,  # robotis_hand URDF joint limit
+            joint_effort_limit=1.03,  # XM335-T323-T stall torque at 11.1 V
             stiffness=500.0,  # same as the FFW-SH5 hand actuators
             damping=30.0,
         ),
@@ -61,8 +61,8 @@ HX5_D20_RIGHT_CFG = ArticulationCfg(
     actuators={
         "XM_335": ImplicitActuatorCfg(
             joint_names_expr=["finger_r_joint.*"],
-            velocity_limit_sim=4.8,  # robotis_hand URDF joint limit
-            effort_limit_sim=1.03,  # XM335-T323-T stall torque at 11.1 V
+            joint_velocity_limit=4.8,  # robotis_hand URDF joint limit
+            joint_effort_limit=1.03,  # XM335-T323-T stall torque at 11.1 V
             stiffness=500.0,  # same as the FFW-SH5 hand actuators
             damping=30.0,
         ),
