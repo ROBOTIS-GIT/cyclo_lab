@@ -23,6 +23,7 @@ from dataclasses import dataclass
 
 import isaaclab.sim as sim_utils
 import numpy as np
+import warp as wp
 from isaaclab.sensors import SensorBase, SensorBaseCfg
 from isaaclab.sim.utils.extensions import enable_extension
 from isaaclab.utils import configclass
@@ -48,7 +49,7 @@ class RtxLidar(SensorBase):
         self._annotators = []
         self._azimuth_ranges = []
         self._data = RtxLidarData([], [])
-        enable_extension("isaacsim.sensors.rtx")
+        enable_extension("isaacsim.sensors.rtx.nodes")
         super().__init__(cfg)
 
     def __del__(self):
@@ -60,12 +61,10 @@ class RtxLidar(SensorBase):
         self._update_outdated_buffers()
         return self._data
 
-    def reset(self, env_ids: Sequence[int] | None = None):
-        super().reset(env_ids)
-        if env_ids is None:
-            env_ids = range(self.num_instances)
-        for index in env_ids:
-            index = int(index)
+    def reset(self, env_ids: Sequence[int] | slice | None = None, env_mask: wp.array | None = None):
+        env_mask = self._resolve_indices_and_mask(env_ids, env_mask)
+        super().reset(env_mask=env_mask)
+        for index in np.flatnonzero(env_mask.numpy()):
             self._data.point_clouds[index] = np.empty((0, 3), dtype=np.float32)
             self._data.ranges[index] = np.empty(0, dtype=np.float32)
 
@@ -88,7 +87,7 @@ class RtxLidar(SensorBase):
             product = rep.create.render_product(str(prim.GetPath()), resolution=(1, 1))
             self._render_products.append(product)
             annotator = rep.AnnotatorRegistry.get_annotator(
-                "IsaacExtractRTXSensorPointCloudNoAccumulator", device="cpu"
+                "IsaacExtractRTXSensorPointCloud", device="cpu"
             )
             annotator.attach([product.path])
             self._annotators.append(annotator)
@@ -97,9 +96,8 @@ class RtxLidar(SensorBase):
             [np.empty(0, dtype=np.float32) for _ in prims],
         )
 
-    def _update_buffers_impl(self, env_ids: Sequence[int]):
-        for index in env_ids:
-            index = int(index)
+    def _update_buffers_impl(self, env_mask: wp.array):
+        for index in np.flatnonzero(env_mask.numpy()):
             raw = self._annotators[index].get_data()
             values = raw.get("data", ()) if isinstance(raw, dict) else raw
             if values is None:
