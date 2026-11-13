@@ -25,6 +25,7 @@ def embed_onnx_external_data(model_path: str) -> None:
     import onnx
 
     metadata = onnx.load(model_path, load_external_data=False)
+
     # Include tensors in nested graphs and attributes as well as initializers.
     def contains_external_data(message):
         if isinstance(message, onnx.TensorProto) and message.external_data:
