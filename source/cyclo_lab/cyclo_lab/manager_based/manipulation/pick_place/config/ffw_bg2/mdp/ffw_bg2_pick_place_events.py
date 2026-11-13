@@ -42,7 +42,7 @@ def create_joint_position_mapping(joint_names: list[str], desired_values: dict[s
 
 def set_default_joint_pose(
     env: ManagerBasedEnv,
-    env_ids: torch.Tensor,
+    env_ids: torch.Tensor | slice,
     joint_positions: dict[str, float],
     asset_cfg: SceneEntityCfg = SceneEntityCfg("robot"),
 ):
@@ -55,7 +55,8 @@ def set_default_joint_pose(
 
     # Ensure correct shape for multiple environments
     if default_pose_tensor.dim() == 1:
-        default_pose_tensor = default_pose_tensor.unsqueeze(0).repeat(len(env_ids), 1)
+        num_envs = len(range(env.num_envs)[env_ids]) if isinstance(env_ids, slice) else len(env_ids)
+        default_pose_tensor = default_pose_tensor.unsqueeze(0).repeat(num_envs, 1)
 
     # Set default joint positions for the asset
     asset.data.default_joint_pos.torch[env_ids] = default_pose_tensor
@@ -138,7 +139,7 @@ def sample_object_poses(
 
 def randomize_object_pose(
     env: ManagerBasedEnv,
-    env_ids: torch.Tensor,
+    env_ids: torch.Tensor | slice | None,
     asset_cfgs: list[SceneEntityCfg],
     min_separation: float = 0.0,
     pose_range: dict[str, tuple[float, float]] = {},
@@ -148,7 +149,8 @@ def randomize_object_pose(
         return
 
     # Randomize poses in each environment independently
-    for cur_env in env_ids.tolist():
+    env_indices = range(env.num_envs)[env_ids] if isinstance(env_ids, slice) else env_ids.tolist()
+    for cur_env in env_indices:
         pose_list = sample_object_poses(
             num_objects=len(asset_cfgs),
             min_separation=min_separation,

@@ -26,9 +26,8 @@ import random
 import torch
 from typing import TYPE_CHECKING
 
-import isaaclab.sim as sim_utils
 import isaaclab.utils.math as math_utils
-from isaaclab.assets import Articulation, AssetBase
+from isaaclab.assets import Articulation, Asset
 from isaaclab.sensors.camera import Camera
 from isaaclab.managers import SceneEntityCfg
 from typing import Literal
@@ -54,11 +53,14 @@ def create_joint_position_mapping(joint_names: list[str], desired_values: dict[s
 
 def set_default_joint_pose(
     env: ManagerBasedEnv,
-    env_ids: torch.Tensor,
+    env_ids: torch.Tensor | slice,
     joint_positions: dict[str, float],  # Change to dict instead of list
     asset_cfg: SceneEntityCfg = SceneEntityCfg("robot"),
 ):
     """Set the default joint positions for the robot using joint names."""
+    if isinstance(env_ids, slice):
+        env_ids = torch.arange(env.num_envs, device=env.device)[env_ids]
+
     asset: Articulation = env.scene[asset_cfg.name]
 
     # Create properly ordered tensor from joint name mapping
@@ -76,12 +78,15 @@ def set_default_joint_pose(
 
 def randomize_joint_by_gaussian_offset(
     env: ManagerBasedEnv,
-    env_ids: torch.Tensor,
+    env_ids: torch.Tensor | slice,
     mean: float,
     std: float,
     asset_cfg: SceneEntityCfg = SceneEntityCfg("robot"),
     joint_names: list[str] = None,  # Add parameter to specify which joints to randomize
 ):
+    if isinstance(env_ids, slice):
+        env_ids = torch.arange(env.num_envs, device=env.device)[env_ids]
+
     asset: Articulation = env.scene[asset_cfg.name]
 
     # Use current joint positions instead of default positions
@@ -180,8 +185,8 @@ def randomize_scene_lighting_domelight(
     color_range: tuple[tuple[float, float], tuple[float, float], tuple[float, float]] = ((0.5, 1.0), (0.5, 1.0), (0.5, 1.0)),
     asset_cfg: SceneEntityCfg = SceneEntityCfg("light"),
 ):
-    asset: AssetBase = env.scene[asset_cfg.name]
-    light_prim = sim_utils.find_matching_prims(asset.prim_path)[0]
+    asset: Asset = env.scene[asset_cfg.name]
+    light_prim = asset.prim
 
     # Random intensity
     new_intensity = random.uniform(intensity_range[0], intensity_range[1])
@@ -200,12 +205,15 @@ def randomize_scene_lighting_domelight(
 
 def randomize_camera_pose(
     env: ManagerBasedEnv,
-    env_ids: torch.Tensor,
+    env_ids: torch.Tensor | slice,
     asset_cfg: SceneEntityCfg,
     pose_range: dict[str, tuple[float, float]] = None,
     convention: Literal["opengl", "ros", "world"] = "ros",
 ):
     """Reset the camera to a random position and rotation within the given ranges."""
+    if isinstance(env_ids, slice):
+        env_ids = torch.arange(env.num_envs, device=env.device)[env_ids]
+
     if pose_range is None:
         pose_range = {
             "x": (-0.02, 0.02),
@@ -430,7 +438,7 @@ def randomize_table_with_objects(
 
 def randomize_table_with_objects_on_slots(
     env: ManagerBasedEnv,
-    env_ids: torch.Tensor,
+    env_ids: torch.Tensor | slice,
     table_cfg: SceneEntityCfg,
     basket_cfg: SceneEntityCfg,
     target_asset_cfg: SceneEntityCfg,
@@ -444,6 +452,9 @@ def randomize_table_with_objects_on_slots(
     This maintains relative positions between objects for proper trajectory augmentation.
     The target object is placed on a random slot on target_side, other objects on remaining slots.
     """
+    if isinstance(env_ids, slice):
+        env_ids = torch.arange(env.num_envs, device=env.device)[env_ids]
+
     if env_ids is None:
         return
 
@@ -561,11 +572,14 @@ def randomize_table_with_objects_on_slots(
 
 def randomize_background_color(
     env: ManagerBasedEnv,
-    env_ids: torch.Tensor,
+    env_ids: torch.Tensor | slice,
     asset_cfg: SceneEntityCfg,
     color_range: tuple[tuple[float, float], tuple[float, float], tuple[float, float]] = ((0.0, 1.0), (0.0, 1.0), (0.0, 1.0)),
 ):
     """Randomize the color of a background cube for visual domain randomization."""
+    if isinstance(env_ids, slice):
+        env_ids = torch.arange(env.num_envs, device=env.device)[env_ids]
+
     if env_ids is None:
         return
 

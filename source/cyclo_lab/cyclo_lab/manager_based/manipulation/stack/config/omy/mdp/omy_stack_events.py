@@ -118,7 +118,7 @@ def sample_object_poses(
 
 def randomize_object_pose(
     env: ManagerBasedEnv,
-    env_ids: torch.Tensor,
+    env_ids: torch.Tensor | slice | None,
     asset_cfgs: list[SceneEntityCfg],
     min_separation: float = 0.0,
     pose_range: dict[str, tuple[float, float]] = {},
@@ -128,7 +128,8 @@ def randomize_object_pose(
         return
 
     # Randomize poses in each environment independently
-    for cur_env in env_ids.tolist():
+    env_indices = range(env.num_envs)[env_ids] if isinstance(env_ids, slice) else env_ids.tolist()
+    for cur_env in env_indices:
         pose_list = sample_object_poses(
             num_objects=len(asset_cfgs),
             min_separation=min_separation,
