@@ -29,7 +29,7 @@ class K1Rev1MimicPPORunnerCfg(RslRlOnPolicyRunnerCfg):
     experiment_name = ""
     run_name = ""
     resume = False
-    obs_groups = {"policy": ["policy"], "critic": ["critic"]}
+    obs_groups = {"actor": ["policy"], "critic": ["critic"]}
     actor = RslRlMLPModelCfg(
         hidden_dims=[512, 256, 128],
         activation="elu",
