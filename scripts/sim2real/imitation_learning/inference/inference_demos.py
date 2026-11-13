@@ -39,6 +39,8 @@ parser.add_argument(
 
 # append AppLauncher cli args
 AppLauncher.add_app_launcher_args(parser)
+parser.add_argument("--headless", action="store_true", help="Run without a window.")
+parser.add_argument("--enable_cameras", action="store_true", help="Enable camera rendering.")
 args_cli = parser.parse_args()
 if args_cli.task is None:
     parser.error("the following argument is required: --task")

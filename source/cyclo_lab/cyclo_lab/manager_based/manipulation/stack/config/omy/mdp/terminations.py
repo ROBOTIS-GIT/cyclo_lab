@@ -56,8 +56,8 @@ def cubes_stacked(
     cube_2: RigidObject = env.scene[cube_2_cfg.name]
     cube_3: RigidObject = env.scene[cube_3_cfg.name]
 
-    pos_diff_c12 = cube_1.data.root_pos_w - cube_2.data.root_pos_w
-    pos_diff_c23 = cube_2.data.root_pos_w - cube_3.data.root_pos_w
+    pos_diff_c12 = cube_1.data.root_pos_w.torch - cube_2.data.root_pos_w.torch
+    pos_diff_c23 = cube_2.data.root_pos_w.torch - cube_3.data.root_pos_w.torch
 
     # Compute cube position difference in x-y plane
     xy_dist_c12 = torch.norm(pos_diff_c12[:, :2], dim=1)
@@ -74,10 +74,10 @@ def cubes_stacked(
 
     # Check gripper positions
     stacked = torch.logical_and(
-        robot.data.joint_pos[:, -1] <= gripper_open_threshold.to(env.device), stacked
+        robot.data.joint_pos.torch[:, -1] <= gripper_open_threshold.to(env.device), stacked
     )
     stacked = torch.logical_and(
-        robot.data.joint_pos[:, -2] <= gripper_open_threshold.to(env.device), stacked
+        robot.data.joint_pos.torch[:, -2] <= gripper_open_threshold.to(env.device), stacked
     )
 
     return stacked

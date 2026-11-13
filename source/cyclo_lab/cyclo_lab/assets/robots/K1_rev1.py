@@ -92,13 +92,13 @@ K1_REV1_CFG = ArticulationCfg(
                 ".*_hip_pitch_joint",
                 ".*_knee_joint",
             ],
-            effort_limit_sim={
+            joint_effort_limit={
                 ".*_hip_yaw_joint": MAX_TORQUE_QC080_240_R020_RE,
                 ".*_hip_roll_joint": MAX_TORQUE_QC080_240_R020_RE,
                 ".*_hip_pitch_joint": MAX_TORQUE_QC080_240_R020_RE,
                 ".*_knee_joint": MAX_TORQUE_QC080_240_R020_RE,
             },
-            velocity_limit_sim={
+            joint_velocity_limit={
                 ".*_hip_yaw_joint": MAX_SPEED_QC080_240_R020_RE,
                 ".*_hip_roll_joint": MAX_SPEED_QC080_240_R020_RE,
                 ".*_hip_pitch_joint": MAX_SPEED_QC080_240_R020_RE,
@@ -124,24 +124,24 @@ K1_REV1_CFG = ArticulationCfg(
             },
         ),
         "ankle_pitch": ImplicitActuatorCfg(
-            effort_limit_sim=MAX_TORQUE_QC080_240_R020_RE,
-            velocity_limit_sim=MAX_SPEED_QC080_240_R020_RE,
+            joint_effort_limit=MAX_TORQUE_QC080_240_R020_RE,
+            joint_velocity_limit=MAX_SPEED_QC080_240_R020_RE,
             joint_names_expr=[".*_ankle_pitch_joint"],
             stiffness=20.0,
             damping=2.0,
             armature=0.01,
         ),
         "ankle_roll": ImplicitActuatorCfg(
-            effort_limit_sim=MAX_TORQUE_QC060_200_R020_RE,
-            velocity_limit_sim=MAX_SPEED_QC060_200_R020_RE,
+            joint_effort_limit=MAX_TORQUE_QC060_200_R020_RE,
+            joint_velocity_limit=MAX_SPEED_QC060_200_R020_RE,
             joint_names_expr=[".*_ankle_roll_joint"],
             stiffness=20.0,
             damping=2.0,
             armature=0.01,
         ),
         "waist_yaw": ImplicitActuatorCfg(
-            effort_limit_sim=MAX_TORQUE_QC080_240_R020_RE,
-            velocity_limit_sim=MAX_SPEED_QC080_240_R020_RE,
+            joint_effort_limit=MAX_TORQUE_QC080_240_R020_RE,
+            joint_velocity_limit=MAX_SPEED_QC080_240_R020_RE,
             joint_names_expr=["waist_yaw_joint"],
             stiffness=120.0,
             damping=3.0,
@@ -155,14 +155,14 @@ K1_REV1_CFG = ArticulationCfg(
                 ".*_elbow_joint",
                 ".*_wrist_roll_joint",
             ],
-            effort_limit_sim={
+            joint_effort_limit={
                 ".*_shoulder_pitch_joint": MAX_TORQUE_QC060_200_R020_RE,
                 ".*_shoulder_roll_joint": MAX_TORQUE_QC060_200_R020_RE,
                 ".*_shoulder_yaw_joint": MAX_TORQUE_QC060_200_R020_RE,
                 ".*_elbow_joint": MAX_TORQUE_QC060_200_R020_RE,
                 ".*_wrist_roll_joint": MAX_TORQUE_QC060_200_R020_RE,
             },
-            velocity_limit_sim={
+            joint_velocity_limit={
                 ".*_shoulder_pitch_joint": MAX_SPEED_QC060_200_R020_RE,
                 ".*_shoulder_roll_joint": MAX_SPEED_QC060_200_R020_RE,
                 ".*_shoulder_yaw_joint": MAX_SPEED_QC060_200_R020_RE,
@@ -242,13 +242,13 @@ K1_REV1_INERTIA_TUNED_CFG = ArticulationCfg(
                 ".*_hip_pitch_joint",
                 ".*_knee_joint",
             ],
-            effort_limit_sim={
+            joint_effort_limit={
                 ".*_hip_yaw_joint": MAX_TORQUE_QC080_240_R020_RE,
                 ".*_hip_roll_joint": MAX_TORQUE_QC080_240_R020_RE,
                 ".*_hip_pitch_joint": MAX_TORQUE_QC080_240_R020_RE,
                 ".*_knee_joint": MAX_TORQUE_QC080_240_R020_RE,
             },
-            velocity_limit_sim={
+            joint_velocity_limit={
                 ".*_hip_yaw_joint": MAX_SPEED_QC080_240_R020_RE,
                 ".*_hip_roll_joint": MAX_SPEED_QC080_240_R020_RE,
                 ".*_hip_pitch_joint": MAX_SPEED_QC080_240_R020_RE,
@@ -275,24 +275,24 @@ K1_REV1_INERTIA_TUNED_CFG = ArticulationCfg(
         ),
         "ankle_pitch": ImplicitActuatorCfg(
             joint_names_expr=[".*_ankle_pitch_joint"],
-            effort_limit_sim=MAX_TORQUE_QC080_240_R020_RE,
-            velocity_limit_sim=MAX_SPEED_QC080_240_R020_RE,
+            joint_effort_limit=MAX_TORQUE_QC080_240_R020_RE,
+            joint_velocity_limit=MAX_SPEED_QC080_240_R020_RE,
             stiffness=STIFFNESS_QC080_240_R020_RE,
             damping=DAMPING_QC080_240_R020_RE,
             armature=ARMATURE_QC080_240_R020_RE,
         ),
         "ankle_roll": ImplicitActuatorCfg(
             joint_names_expr=[".*_ankle_roll_joint"],
-            effort_limit_sim=MAX_TORQUE_QC060_200_R020_RE,
-            velocity_limit_sim=MAX_SPEED_QC060_200_R020_RE,
+            joint_effort_limit=MAX_TORQUE_QC060_200_R020_RE,
+            joint_velocity_limit=MAX_SPEED_QC060_200_R020_RE,
             stiffness=STIFFNESS_QC060_200_R020_RE,
             damping=DAMPING_QC060_200_R020_RE,
             armature=ARMATURE_QC060_200_R020_RE,
         ),
         "waist_yaw": ImplicitActuatorCfg(
             joint_names_expr=["waist_yaw_joint"],
-            effort_limit_sim=MAX_TORQUE_QC080_240_R020_RE,
-            velocity_limit_sim=MAX_SPEED_QC080_240_R020_RE,
+            joint_effort_limit=MAX_TORQUE_QC080_240_R020_RE,
+            joint_velocity_limit=MAX_SPEED_QC080_240_R020_RE,
             stiffness=STIFFNESS_QC080_240_R020_RE,
             damping=DAMPING_QC080_240_R020_RE,
             armature=ARMATURE_QC080_240_R020_RE,
@@ -305,14 +305,14 @@ K1_REV1_INERTIA_TUNED_CFG = ArticulationCfg(
                 ".*_elbow_joint",
                 ".*_wrist_roll_joint",
             ],
-            effort_limit_sim={
+            joint_effort_limit={
                 ".*_shoulder_pitch_joint": MAX_TORQUE_QC060_200_R020_RE,
                 ".*_shoulder_roll_joint": MAX_TORQUE_QC060_200_R020_RE,
                 ".*_shoulder_yaw_joint": MAX_TORQUE_QC060_200_R020_RE,
                 ".*_elbow_joint": MAX_TORQUE_QC060_200_R020_RE,
                 ".*_wrist_roll_joint": MAX_TORQUE_QC060_200_R020_RE,
             },
-            velocity_limit_sim={
+            joint_velocity_limit={
                 ".*_shoulder_pitch_joint": MAX_SPEED_QC060_200_R020_RE,
                 ".*_shoulder_roll_joint": MAX_SPEED_QC060_200_R020_RE,
                 ".*_shoulder_yaw_joint": MAX_SPEED_QC060_200_R020_RE,
@@ -351,7 +351,7 @@ def _action_scale_from_actuators(cfg: ArticulationCfg) -> dict[str, float]:
     scale = {}
     for actuator in cfg.actuators.values():
         names = actuator.joint_names_expr
-        efforts = actuator.effort_limit_sim
+        efforts = actuator.joint_effort_limit
         stiffness = actuator.stiffness
         if not isinstance(efforts, dict):
             efforts = {name: efforts for name in names}

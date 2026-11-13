@@ -21,11 +21,14 @@ def create_joint_position_mapping(joint_names: list[str], desired_values: dict[s
 
 def set_default_joint_pose(
     env: ManagerBasedEnv,
-    env_ids: torch.Tensor,
+    env_ids: torch.Tensor | slice,
     joint_positions: dict[str, float],
     asset_cfg: SceneEntityCfg = SceneEntityCfg("robot"),
 ):
     """Set SG2 joint state and position target on reset."""
+    if isinstance(env_ids, slice):
+        env_ids = torch.arange(env.num_envs, device=env.device)[env_ids]
+
     asset: Articulation = env.scene[asset_cfg.name]
 
     joint_pos = create_joint_position_mapping(asset.joint_names, joint_positions).to(device=env.device)
@@ -33,20 +36,23 @@ def set_default_joint_pose(
         joint_pos = joint_pos.unsqueeze(0).repeat(len(env_ids), 1)
     joint_vel = torch.zeros_like(joint_pos)
 
-    asset.set_joint_position_target(joint_pos, env_ids=env_ids)
-    asset.write_joint_state_to_sim(joint_pos, joint_vel, env_ids=env_ids)
+    asset.actuators.target_command.set_position_index(value=joint_pos, env_ids=env_ids)
+    asset.write_joint_state_to_sim_index(position=joint_pos, velocity=joint_vel, env_ids=env_ids)
 
 
 def randomize_root_pose_in_radius(
     env: ManagerBasedEnv,
-    env_ids: torch.Tensor,
+    env_ids: torch.Tensor | slice,
     max_translation_radius: float,
     max_yaw: float,
     asset_cfg: SceneEntityCfg = SceneEntityCfg("robot"),
 ):
     """Randomize each robot root uniformly inside a circle around its default pose."""
+    if isinstance(env_ids, slice):
+        env_ids = torch.arange(env.num_envs, device=env.device)[env_ids]
+
     asset: Articulation = env.scene[asset_cfg.name]
-    root_pose = asset.data.default_root_state[env_ids, :7].clone()
+    root_pose = asset.data.default_root_state.torch[env_ids, :7].clone()
 
     # sqrt produces a uniform spatial distribution over the disk area.
     samples = torch.rand((len(env_ids), 3), device=asset.device)
@@ -59,16 +65,19 @@ def randomize_root_pose_in_radius(
     yaw = (2.0 * samples[:, 2] - 1.0) * max_yaw
     yaw_delta = math_utils.quat_from_euler_xyz(torch.zeros_like(yaw), torch.zeros_like(yaw), yaw)
     root_pose[:, 3:7] = math_utils.quat_mul(root_pose[:, 3:7], yaw_delta)
-    asset.write_root_pose_to_sim(root_pose, env_ids=env_ids)
+    asset.write_root_pose_to_sim_index(root_pose=root_pose, env_ids=env_ids)
 
 
 def randomize_wall_background(
     env: ManagerBasedEnv,
-    env_ids: torch.Tensor,
+    env_ids: torch.Tensor | slice,
     texture_paths: tuple[str, ...],
     zoom_range: tuple[float, float],
 ):
     """Randomize the connected wall image and crop while keeping both walls fully covered."""
+    if isinstance(env_ids, slice):
+        env_ids = torch.arange(env.num_envs, device=env.device)[env_ids]
+
     if not texture_paths:
         raise ValueError("At least one showroom wall texture is required.")
     if not 1.0 <= zoom_range[0] <= zoom_range[1]:

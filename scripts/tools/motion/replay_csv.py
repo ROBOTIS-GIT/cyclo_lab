@@ -132,8 +132,8 @@ def _load_csv(path: str, root_quat_order: str, device: str) -> tuple[torch.Tenso
     motion = torch.as_tensor(motion_np, dtype=torch.float32, device=device)
     root_pos = motion[:, :3]
     root_quat = motion[:, 3:7]
-    if root_quat_order == "xyzw":
-        root_quat = root_quat[:, [3, 0, 1, 2]]
+    if root_quat_order == "wxyz":
+        root_quat = root_quat[:, [1, 2, 3, 0]]
     root_quat_norm = torch.sqrt(torch.clamp(torch.sum(root_quat * root_quat, dim=1, keepdim=True), min=1.0e-8))
     root_quat = root_quat / root_quat_norm
     joint_pos = motion[:, 7:]
@@ -166,18 +166,19 @@ def run_replay(sim: SimulationContext, scene: InteractiveScene):
     while simulation_app.is_running():
         step_start = time.perf_counter()
 
-        root_state = robot.data.default_root_state.clone()
+        root_state = robot.data.default_root_state.torch.clone()
         root_state[:, :3] = root_pos[frame_id]
         root_state[:, :2] += scene.env_origins[:, :2]
         root_state[:, 3:7] = root_quat[frame_id]
         root_state[:, 7:] = 0.0
-        robot.write_root_state_to_sim(root_state)
+        robot.write_root_link_pose_to_sim_index(root_pose=root_state[:, :7])
+        robot.write_root_com_velocity_to_sim_index(root_velocity=root_state[:, 7:])
 
-        joint_pos = robot.data.default_joint_pos.clone()
-        joint_vel = robot.data.default_joint_vel.clone()
+        joint_pos = robot.data.default_joint_pos.torch.clone()
+        joint_vel = robot.data.default_joint_vel.torch.clone()
         joint_pos[:, joint_ids] = motion_joint_pos[frame_id]
         joint_vel[:, :] = 0.0
-        robot.write_joint_state_to_sim(joint_pos, joint_vel)
+        robot.write_joint_state_to_sim_index(position=joint_pos, velocity=joint_vel)
 
         sim.render()
         scene.update(dt)

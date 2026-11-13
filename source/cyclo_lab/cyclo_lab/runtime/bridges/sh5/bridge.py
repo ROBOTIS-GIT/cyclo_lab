@@ -257,8 +257,8 @@ class FFWSH5TopicBridge:
         with self.lock:
             commands = dict(self.pending_positions)
 
-        position_target = self.robot.data.joint_pos_target.clone()
-        velocity_target = self.robot.data.joint_vel_target.clone()
+        position_target = self.robot.actuators.target_command.position.torch.clone()
+        velocity_target = self.robot.actuators.target_command.velocity.torch.clone()
 
         for name, position in commands.items():
             joint_id = self._joint_name_to_index.get(name)
@@ -271,8 +271,8 @@ class FFWSH5TopicBridge:
 
         self._apply_swerve_targets(position_target, velocity_target)
 
-        self.robot.set_joint_position_target(position_target)
-        self.robot.set_joint_velocity_target(velocity_target)
+        self.robot.actuators.target_command.set_position_index(value=position_target)
+        self.robot.actuators.target_command.set_velocity_index(value=velocity_target)
 
     def _apply_swerve_targets(self, position_target, velocity_target):
         if not self.swerve_modules:
@@ -287,10 +287,10 @@ class FFWSH5TopicBridge:
 
         current_steering = [
             float(value)
-            for value in self.robot.data.joint_pos[0, self._swerve_steering_joint_ids].detach().cpu().tolist()
+            for value in self.robot.data.joint_pos.torch[0, self._swerve_steering_joint_ids].detach().cpu().tolist()
         ]
         current_wheel_velocities = [
-            float(value) for value in self.robot.data.joint_vel[0, self._swerve_wheel_joint_ids].detach().cpu().tolist()
+            float(value) for value in self.robot.data.joint_vel.torch[0, self._swerve_wheel_joint_ids].detach().cpu().tolist()
         ]
         linear_x, linear_y, angular_z = self._current_cmd_vel()
         now = time.monotonic()
@@ -322,12 +322,12 @@ class FFWSH5TopicBridge:
         steering_positions = [
             float(value) + module.angle_offset
             for value, module in zip(
-                self.robot.data.joint_pos[0, self._swerve_steering_joint_ids].detach().cpu().tolist(),
+                self.robot.data.joint_pos.torch[0, self._swerve_steering_joint_ids].detach().cpu().tolist(),
                 self.swerve_modules,
             )
         ]
         wheel_velocities = [
-            float(value) for value in self.robot.data.joint_vel[0, self._swerve_wheel_joint_ids].detach().cpu().tolist()
+            float(value) for value in self.robot.data.joint_vel.torch[0, self._swerve_wheel_joint_ids].detach().cpu().tolist()
         ]
         self.odometry.update(steering_positions, wheel_velocities, dt)
 

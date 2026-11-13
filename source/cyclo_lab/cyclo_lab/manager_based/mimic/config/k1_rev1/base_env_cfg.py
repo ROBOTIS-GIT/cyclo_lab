@@ -22,6 +22,8 @@ from isaaclab.managers import RewardTermCfg as RewTerm
 from isaaclab.managers import SceneEntityCfg
 from isaaclab.utils import configclass
 
+from cyclo_lab.utils.k1_physics import configure_k1_physics
+
 from cyclo_lab.assets.robots.K1_rev1 import K1_REV1_INERTIA_TUNED_ACTION_SCALE, K1_REV1_INERTIA_TUNED_CFG
 from cyclo_lab.manager_based.mimic.tracking_env_cfg import (
     RewardsCfg,
@@ -87,4 +89,13 @@ class K1Rev1MimicEnvCfg(TrackingEnvCfg):
         self.commands.reference_trajectory.anchor_body_name = "torso_link"
         self.commands.reference_trajectory.body_names = TRACKED_BODY_NAMES
         self.events.torso_com_offset_noise.params["asset_cfg"].body_names = "torso_link"
+        configure_k1_physics(self)
         self.terminations.end_body_pos.params["body_names"] = END_BODY_NAMES
+
+    def play_mode(self) -> None:
+        """Apply K1 playback settings while preserving other observation groups."""
+        self.scene.num_envs = 1
+        self.episode_length_s = 1e9
+        self.commands.reference_trajectory.start_from_zero = True
+        self.events.push_robot = None
+        self.observations.policy.enable_corruption = False

@@ -49,11 +49,11 @@ def object_is_lifted(
     ee_frame: FrameTransformer = env.scene[ee_frame_cfg.name]
 
     # Get object height (z position in world frame)
-    obj_height = object.data.root_pos_w[:, 2]  # (num_envs,)
+    obj_height = object.data.root_pos_w.torch[:, 2]  # (num_envs,)
 
     # Get positions
-    obj_pos = object.data.root_pos_w  # (num_envs, 3)
-    ee_pos = ee_frame.data.target_pos_w[..., 0, :]  # (num_envs, 3)
+    obj_pos = object.data.root_pos_w.torch  # (num_envs, 3)
+    ee_pos = ee_frame.data.target_pos_w.torch[..., 0, :]  # (num_envs, 3)
 
     # Compute Euclidean distance between object and end-effector
     dist = torch.norm(obj_pos - ee_pos, dim=1)  # (num_envs,)
@@ -89,14 +89,14 @@ def object_grasp(
     object: RigidObject = env.scene[object_cfg.name]
 
     # Compute the distance between end-effector and object
-    object_pos = object.data.root_pos_w
-    end_effector_pos = ee_frame.data.target_pos_w[:, 0, :]
+    object_pos = object.data.root_pos_w.torch
+    end_effector_pos = ee_frame.data.target_pos_w.torch[:, 0, :]
     pose_diff = torch.linalg.vector_norm(object_pos - end_effector_pos, dim=1)
 
     # Check if gripper joints are closed beyond threshold
     gripper_closed = torch.logical_and(
-        robot.data.joint_pos[:, -1] >= gripper_close_threshold,
-        robot.data.joint_pos[:, -2] >= gripper_close_threshold,
+        robot.data.joint_pos.torch[:, -1] >= gripper_close_threshold,
+        robot.data.joint_pos.torch[:, -2] >= gripper_close_threshold,
     )
 
     # Combine both conditions
@@ -116,8 +116,8 @@ def object_ee_distance(
     object: RigidObject = env.scene[object_cfg.name]
     ee_frame: FrameTransformer = env.scene[ee_frame_cfg.name]
 
-    cube_pos_w = object.data.root_pos_w
-    ee_w = ee_frame.data.target_pos_w[..., 0, :]
+    cube_pos_w = object.data.root_pos_w.torch
+    ee_w = ee_frame.data.target_pos_w.torch[..., 0, :]
     distance = torch.norm(cube_pos_w - ee_w, dim=1)
 
     reward = torch.exp(-0.5 * (distance / std) ** 2)
@@ -140,8 +140,8 @@ def object_goal_distance(
     command = env.command_manager.get_command(command_name)
     # compute the desired position in the world frame
     des_pos_b = command[:, :3]
-    des_pos_w, _ = combine_frame_transforms(robot.data.root_pos_w, robot.data.root_quat_w, des_pos_b)
+    des_pos_w, _ = combine_frame_transforms(robot.data.root_pos_w.torch, robot.data.root_quat_w.torch, des_pos_b)
     # distance of the end-effector to the object: (num_envs,)
-    distance = torch.norm(des_pos_w - object.data.root_pos_w, dim=1)
+    distance = torch.norm(des_pos_w - object.data.root_pos_w.torch, dim=1)
     # rewarded if the object is lifted above the threshold
-    return (object.data.root_pos_w[:, 2] > minimal_height) * (1 - torch.tanh(distance / std))
+    return (object.data.root_pos_w.torch[:, 2] > minimal_height) * (1 - torch.tanh(distance / std))

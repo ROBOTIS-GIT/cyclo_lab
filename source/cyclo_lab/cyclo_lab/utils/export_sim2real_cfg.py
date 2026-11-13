@@ -18,13 +18,16 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 import os
-from typing import Any, TypeAlias
+from typing import TYPE_CHECKING, Any, TypeAlias
 
 import yaml
 
-from isaaclab.assets import Articulation
-from isaaclab.envs import ManagerBasedRLEnv
 from isaaclab.utils import class_to_dict
+from isaaclab.utils.dict import replace_slices_with_strings
+
+if TYPE_CHECKING:
+    from isaaclab.assets import Articulation
+    from isaaclab.envs import ManagerBasedRLEnv
 
 
 class _FlowList(list):
@@ -53,7 +56,16 @@ _ACTION_CFG_EXPORT_OMIT_KEYS = {
     "preserve_order",
     "use_default_offset",
 }
-_OBSERVATION_CFG_EXPORT_OMIT_KEYS = {"flatten_history_dim", "func", "modifiers", "noise"}
+_OBSERVATION_CFG_EXPORT_OMIT_KEYS = {
+    "delay_min_lag",
+    "delay_max_lag",
+    "delay_hold_prob",
+    "flatten_history_dim",
+    "func",
+    "modifiers",
+    "noise",
+}
+_OBSERVATION_PARAMS_EXPORT_OMIT_KEYS = {"asset_cfg"}
 
 _CfgDict: TypeAlias = dict[str, Any]
 
@@ -156,7 +168,7 @@ def _default_joint_position_by_name(context: _ExportContext) -> dict[str, Any]:
     """Return nominal joint positions, excluding per-environment domain randomization."""
     nominal = getattr(context.asset.data, "default_joint_pos_nominal", None)
     if nominal is None:
-        nominal = context.asset.data.default_joint_pos[0]
+        nominal = context.asset.data.default_joint_pos.torch[0]
     if nominal.ndim == 2:
         nominal = nominal[0]
     values = _tensor_to_list(nominal)
@@ -174,8 +186,8 @@ def _export_joint_properties(context: _ExportContext) -> dict[str, _CfgDict]:
     joint_ids = context.policy_joint_ids
 
     joint_properties = {}
-    stiffness = _tensor_to_list(asset.data.default_joint_stiffness[0, joint_ids])
-    damping = _tensor_to_list(asset.data.default_joint_damping[0, joint_ids])
+    stiffness = _tensor_to_list(asset.data.default_joint_stiffness.torch[0, joint_ids])
+    damping = _tensor_to_list(asset.data.default_joint_damping.torch[0, joint_ids])
     default_position_by_name = _default_joint_position_by_name(context)
     default_joint_pos = [default_position_by_name[joint_name] for joint_name in joint_names]
     for joint_name, default_position, joint_stiffness, joint_damping in zip(
@@ -281,6 +293,8 @@ def _observation_scale(obs_cfg, obs_dim: int) -> list[Any]:
 def _strip_observation_cfg_for_export(term_cfg: _CfgDict) -> _CfgDict:
     for key in _OBSERVATION_CFG_EXPORT_OMIT_KEYS:
         term_cfg.pop(key, None)
+    for key in _OBSERVATION_PARAMS_EXPORT_OMIT_KEYS:
+        term_cfg.get("params", {}).pop(key, None)
     return term_cfg
 
 
@@ -318,6 +332,7 @@ def _write_yaml(cfg: _CfgDict, log_dir: str) -> None:
     filename = os.path.join(log_dir, "params", _SIM2REAL_YAML_FILENAME)
     os.makedirs(os.path.dirname(filename), exist_ok=True)
     cfg = class_to_dict(cfg) if not isinstance(cfg, dict) else cfg
+    cfg = replace_slices_with_strings(cfg)
     with open(filename, "w") as file:
         yaml.dump(_format_yaml(cfg), file, Dumper=_Sim2RealYamlDumper, default_flow_style=False, sort_keys=False)
 

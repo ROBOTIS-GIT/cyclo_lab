@@ -77,11 +77,8 @@ class FFWBG2ReachEnvCfg(ReachEnvCfg):
         self.commands.ee_pose_l.body_name = ee_link_l
         self.commands.ee_pose_r.body_name = ee_link_r
 
-
-@configclass
-class FFWBG2ReachEnvCfg_PLAY(FFWBG2ReachEnvCfg):
-    def __post_init__(self):
-        super().__post_init__()
+    def play_mode(self):
+        """Configure the environment for policy playback."""
         self.scene.num_envs = 50
         self.scene.env_spacing = 2.5
         self.observations.policy.enable_corruption = False

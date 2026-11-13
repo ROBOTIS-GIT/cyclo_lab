@@ -17,8 +17,8 @@ class FFWSG2PickPlaceMimicEnv(ManagerBasedRLMimicEnv):
 
     def __init__(self, cfg: ManagerBasedRLEnvCfg, render_mode: str | None = None, **kwargs):
         super().__init__(cfg, render_mode, **kwargs)
-        self.robot_root_pos = self.scene["robot"].data.root_pos_w
-        self.robot_root_quat = self.scene["robot"].data.root_quat_w
+        self.robot_root_pos = self.scene["robot"].data.root_pos_w.torch
+        self.robot_root_quat = self.scene["robot"].data.root_quat_w.torch
 
     def get_robot_eef_pose(self, eef_name: str, env_ids: Sequence[int] | None = None) -> torch.Tensor:
         if env_ids is None:
@@ -37,7 +37,7 @@ class FFWSG2PickPlaceMimicEnv(ManagerBasedRLMimicEnv):
 
         eef_pos = eef_pose[:, :3]
         eef_quat = eef_pose[:, 3:7]
-        # quat: (w, x, y, z)
+        # quat: (x, y, z, w)
         eef_pose = PoseUtils.make_pose(eef_pos, PoseUtils.matrix_from_quat(eef_quat))
 
         return eef_pose

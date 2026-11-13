@@ -28,10 +28,7 @@ import torch
 from isaaclab.assets import Articulation, RigidObject
 from isaaclab.managers import SceneEntityCfg
 
-try:
-    from isaaclab.utils.math import quat_apply_inverse
-except ImportError:
-    from isaaclab.utils.math import quat_rotate_inverse as quat_apply_inverse
+from isaaclab.utils.math import quat_apply_inverse
 
 from .commands import ReferenceTrajectoryCommand
 from .rewards import _tracked_body_ids
@@ -50,8 +47,8 @@ def reference_anchor_gravity_deviation(
 ) -> torch.Tensor:
     asset: RigidObject | Articulation = env.scene[asset_cfg.name]
     command: ReferenceTrajectoryCommand = env.command_manager.get_term(command_name)
-    reference_projected_gravity_b = quat_apply_inverse(command.anchor_quat_w, asset.data.GRAVITY_VEC_W)
-    robot_projected_gravity_b = quat_apply_inverse(command.robot_anchor_quat_w, asset.data.GRAVITY_VEC_W)
+    reference_projected_gravity_b = quat_apply_inverse(command.anchor_quat_w, asset.data.GRAVITY_VEC_W.torch)
+    robot_projected_gravity_b = quat_apply_inverse(command.robot_anchor_quat_w, asset.data.GRAVITY_VEC_W.torch)
     return (reference_projected_gravity_b[:, 2] - robot_projected_gravity_b[:, 2]).abs() > threshold
 
 
@@ -72,10 +69,10 @@ def physx_nan_detected(
     asset: Articulation = env.scene[asset_cfg.name]
     data = asset.data
     return (
-        torch.any(torch.isnan(data.joint_pos[:, asset_cfg.joint_ids]), dim=1)
-        | torch.any(torch.isnan(data.joint_vel[:, asset_cfg.joint_ids]), dim=1)
-        | torch.any(torch.isnan(data.root_pos_w), dim=1)
-        | torch.any(torch.isnan(data.root_quat_w), dim=1)
-        | torch.any(torch.isnan(data.root_lin_vel_w), dim=1)
-        | torch.any(torch.isnan(data.root_ang_vel_w), dim=1)
+        torch.any(torch.isnan(data.joint_pos.torch[:, asset_cfg.joint_ids]), dim=1)
+        | torch.any(torch.isnan(data.joint_vel.torch[:, asset_cfg.joint_ids]), dim=1)
+        | torch.any(torch.isnan(data.root_pos_w.torch), dim=1)
+        | torch.any(torch.isnan(data.root_quat_w.torch), dim=1)
+        | torch.any(torch.isnan(data.root_lin_vel_w.torch), dim=1)
+        | torch.any(torch.isnan(data.root_ang_vel_w.torch), dim=1)
     )
