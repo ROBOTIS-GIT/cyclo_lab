@@ -26,6 +26,7 @@ optional arguments:
 # Standard library imports
 import argparse
 import contextlib
+import os
 
 # Isaac Lab AppLauncher
 from isaaclab.app import AppLauncher
@@ -83,6 +84,14 @@ if args_cli.enable_pinocchio:
 if "handtracking" in args_cli.teleop_device.lower():
     app_launcher_args["xr"] = True
 
+if args_cli.teleop_device.lower() == "keyboard" and not args_cli.xr:
+    if args_cli.headless or os.environ.get("HEADLESS") == "1":
+        parser.error("Keyboard recording requires a Kit window; remove --headless and HEADLESS=1.")
+    if args_cli.visualizer is None:
+        args_cli.visualizer = ["kit"]
+    elif "kit" not in args_cli.visualizer:
+        parser.error("Keyboard recording requires --viz kit.")
+
 # launch the simulator
 app_launcher = AppLauncher(args_cli)
 simulation_app = app_launcher.app
@@ -92,7 +101,6 @@ simulation_app = app_launcher.app
 
 # Third-party imports
 import gymnasium as gym
-import os
 import time
 import torch
 
@@ -222,7 +230,6 @@ def create_environment_config(
         # If cameras are not enabled and XR is enabled, remove camera configs
         if not args_cli.enable_cameras:
             env_cfg = remove_camera_configs(env_cfg)
-        env_cfg.sim.render.antialiasing_mode = "DLSS"
 
     # modify configuration such that the environment runs indefinitely until
     # the goal is reached or other termination conditions are met
@@ -526,8 +533,14 @@ def main() -> None:
     """
     # if handtracking is selected, rate limiting is achieved via OpenXR
     if args_cli.xr:
-        rate_limiter = None
         from isaaclab.ui.xr_widgets import TeleopVisualizationManager, XRVisualization
+        from isaaclab_physx.renderers import IsaacRtxRendererGlobalSettingsCfg
+        from isaaclab_physx.renderers.isaac_rtx_renderer_utils import apply_isaac_rtx_global_settings
+
+        rate_limiter = None
+
+        # Kit is running; apply global settings before the environment creates renderers.
+        apply_isaac_rtx_global_settings(IsaacRtxRendererGlobalSettingsCfg(antialiasing_mode="DLSS"))
 
         # Assign the teleop visualization manager to the visualization system
         XRVisualization.assign_manager(TeleopVisualizationManager)

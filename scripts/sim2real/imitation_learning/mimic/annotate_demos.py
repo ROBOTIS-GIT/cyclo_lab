@@ -25,6 +25,7 @@ Script to add mimic annotations to demos to be used as source demos for mimic da
 
 import argparse
 import math
+import os
 
 from isaaclab.app import AppLauncher
 
@@ -64,6 +65,15 @@ parser.add_argument("--enable_cameras", action="store_true", help="Enable camera
 # parse the arguments
 args_cli = parser.parse_args()
 
+if not args_cli.auto:
+    livestream = args_cli.livestream if args_cli.livestream >= 0 else int(os.environ.get("LIVESTREAM", "0"))
+    if args_cli.headless or int(os.environ.get("HEADLESS", "0")) or livestream > 0:
+        parser.error("Manual annotation requires a local Kit window; disable headless/livestream modes or use --auto.")
+    if args_cli.visualizer is None:
+        args_cli.visualizer = ["kit"]
+    elif "kit" not in args_cli.visualizer:
+        parser.error("Manual annotation requires --viz kit for keyboard input; use --auto for headless annotation.")
+
 if args_cli.enable_pinocchio:
     # Import pinocchio before AppLauncher to force the use of the version installed by IsaacLab and not the one installed by Isaac Sim
     # pinocchio is required by the Pink IK controllers and the GR1T2 retargeter
@@ -77,16 +87,12 @@ simulation_app = app_launcher.app
 
 import contextlib
 import gymnasium as gym
-import os
 import torch
 
 import isaaclab_mimic.envs  # noqa: F401
 
-if args_cli.enable_pinocchio:
-    import isaaclab_mimic.envs.pinocchio_envs  # noqa: F401
-
 # Only enables inputs if this script is NOT headless mode
-if not args_cli.headless and not os.environ.get("HEADLESS", 0):
+if not args_cli.headless:
     from isaaclab.devices import Se3Keyboard, Se3KeyboardCfg
 
 from isaaclab.envs import ManagerBasedRLMimicEnv
@@ -294,7 +300,7 @@ def main():
     env.reset()
 
     # Only enables inputs if this script is NOT headless mode
-    if not args_cli.headless and not os.environ.get("HEADLESS", 0):
+    if not args_cli.headless:
         keyboard_interface = Se3Keyboard(Se3KeyboardCfg(pos_sensitivity=0.1, rot_sensitivity=0.1))
         keyboard_interface.add_callback("N", play_cb)
         keyboard_interface.add_callback("B", pause_cb)
