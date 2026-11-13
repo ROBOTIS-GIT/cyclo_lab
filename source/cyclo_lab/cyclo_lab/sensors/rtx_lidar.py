@@ -107,8 +107,8 @@ class RtxLidar(SensorBase):
             valid = np.isfinite(points).all(axis=1) & (distances > 0.0)
             azimuth_range = self._azimuth_ranges[index]
             if azimuth_range is not None:
-                # Native Sim 6.0.1 returns no points with a clipped rotary USD profile.
-                # Keep the URDF sector here; its limits are authored once in the USD.
+                # Native clipped rotary profiles omit part of this sensor-frame sector in Sim 6.2.
+                # Filter the full scan to preserve the URDF sector authored in the USD.
                 azimuth = np.arctan2(points[:, 1], points[:, 0])
                 valid &= (azimuth >= azimuth_range[0]) & (azimuth <= azimuth_range[1])
             # Copy render-owned buffers so callers can retain this sample.
