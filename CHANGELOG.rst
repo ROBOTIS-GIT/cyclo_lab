@@ -2,6 +2,16 @@
 Changelog for package cyclo_lab
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+3.0.0 (2026-11-13)
+------------------
+* Migrated to Isaac Lab 3.0 and Isaac Sim 6.2, with a locked Python environment in Docker.
+* Added Newton backend support for K1 locomotion and Mimic tasks alongside Isaac Sim PhysX.
+* Migrated actuator limits, articulation state access, reset events, and RTX LiDAR integration to the updated APIs.
+* Aligned reinforcement learning entrypoints with Isaac Lab 3.0, preserving checkpoint resume, Sim2Real configuration export, and single-file ONNX export.
+* Updated the IsaacLab-Arena integration to a pinned upstream main commit for the Lab 3.0 migration.
+* Preserved legacy K1 motion NPZ compatibility and ROS XYZW quaternion conventions.
+* Contributors: Kiwoong Park, Taehyeong Kim
+
 2.2.1 (2026-11-10)
 ------------------
 * Add standalone HX5-D20 (rev2) left and right hand assets, converted from the official robotis_hand 1.0.2 description.
