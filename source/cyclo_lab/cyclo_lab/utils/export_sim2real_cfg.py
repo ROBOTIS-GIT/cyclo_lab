@@ -56,7 +56,16 @@ _ACTION_CFG_EXPORT_OMIT_KEYS = {
     "preserve_order",
     "use_default_offset",
 }
-_OBSERVATION_CFG_EXPORT_OMIT_KEYS = {"flatten_history_dim", "func", "modifiers", "noise"}
+_OBSERVATION_CFG_EXPORT_OMIT_KEYS = {
+    "delay_min_lag",
+    "delay_max_lag",
+    "delay_hold_prob",
+    "flatten_history_dim",
+    "func",
+    "modifiers",
+    "noise",
+}
+_OBSERVATION_PARAMS_EXPORT_OMIT_KEYS = {"asset_cfg"}
 
 _CfgDict: TypeAlias = dict[str, Any]
 
@@ -284,6 +293,8 @@ def _observation_scale(obs_cfg, obs_dim: int) -> list[Any]:
 def _strip_observation_cfg_for_export(term_cfg: _CfgDict) -> _CfgDict:
     for key in _OBSERVATION_CFG_EXPORT_OMIT_KEYS:
         term_cfg.pop(key, None)
+    for key in _OBSERVATION_PARAMS_EXPORT_OMIT_KEYS:
+        term_cfg.get("params", {}).pop(key, None)
     return term_cfg
 
 
