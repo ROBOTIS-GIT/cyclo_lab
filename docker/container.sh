@@ -14,7 +14,7 @@ set -e
 
 # Set tab-spaces
 if [ -t 1 ]; then
-    tabs 4
+    tabs 4 2>/dev/null || true
 fi
 
 # get source directory
