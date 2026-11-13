@@ -47,10 +47,7 @@ def apply_home_joint_offset_noise(
     if env_ids is None:
         env_ids = torch.arange(env.scene.num_envs, device=asset.device)
 
-    if asset_cfg.joint_ids == slice(None):
-        joint_ids = slice(None)
-    else:
-        joint_ids = torch.tensor(asset_cfg.joint_ids, dtype=torch.int, device=asset.device)
+    joint_ids = asset_cfg.joint_ids
 
     if pos_distribution_params is not None:
         pos = asset.data.default_joint_pos.torch.to(asset.device).clone()
