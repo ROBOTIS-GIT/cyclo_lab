@@ -1,7 +1,7 @@
 # cyclo_lab
 
-[![IsaacSim](https://img.shields.io/badge/IsaacSim-6.1.0-silver.svg)](https://docs.isaacsim.omniverse.nvidia.com/latest/index.html)
-[![Isaac Lab](https://img.shields.io/badge/IsaacLab-3.0.0--development-silver)](https://isaac-sim.github.io/IsaacLab/main/index.html)
+[![IsaacSim](https://img.shields.io/badge/IsaacSim-6.2.0-silver.svg)](https://docs.isaacsim.omniverse.nvidia.com/latest/index.html)
+[![Isaac Lab](https://img.shields.io/badge/IsaacLab-3.0.0-silver)](https://isaac-sim.github.io/IsaacLab/v3.0.0/index.html)
 [![Python](https://img.shields.io/badge/python-3.12-blue.svg)](https://docs.python.org/3/whatsnew/3.12.html)
 [![Linux platform](https://img.shields.io/badge/platform-linux--64-orange.svg)](https://releases.ubuntu.com/22.04/)
 [![License](https://img.shields.io/badge/license-Apache2.0-yellow.svg)](https://opensource.org/license/apache-2-0)
@@ -14,11 +14,8 @@ https://github.com/user-attachments/assets/28347b4b-f90c-4a4f-8916-621f917d86cb
 This project provides simulation environments, configuration tools, and task definitions tailored for Robotis hardware, leveraging NVIDIA Isaac Sim’s powerful GPU-accelerated physics engine and Isaac Lab’s modular RL pipeline.
 
 > [!IMPORTANT]
-> This branch targets **Isaac Sim 6.1.0 / Python 3.12** and the Isaac Lab
-> **release/3.0.0** checkout pinned at `341109ef41c4c21cb3afaa14337e93cd9a682038`.
-> Environment migration is in progress; the task APIs, existing datasets, and policies
-> still need migration and runtime validation. See [environment setup](docker/README.md).
->
+> Requires **Isaac Sim 6.2.0 / Python 3.12** and the pinned **Isaac Lab 3.0.0** submodule.
+> See [environment setup](docker/README.md).
 
 ## Installation (Docker)
 
@@ -62,8 +59,8 @@ Docker installation provides a consistent environment with all dependencies pre-
 - `./docker/container.sh clean` - Remove container and image
 
 **What's included in the Docker image:**
-- Isaac Sim 6.1.0
-- Isaac Lab release/3.0.0 (pinned third_party submodule; development version)
+- Isaac Sim 6.2.0
+- Isaac Lab 3.0.0 (pinned third_party submodule)
 - zenoh_ros2_sdk 0.1.8 (from third_party submodule)
 - IsaacLab-Arena integration (from third_party submodule)
 - LeRobot 0.3.3 (in separate virtual environment at `~/lerobot_env`)
