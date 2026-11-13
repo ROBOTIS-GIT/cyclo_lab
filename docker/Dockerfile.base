@@ -130,9 +130,6 @@ RUN touch /bin/nvidia-smi && \
 # Copy project code and remaining submodules after the heavy Lab install.
 COPY --chown=cyclolab:cyclolab . ${CYCLOLAB_PATH}
 
-# HACK: Remove install of quadprog dependency (from Isaac Lab)
-RUN ${ISAACLAB_PATH}/isaaclab.sh -p -m pip uninstall -y quadprog
-
 #==
 # Install Robotis-specific Zenoh ROS2 dependencies
 #==
