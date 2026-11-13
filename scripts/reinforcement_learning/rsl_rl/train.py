@@ -84,11 +84,9 @@ import torch
 from rsl_rl.runners import DistillationRunner, OnPolicyRunner
 
 from isaaclab.envs import (
-    DirectMARLEnv,
     DirectMARLEnvCfg,
     DirectRLEnvCfg,
     ManagerBasedRLEnvCfg,
-    multi_agent_to_single_agent,
 )
 from isaaclab.utils.dict import print_dict
 from isaaclab.utils.io import dump_yaml
@@ -182,7 +180,9 @@ def main(env_cfg: ManagerBasedRLEnvCfg | DirectRLEnvCfg | DirectMARLEnvCfg, agen
     env = gym.make(args_cli.task, cfg=env_cfg, render_mode="rgb_array" if args_cli.video else None)
 
     # convert to single-agent instance if required by the RL algorithm
-    if isinstance(env.unwrapped, DirectMARLEnv):
+    if isinstance(env.unwrapped.cfg, DirectMARLEnvCfg):
+        from isaaclab.envs import multi_agent_to_single_agent
+
         env = multi_agent_to_single_agent(env)
 
     # save resume path before creating a new log_dir

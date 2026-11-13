@@ -22,12 +22,7 @@
 import gymnasium as gym
 import os
 
-from . import (
-    agents,
-    ik_rel_env_cfg,
-)
-
-from .mimic_env_cfg import OMYStackMimicEnvCfg
+from . import agents
 
 ##
 # Inverse Kinematics - Relative Pose Control
@@ -37,7 +32,7 @@ gym.register(
     id="Cyclo-Stack-Cube-OMY-IK-Rel-v0",
     entry_point="isaaclab.envs:ManagerBasedRLEnv",
     kwargs={
-        "env_cfg_entry_point": ik_rel_env_cfg.OMYCubeStackEnvCfg,
+        "env_cfg_entry_point": f"{__name__}.ik_rel_env_cfg:OMYCubeStackEnvCfg",
         "robomimic_bc_cfg_entry_point": os.path.join(agents.__path__[0], "robomimic/bc_rnn_low_dim.json"),
     },
     disable_env_checker=True,
@@ -47,7 +42,7 @@ gym.register(
     id="Cyclo-Stack-Cube-OMY-IK-Rel-Mimic-v0",
     entry_point="cyclo_lab.manager_based.manipulation.stack.config.omy.mimic_env:OMYStackMimicEnv",
     kwargs={
-        "env_cfg_entry_point": OMYStackMimicEnvCfg,
+        "env_cfg_entry_point": f"{__name__}.mimic_env_cfg:OMYStackMimicEnvCfg",
     },
     disable_env_checker=True,
 )
