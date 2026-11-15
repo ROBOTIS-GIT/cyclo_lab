@@ -61,3 +61,14 @@ boundaries, the WM environment constructor contract and removed mjlab registrati
 marked files and `UPSTREAM.md` describe the port. Dynamics/replay/WM and policy
 learners remain verbatim; imagined-rollout math is unchanged. The new runner collects states in the existing Isaac Lab runtime.
 K1 assets and input motion data retain their existing licensing and gitlinks.
+
+## Historical K1 motion inertial profile
+
+`learning/supermimic/k1_motion_profile.json` contains inertial masses/centers
+extracted from ROBOTIS-GIT/ai_sapiens, Apache-2.0, revision
+`b0ef567ca77db0f37089ed3b23e492baba60d6be`, file
+`ai_sapiens_description/urdf/k1_rev1/k1.urdf`. Original source/blob hashes are
+recorded in the profile. The existing ai_sapiens submodule retains its LICENSE.
+ROBOTIS added numerical reference verification and fixed-link COM aggregation;
+the values were not fitted to motion data. This is asset provenance, not a source
+of SuperMimic algorithm changes.

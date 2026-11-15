@@ -28,14 +28,18 @@ Existing `Cyclo-Mimic-*` PPO tasks and direct RSL-RL commands remain supported.
 | SuperMimic | Isaac collection, learned world model, imagined differentiable policy update | `Cyclo-SuperMimic-*` |
 
 ```bash
-python scripts/reinforcement_learning/mimic.py --method beyondmimic train \
+python scripts/reinforcement_learning/train.py --algorithm beyondmimic \
   --task Cyclo-Mimic-K1-Rev1-Dance1 --num_envs 4096 --headless
-python scripts/reinforcement_learning/mimic.py --method supermimic train \
-  --task Cyclo-SuperMimic-K1-Rev1-Dance1 --num-envs 32 --iterations 1000 --headless
+python scripts/reinforcement_learning/train.py --algorithm supermimic \
+  --task Cyclo-SuperMimic-K1-Rev1-Dance1 --num-envs 32 --iterations 1000 --eager --headless
 ```
 
 See [SuperMimic setup, bounded verification and checkpoint contract](docs/supermimic.md).
-No separate mjlab runtime is required. Checkpoints and Sim2Real support differ by method.
+`--algorithm` may be omitted for a recognized task family; conflicting selections fail.
+Historical `mimic.py --method` commands remain valid. Native SuperMimic supports
+PhysX, GenCoord and a privileged single-motion actor; Newton and robot deployment
+are not validated. No separate mjlab runtime is required. Checkpoint formats differ
+by method and backend.
 
 ## Installation (Docker)
 

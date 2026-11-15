@@ -58,8 +58,13 @@ class UnitEnv:
             _body_angular_velocity_w=torch.tensor(arrays["body_ang_vel_w"]),
         )
         self.frames = torch.zeros(1, dtype=torch.long)
+        self.resample_counts = torch.zeros(1, dtype=torch.long)
         self.command_manager = NS(
-            get_term=lambda _: NS(reference=ref, frame_ids=self.frames)
+            get_term=lambda _: NS(
+                reference=ref,
+                frame_ids=self.frames,
+                resample_counts=self.resample_counts,
+            )
         )
         self.joints = torch.zeros(1, 23)
         data = NS(
@@ -86,7 +91,9 @@ class UnitEnv:
 
         self.scene = Scene(robot=robot)
         self.scene.env_origins = torch.tensor([[10.0, 20.0, 0.0]])
-        self.action_manager = NS(get_term=lambda _: NS(_scale=0.1, _offset=0.0))
+        self.action_manager = NS(
+            action=torch.zeros(1, 23), get_term=lambda _: NS(_scale=0.1, _offset=0.0)
+        )
         self.calls = 0
 
     def step(self, action):
@@ -95,10 +102,21 @@ class UnitEnv:
         done = torch.tensor([self.calls % 4 == 0])
         self.frames.add_(1)
         self.frames[done] = 0
+        self.resample_counts[done] += 1
+        self.action_manager.action = action.detach().clone()
+        self.action_manager.action[done] = 0
         return {}, torch.zeros(1), done, torch.zeros(1, dtype=torch.bool), {}
 
 
-def test_collection_boundaries_learning_and_checkpoint(tmp_path):
+def test_collection_boundaries_learning_and_checkpoint(tmp_path, monkeypatch):
+    monkeypatch.setattr(
+        "cyclo_lab.learning.supermimic.runner.environment_contract",
+        lambda cfg, task, motion: {
+            "unit_double": True,
+            "task": task,
+            "motion_sha256": motion["sha256"],
+        },
+    )
     before = torch._dynamo.config.disable
     torch._dynamo.config.disable = True
     try:
@@ -107,7 +125,7 @@ def test_collection_boundaries_learning_and_checkpoint(tmp_path):
             hidden=(16, 16),
             latent=8,
             batch_size=2,
-            horizon=2,
+            horizon=4,
             policy_horizon=2,
             eager=True,
         )
@@ -123,22 +141,68 @@ def test_collection_boundaries_learning_and_checkpoint(tmp_path):
         assert storage["terminated"][0, 3] and storage["terminated"][0, 7]
         assert storage["motion_time"][0, 4] == 0
         assert storage["prev_action"][0, 4].count_nonzero() == 0
-        logs = runner.update()
-        assert logs["wm_parameters_changed"] and logs["actor_parameters_changed"]
+        for _ in range(5):
+            logs = runner.update()
+            assert logs["wm_parameters_changed"] and logs["actor_parameters_changed"]
+            assert logs["wm_frozen_during_actor"]
         path = tmp_path / "checkpoint.pt"
         runner.save(path)
         saved = {k: v.clone() for k, v in runner.actor.state_dict().items()}
         fresh = IsaacSuperMimicRunner(UnitEnv(), cfg)
         fresh.load(path)
-        assert fresh.iteration == 1
+        assert fresh.iteration == 5
         for k, value in saved.items():
             torch.testing.assert_close(
                 value, fresh.actor.state_dict()[k], rtol=0, atol=0
             )
         assert fresh.wm_learner.optimizers[0].state_dict()["state"]
+        from cyclo_lab.learning.supermimic.checkpoint import assert_equal_tree
+
+        assert_equal_tree(runner.state_bundle(), fresh.state_bundle())
+        fresh.contract["motion_sha256"] = "wrong"
+        with pytest.raises(ValueError, match="Incompatible"):
+            fresh.load(path)
         bad = tmp_path / "ppo.pt"
         torch.save({"model_state_dict": {}}, bad)
-        with pytest.raises(ValueError, match="Expected Isaac"):
+        with pytest.raises(ValueError, match="Expected native Isaac"):
             fresh.load(bad)
     finally:
         torch._dynamo.config.disable = before
+
+
+def test_clip_wrap_without_env_done_is_excluded_from_replay(monkeypatch):
+    monkeypatch.setattr(
+        "cyclo_lab.learning.supermimic.runner.environment_contract",
+        lambda *args: {"unit_double": True},
+    )
+
+    class ClipEnv(UnitEnv):
+        def step(self, action):
+            obs, reward, done, timeout, extras = super().step(action)
+            # Command-only wrap leaves the actual ActionManager history intact.
+            self.action_manager.action = action.detach().clone()
+            return obs, reward, torch.zeros_like(done), timeout, extras
+
+    env = ClipEnv()
+    runner = IsaacSuperMimicRunner(
+        env,
+        RunnerCfg(
+            hidden=(16, 16),
+            latent=8,
+            batch_size=2,
+            horizon=4,
+            policy_horizon=2,
+            eager=True,
+        ),
+    )
+    runner.collect(12)
+    storage = runner.buffer._storage
+    assert not storage["terminated"].any()
+    assert storage["truncated"][0, [3, 7, 11]].all()
+    torch.testing.assert_close(
+        storage["prev_action"][0, [4, 8]], storage["action"][0, [3, 7]], rtol=0, atol=0
+    )
+    for _ in range(10):
+        sample = runner.buffer.sample(4, 16)
+        assert not sample["truncated"][:, :-1].any()
+        assert torch.equal(sample["motion_time"], torch.arange(4).expand(16, 4))

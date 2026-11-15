@@ -29,3 +29,13 @@ under manager_based/mimic/config/supermimic_k1_rev1. Real Isaac states (xyzw) ar
 explicitly converted to the original algorithm's wxyz convention. Differentiable
 URDF FK uses live articulation joint ordering; runtime verification compares its
 link poses/twists with Isaac. See docs/supermimic.md for commands and support limits.
+
+The corrected native adapter validates redundant motion poses/twists against K1
+source profiles, converts reference COM velocity to link-origin velocity, and
+marks command resamples in replay. These changes live outside this vendored core.
+Only GenCoord, rep-state observations, history 1, one motion encoder and constant
+zero dynamics context are wired into Isaac. Official MaxCoord, multi-task/velocity
+encoders, latent BC, proprio/history modes and return sampling are not claimed.
+Preserving the original substep integration assumption does not establish
+numerical simulator parity. See the native checkpoint v2 contract and fresh
+validation report for exact supported runtime behavior.

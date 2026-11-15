@@ -1,0 +1,6 @@
+[WARNING] isaaclab.sh is deprecated and will be removed in Isaac Lab 3.1. Use 'uv run isaaclab' instead.
+EXPECTED_PRE_SIMULATION_REJECTION decimation exit 1
+ValueError: Incompatible native checkpoint contract: ['decimation', 'sim_dt']. Restore the saved configuration; new-motion warm starts are not supported.
+EXPECTED_PRE_SIMULATION_REJECTION motion exit 1
+ValueError: Incompatible native checkpoint contract: ['motion_sha256']. Restore the saved configuration; new-motion warm starts are not supported.
+[INFO] Using Python: "/opt/isaaclab-venv/bin/python"

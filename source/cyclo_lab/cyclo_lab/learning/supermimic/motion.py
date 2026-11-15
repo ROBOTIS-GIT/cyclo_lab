@@ -7,6 +7,18 @@ import hashlib
 import numpy as np
 
 
+def real_float32(value, field):
+    """Validate the actual learner dtype, without silently dropping complex parts."""
+    value = np.asarray(value)
+    if value.dtype.kind not in "iuf" or not np.isfinite(value).all():
+        raise ValueError(f"{field} must contain finite real numbers")
+    with np.errstate(over="ignore", invalid="ignore"):
+        result = value.astype(np.float32)
+    if not np.isfinite(result).all():
+        raise ValueError(f"{field} is not finite in learner float32")
+    return result
+
+
 def validate_motion(path, expected_joint_names=None, expected_body_names=None, fps=50):
     path = Path(path)
     with np.load(path, allow_pickle=False) as data:
@@ -38,7 +50,7 @@ def validate_motion(path, expected_joint_names=None, expected_body_names=None, f
         rate = np.asarray(data["fps"])
         if (
             rate.size != 1
-            or not np.issubdtype(rate.dtype, np.number)
+            or rate.dtype.kind not in "iuf"
             or not np.isfinite(rate).all()
             or float(rate.reshape(-1)[0]) != fps
         ):
@@ -88,13 +100,12 @@ def validate_motion(path, expected_joint_names=None, expected_body_names=None, f
                 if width is None
                 else (frames, len(names["body_names"]), width)
             )
-            if (
-                value.shape != expected
-                or not np.issubdtype(value.dtype, np.number)
-                or not np.isfinite(value).all()
-            ):
+            if value.shape != expected:
                 raise ValueError(f"{key}: invalid shape or nonfinite motion data")
-        norms = np.linalg.norm(data["body_quat_w"], axis=-1)
+            real_float32(value, key)
+        norms = np.linalg.norm(
+            real_float32(data["body_quat_w"], "body_quat_w"), axis=-1
+        )
         if not np.allclose(norms, 1.0, atol=1e-3, rtol=0):
             raise ValueError(
                 "Motion body quaternions must be unit length; zero/nonunit quaternion rejected"

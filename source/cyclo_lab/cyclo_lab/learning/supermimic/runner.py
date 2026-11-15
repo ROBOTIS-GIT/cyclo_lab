@@ -5,7 +5,6 @@
 from dataclasses import dataclass, asdict
 from pathlib import Path
 import torch
-import hashlib
 from tensordict import TensorDict
 from supermimic.models import Dynamics, MultiEncoderAE, build_mlp
 from supermimic.representations import create_representation
@@ -18,6 +17,13 @@ from supermimic.learners.policy_learner import (
     ActorCriticPolicyLearnerCfg,
 )
 from .bridge import IsaacBridge
+from .checkpoint import (
+    FORMAT,
+    environment_contract,
+    read_checkpoint,
+    check_contract,
+    assert_equal_tree,
+)
 
 
 @dataclass
@@ -34,7 +40,7 @@ class RunnerCfg:
 
 
 class IsaacSuperMimicRunner:
-    def __init__(self, env, cfg: RunnerCfg):
+    def __init__(self, env, cfg: RunnerCfg, contract=None):
         if cfg.collection_steps < 1 or cfg.batch_size < 1:
             raise ValueError("Collection steps and batch size must be positive")
         if cfg.horizon < 2 or cfg.batch_size * cfg.policy_horizon < 4:
@@ -49,6 +55,11 @@ class IsaacSuperMimicRunner:
         self.device = b.device
         self.iteration = 0
         self.collected_steps = 0
+        self.contract = (
+            contract
+            if contract is not None
+            else environment_contract(env.unwrapped.cfg, env.spec.id, b.motion.contract)
+        )
         self.rep = create_representation(
             "gencoord",
             59,
@@ -131,9 +142,6 @@ class IsaacSuperMimicRunner:
             self.wm_learner._captured_update = self.wm_learner._update_from
             self.policy_learner._rollout_actor = self.actor
             self.policy_learner._captured_update = self.policy_learner._update_from
-        self.previous_action = torch.zeros(
-            (env.unwrapped.num_envs, 23), device=self.device
-        )
 
     def actor_obs(self, state, frames):
         aux = self.rep.extract_aux_state(state)
@@ -146,19 +154,25 @@ class IsaacSuperMimicRunner:
         for _ in range(steps):
             # Snapshot BEFORE env.step: that call can reset and advance motion in place.
             state, frames = self.bridge.state(), self.bridge.frame_ids()
+            resets = self.bridge.reset_counts()
             with torch.no_grad():
                 self.actor.eval()
                 obs = self.actor_obs(state, frames)
-                action = (
-                    self.actor(obs)
-                    + torch.randn_like(self.previous_action) * self.cfg.noise
-                ).clamp(-10, 10)
+                previous_action = self.env.unwrapped.action_manager.action.clone()
+                action = self.actor(obs)
+                action = action + torch.randn_like(action) * self.cfg.noise
+                if not torch.isfinite(action).all() or not torch.isfinite(state).all():
+                    raise RuntimeError("Nonfinite real state/action before collection")
                 _, _, terminated, truncated, _ = self.env.step(action)
+                # Commands can teleport at clip end without an env done. Never
+                # teach the WM that a resample is a physical transition.
+                resampled = self.bridge.reset_counts() != resets
+                truncated = truncated | (resampled & ~terminated)
                 transition = TensorDict(
                     dict(
                         state=state,
                         action=action.clone(),
-                        prev_action=self.previous_action.clone(),
+                        prev_action=previous_action,
                         motion_time=frames,
                         sim_ctx=self.bridge.context(),
                         terminated=terminated.clone(),
@@ -168,8 +182,6 @@ class IsaacSuperMimicRunner:
                     device=self.device,
                 )
                 self.buffer.insert(transition)
-                self.previous_action = action.clone()
-                self.previous_action[terminated | truncated] = 0
                 collected.append((state, action, obs))
                 self.collected_steps += 1
         self.wm_learner.update_normalization(
@@ -187,10 +199,19 @@ class IsaacSuperMimicRunner:
         wm = self.wm_learner.update(
             iter([self.buffer.sample(self.cfg.horizon, self.cfg.batch_size)])
         )
+        wm_after = {
+            k: v.detach().clone() for k, v in self.dynamics.state_dict().items()
+        }
         policy = self.policy_learner.update()
+        assert_equal_tree(
+            wm_after, self.dynamics.state_dict(), "WM frozen during actor update"
+        )
+        if any(p.requires_grad for p in self.dynamics.parameters()):
+            raise RuntimeError("Policy update failed to freeze WM parameters")
         logs = {k: float(v) for k, v in (wm | policy).items()}
         if not all(torch.isfinite(torch.tensor(v)) for v in logs.values()):
             raise RuntimeError(f"Nonfinite update metrics: {logs}")
+        logs["wm_frozen_during_actor"] = True
         logs["wm_parameters_changed"] = any(
             not torch.equal(a, b) for a, b in zip(wm_before, self.dynamics.parameters())
         )
@@ -202,70 +223,70 @@ class IsaacSuperMimicRunner:
         self.iteration += 1
         return logs
 
+    def state_bundle(self):
+        return dict(
+            format=FORMAT,
+            contract=self.contract,
+            motion_file=str(
+                Path(
+                    self.env.unwrapped.cfg.commands.reference_trajectory.trajectory_file
+                ).resolve()
+            ),
+            cfg=asdict(self.cfg),
+            iteration=self.iteration,
+            collected_steps=self.collected_steps,
+            joint_names=list(self.bridge.robot.joint_names),
+            action_scale=self.scale,
+            action_offset=self.offset,
+            dynamics=self.dynamics.state_dict(),
+            actor=self.actor.state_dict(),
+            critic=self.critic.state_dict(),
+            wm_optimizers=[o.state_dict() for o in self.wm_learner.optimizers],
+            actor_optimizers=[
+                o.state_dict() for o in self.policy_learner.actor_optimizers
+            ],
+            critic_optimizers=[
+                o.state_dict() for o in self.policy_learner.critic_optimizers
+            ],
+        )
+
     def save(self, path):
         path = Path(path)
         path.parent.mkdir(parents=True, exist_ok=True)
-        torch.save(
-            dict(
-                format="cyclo-supermimic-isaac-v1",
-                task=self.env.spec.id,
-                motion_file=str(
-                    Path(
-                        self.env.unwrapped.cfg.commands.reference_trajectory.trajectory_file
-                    ).resolve()
-                ),
-                cfg=asdict(self.cfg),
-                iteration=self.iteration,
-                joint_names=list(self.bridge.robot.joint_names),
-                dt=self.bridge.step_dt,
-                motion_sha256=hashlib.sha256(
-                    Path(
-                        self.env.unwrapped.cfg.commands.reference_trajectory.trajectory_file
-                    ).read_bytes()
-                ).hexdigest(),
-                action_scale=self.scale,
-                action_offset=self.offset,
-                dynamics=self.dynamics.state_dict(),
-                actor=self.actor.state_dict(),
-                critic=self.critic.state_dict(),
-                wm_optimizers=[o.state_dict() for o in self.wm_learner.optimizers],
-                actor_optimizers=[
-                    o.state_dict() for o in self.policy_learner.actor_optimizers
-                ],
-                critic_optimizers=[
-                    o.state_dict() for o in self.policy_learner.critic_optimizers
-                ],
-            ),
-            path,
-        )
+        temporary = path.with_suffix(path.suffix + ".tmp")
+        torch.save(self.state_bundle(), temporary)
+        temporary.replace(path)
 
-    def load(self, path):
-        checkpoint = torch.load(path, map_location=self.device, weights_only=False)
-        if checkpoint.get("format") != "cyclo-supermimic-isaac-v1":
-            raise ValueError(
-                "Expected Isaac SuperMimic checkpoint, not a PPO or mjlab checkpoint"
-            )
-        if (
-            checkpoint["joint_names"] != list(self.bridge.robot.joint_names)
-            or checkpoint["dt"] != self.bridge.step_dt
-        ):
-            raise ValueError("Checkpoint joint order or policy timestep differs")
+    def load(self, path, *, inference=False):
+        checkpoint = read_checkpoint(path, self.device)
+        check_contract(checkpoint["contract"], self.contract)
+        if checkpoint["joint_names"] != list(self.bridge.robot.joint_names):
+            raise ValueError("Checkpoint joint order differs")
         if not torch.equal(checkpoint["action_scale"], self.scale) or not torch.equal(
             checkpoint["action_offset"], self.offset
         ):
             raise ValueError("Checkpoint actuation differs")
+        expected_cfg, current_cfg = dict(checkpoint["cfg"]), asdict(self.cfg)
+        expected_cfg.pop("eager")
+        current_cfg.pop("eager")
+        if expected_cfg != current_cfg:
+            raise ValueError("Checkpoint learner/model configuration differs")
         for name in ("dynamics", "actor", "critic"):
             getattr(self, name).load_state_dict(checkpoint[name])
-        for name, optimizers in [
-            ("wm", self.wm_learner.optimizers),
-            ("actor", self.policy_learner.actor_optimizers),
-            ("critic", self.policy_learner.critic_optimizers),
-        ]:
-            for optimizer, state in zip(
-                optimizers, checkpoint[name + "_optimizers"], strict=True
-            ):
-                optimizer.load_state_dict(state)
+        if not inference:
+            for name, optimizers in [
+                ("wm", self.wm_learner.optimizers),
+                ("actor", self.policy_learner.actor_optimizers),
+                ("critic", self.policy_learner.critic_optimizers),
+            ]:
+                for optimizer, state in zip(
+                    optimizers, checkpoint[name + "_optimizers"], strict=True
+                ):
+                    optimizer.load_state_dict(state)
         self.iteration = checkpoint["iteration"]
+        self.collected_steps = checkpoint["collected_steps"]
+        # Continuation restores learned/optimizer state, but refills replay and
+        # resets simulation. It is deliberately not an exact trajectory resume.
         if not self.cfg.eager:
             from supermimic.learners.learner_utils import CapturedUpdate, graph_state
 

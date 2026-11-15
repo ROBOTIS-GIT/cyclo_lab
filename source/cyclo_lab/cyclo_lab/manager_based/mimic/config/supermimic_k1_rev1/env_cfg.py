@@ -12,6 +12,9 @@ from cyclo_lab.manager_based.mimic.config.k1_rev1.dance2_env_cfg import (
 
 
 def configure_supermimic(cfg):
+    from cyclo_lab.learning.supermimic.command import SuperMimicReferenceCommand
+
+    cfg.commands.reference_trajectory.class_type = SuperMimicReferenceCommand
     cfg.commands.reference_trajectory.anchor_body_name = "pelvis"
     cfg.commands.reference_trajectory.debug_vis = False
     # Constant dynamics context in the first Isaac port: no hidden actuator/COM DR.

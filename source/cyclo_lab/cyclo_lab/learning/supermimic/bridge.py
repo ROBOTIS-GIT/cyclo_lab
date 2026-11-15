@@ -2,10 +2,12 @@
 # SPDX-License-Identifier: Apache-2.0
 """Read live Isaac articulation state; adapt only the upstream learner contract."""
 
+import math
 import torch
 from . import ROOT
 from .fk import UrdfKinematics
 from .motion import validate_motion
+from .motion_physics import validate_motion_physics
 
 BODIES = (
     "pelvis",
@@ -36,7 +38,12 @@ class IsaacMotion:
         # Existing Cyclo loader validates/reorders named arrays into live Isaac order.
         command = env.command_manager.get_term("reference_trajectory")
         reference = command.reference
-        if float(torch.as_tensor(reference.fps).flatten()[0]) != round(1 / env.step_dt):
+        if not math.isclose(
+            float(torch.as_tensor(reference.fps).flatten()[0]) * env.step_dt,
+            1.0,
+            rel_tol=0,
+            abs_tol=1e-12,
+        ):
             raise ValueError(
                 "Motion FPS must match the Isaac policy rate; resample before training"
             )
@@ -46,7 +53,12 @@ class IsaacMotion:
         root = env.scene["robot"].body_names.index("pelvis")
         self.root_pos_w = reference._body_position_w[:, root]
         self.root_quat_w = wxyz(reference._body_orientation_w[:, root])
-        self.root_lin_vel_w = reference._body_linear_velocity_w[:, root]
+        self.contract, root_link_velocity = validate_motion_physics(
+            command.cfg.trajectory_file
+            if hasattr(command, "cfg")
+            else env.cfg.commands.reference_trajectory.trajectory_file
+        )
+        self.root_lin_vel_w = root_link_velocity.to(env.device)
         self.root_ang_vel_w = reference._body_angular_velocity_w[:, root]
         self.motion_ends = torch.tensor(
             [reference.num_frames], device=env.device, dtype=torch.long
@@ -83,7 +95,7 @@ class IsaacBridge:
             self.env.cfg.commands.reference_trajectory.trajectory_file,
             self.robot.joint_names,
             self.robot.body_names,
-            fps=round(1 / self.env.step_dt),
+            fps=50,
         )
         self.motion = IsaacMotion(self.env, self.fk)
         self.scene = self.env.scene
@@ -126,6 +138,11 @@ class IsaacBridge:
         return self.env.command_manager.get_term(
             "reference_trajectory"
         ).frame_ids.clone()
+
+    def reset_counts(self):
+        return self.env.command_manager.get_term(
+            "reference_trajectory"
+        ).resample_counts.clone()
 
     def context(self):
         return torch.zeros((self.env.num_envs, 1), device=self.device)

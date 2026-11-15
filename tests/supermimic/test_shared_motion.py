@@ -6,6 +6,7 @@ import numpy as np
 import pytest
 from cyclo_lab.learning.supermimic import ROOT
 from cyclo_lab.learning.supermimic.motion import validate_motion
+from cyclo_lab.learning.supermimic.motion_physics import validate_motion_physics
 from cyclo_lab.learning.supermimic.bridge import URDF
 from cyclo_lab.utils.motion_npz import load_motion_npz
 
@@ -51,6 +52,8 @@ def test_shared_loader_reorders_without_resampling_or_rewriting(tmp_path, order)
         and metadata["frames"] == 300
         and metadata["quaternion_order"] == order
     )
+    physical, _ = validate_motion_physics(path)
+    assert physical["physical_profiles"] == ["ai_sapiens_b0ef567_com"]
     baseline = load_motion_npz(SOURCE, target_joints, target_bodies)
     # This is the exact loader called by ReferenceTrajectory for BOTH algorithms.
     reordered = load_motion_npz(path, target_joints, target_bodies)

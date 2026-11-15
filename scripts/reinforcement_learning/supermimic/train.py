@@ -61,12 +61,10 @@ def main():
         parser.error("--play requires --checkpoint")
     saved = None
     if args.checkpoint:
-        import torch
+        from cyclo_lab.learning.supermimic.checkpoint import read_checkpoint
 
-        saved = torch.load(args.checkpoint, map_location="cpu", weights_only=False)
-        if saved.get("format") != "cyclo-supermimic-isaac-v1":
-            raise ValueError("Expected a native Isaac SuperMimic checkpoint")
-        args.task = args.task or saved["task"]
+        saved = read_checkpoint(args.checkpoint)
+        args.task = args.task or saved["contract"]["task"]
         if args.motion_file is None:
             args.motion_file = Path(saved["motion_file"])
             if not args.motion_file.is_file():
@@ -84,7 +82,7 @@ def main():
     cfg, _ = resolve_task_config(
         args.task,
         "supermimic_cfg_entry_point",
-        play_mode=args.play,
+        play_mode=False,
         overrides=["physics=isaacsim_physx", *overrides],
     )
     cfg.scene.num_envs = args.num_envs
@@ -92,11 +90,29 @@ def main():
         cfg.commands.reference_trajectory.trajectory_file = str(
             args.motion_file.resolve()
         )
-    from cyclo_lab.learning.supermimic.motion import validate_motion
+    from cyclo_lab.learning.supermimic.motion_physics import validate_motion_physics
+    from cyclo_lab.learning.supermimic.checkpoint import (
+        validate_native_cfg,
+        environment_contract,
+        check_contract,
+        read_checkpoint,
+        assert_equal_tree,
+    )
+
+    validate_native_cfg(cfg)
+    motion_contract, _ = validate_motion_physics(
+        cfg.commands.reference_trajectory.trajectory_file
+    )
+    contract = environment_contract(cfg, args.task, motion_contract)
+    if saved is not None:
+        check_contract(saved["contract"], contract)
+    if args.play:
+        # Only initial frame selection changes; timing/physics stay exact.
+        cfg.commands.reference_trajectory.start_from_zero = True
 
     print(
         "MOTION_CONTRACT",
-        json.dumps(validate_motion(cfg.commands.reference_trajectory.trajectory_file)),
+        json.dumps(motion_contract),
         flush=True,
     )
     output = args.output or ROOT / "logs/supermimic" / datetime.now().strftime(
@@ -127,9 +143,34 @@ def main():
             if saved is not None:
                 runner_cfg = RunnerCfg(**saved["cfg"])
                 runner_cfg.eager = args.eager
-            runner = IsaacSuperMimicRunner(env, runner_cfg)
+            runner = IsaacSuperMimicRunner(env, runner_cfg, contract=contract)
             if args.checkpoint:
-                runner.load(args.checkpoint)
+                runner.load(args.checkpoint, inference=args.play)
+                if args.verify:
+                    keys = [
+                        "dynamics",
+                        "actor",
+                        "critic",
+                        "iteration",
+                        "collected_steps",
+                    ]
+                    if not args.play:
+                        keys += [
+                            "wm_optimizers",
+                            "actor_optimizers",
+                            "critic_optimizers",
+                        ]
+                    restored = runner.state_bundle()
+                    assert_equal_tree(
+                        {k: saved[k] for k in keys},
+                        {k: restored[k] for k in keys},
+                        "fresh restore",
+                    )
+                    print(
+                        "ISAAC_FRESH_RESTORE_PASS",
+                        "inference" if args.play else "continuation_with_fresh_replay",
+                        flush=True,
+                    )
             print(
                 "ISAAC_BACKEND",
                 type(env.unwrapped).__module__,
@@ -146,7 +187,7 @@ def main():
                             runner.actor_obs(
                                 runner.bridge.state(), runner.bridge.frame_ids()
                             )
-                        ).clamp(-10, 10)
+                        )
                         env.step(action)
                         if not torch.isfinite(runner.bridge.state()).all():
                             raise RuntimeError("Nonfinite Isaac state during playback")
@@ -154,7 +195,7 @@ def main():
                 return
             output.mkdir(parents=True, exist_ok=True)
             for _ in range(args.iterations):
-                runner.collect(max(args.collection_steps, args.horizon))
+                runner.collect(max(runner_cfg.collection_steps, runner_cfg.horizon))
                 if args.verify:
                     print(
                         "ISAAC_FK_PARITY_AFTER_COLLECTION",
@@ -175,13 +216,15 @@ def main():
                 checkpoint = output / f"model_{runner.iteration}.pt"
                 runner.save(checkpoint)
                 if args.verify:
-                    before = {
-                        k: v.clone() for k, v in runner.actor.state_dict().items()
-                    }
+                    # Compare every model, normalizer and optimizer tensor to the
+                    # post-update file, then independently verify full reload.
+                    stored = read_checkpoint(checkpoint)
+                    assert_equal_tree(
+                        runner.state_bundle(), stored, "saved final state"
+                    )
                     runner.load(checkpoint)
-                    assert all(
-                        torch.equal(v, runner.actor.state_dict()[k])
-                        for k, v in before.items()
+                    assert_equal_tree(
+                        stored, runner.state_bundle(), "reloaded final state"
                     )
                     print("ISAAC_CHECKPOINT_RELOAD_PASS", str(checkpoint), flush=True)
         finally:
