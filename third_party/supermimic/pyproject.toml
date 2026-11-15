@@ -1,0 +1,43 @@
+[build-system]
+requires = ["uv_build>=0.8.19,<0.9.0"]
+build-backend = "uv_build"
+
+[project]
+name = "supermimic"
+version = "0.1.0"
+description = "Humanoid whole-body motion tracking with one differentiable world model."
+readme = "README.md"
+license = "Apache-2.0"
+license-files = ["LICENSE"]
+requires-python = ">=3.13,<3.14"
+dependencies = [
+    "mjlab",
+    "ruff>=0.14.10",
+    "viser>=1.0.24",
+]
+
+[tool.uv.sources]
+mjlab = { path = "../mjlab_research", editable = true }
+
+[tool.ruff]
+src = ["src"]
+indent-width = 2
+exclude = []
+
+[tool.ruff.lint]
+select = ["E4", "E7", "E9", "F", "I", "B"]
+ignore = ["B011"]
+
+[tool.pyright]
+pythonVersion = "3.13"
+venvPath = "."
+venv = ".venv"
+include = ["src"]
+
+[dependency-groups]
+dev = [
+    "ipdb>=0.13.13",
+    "pre-commit>=4.2.0",
+    "pyright>=1.1.408",
+    "pytest>=9.0.2",
+]

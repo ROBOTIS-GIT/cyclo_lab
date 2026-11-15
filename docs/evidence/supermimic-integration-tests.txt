@@ -1,0 +1,8 @@
+..........                                                               [100%]
+=============================== warnings summary ===============================
+feature-supermimic/tests/supermimic/test_robot.py::test_k1_runtime_config_has_no_g1_robot_contracts
+  /home/hc/Documents/Codex/2026-11-15/task-2/.verify-env/lib/python3.13/site-packages/torch/jit/_script.py:1491: FutureWarning: `torch.jit.script` is deprecated. Please switch to `torch.compile` or `torch.export`.
+    warnings.warn(
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+10 passed, 1 warning in 9.01s

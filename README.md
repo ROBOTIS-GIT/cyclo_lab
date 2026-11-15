@@ -388,3 +388,10 @@ This repository is licensed under the **Apache 2.0 License**. See [LICENSE](LICE
 ### Third-party components
 
 - **Isaac Lab**: BSD-3-Clause License, see [LICENSE-IsaacLab](LICENSE-IsaacLab)
+
+### SuperMimic world-model tracking (K1)
+
+The optional [SuperMimic integration](docs/supermimic.md) connects K1 motion data
+and inertia-tuned actuation to the official differentiable world-model trainer
+in its own Python 3.13 runtime. It includes named-joint NPZ conversion, a bounded
+simulator smoke command, training and playback launchers, and tests.

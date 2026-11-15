@@ -49,3 +49,13 @@ ROS installation in the Isaac Sim Python environment.
 
 Cyclo Lab reuses the upstream Galileo scene, task, and metrics while supplying
 the FFW-SG2 embodiment and action configuration.
+
+## SuperMimic
+
+Copyright 2026 The SuperMimic Authors. Apache-2.0.
+Official source at https://github.com/HybridRobotics/supermimic, revision
+`abc124c1bd5976341034668af3d12c087f2f1f55`, preserved unmodified under
+`third_party/supermimic`, including full LICENSE and README acknowledgements.
+See `third_party/supermimic/UPSTREAM.md` for provenance and dependency pin.
+The K1 adapter uses the existing ai_sapiens submodule's licensed assets;
+no robot mesh or motion dataset is relicensed or bundled by this integration.

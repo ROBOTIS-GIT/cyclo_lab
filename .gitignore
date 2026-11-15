@@ -65,7 +65,8 @@ _build
 datasets
 
 # Tests
-tests/
+/tests/*
+!/tests/supermimic/
 
 # Docker history
 .isaac-lab-docker-history
@@ -77,6 +78,13 @@ third_party/*
 !third_party/IsaacLab-Arena
 !third_party/ai_sapiens
 !third_party/zenoh_ros2_sdk
+!third_party/supermimic/
 
 # Zenoh ROS2 SDK message cache mounted into Docker
 docker/zenoh_cache/
+
+# Isolated SuperMimic runtime and generated motion / training output
+third_party/mjlab_research/
+third_party/supermimic/.venv/
+data/supermimic/
+logs/supermimic/
