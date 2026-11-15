@@ -34,7 +34,10 @@ def test_supported_physx_and_fixed_context(resolved):
     validate_native_cfg(cfg)
     assert cfg.sim.dt == 0.005 and cfg.decimation == 4
     newton, _ = resolve_task_config(TASK, "supermimic_cfg_entry_point", overrides=[])
-    with pytest.raises(ValueError, match="PhysX|physx"):
+    validate_native_cfg(newton)
+    assert type(newton.sim.physics.solver_cfg).__name__ == "MJWarpSolverCfg"
+    newton.sim.physics.num_substeps = 2
+    with pytest.raises(ValueError, match="num_substeps"):
         validate_native_cfg(newton)
     from cyclo_lab.manager_based.mimic.config.k1_rev1.dance1_env_cfg import K1Rev1EnvCfg
 
@@ -100,10 +103,47 @@ def test_checkpoint_reader_rejects_old_or_unrestricted_objects(tmp_path):
 
     path = tmp_path / "old.pt"
     torch.save({"format": "cyclo-supermimic-isaac-v1"}, path)
-    with pytest.raises(ValueError, match="v2"):
+    with pytest.raises(ValueError, match="v3"):
         read_checkpoint(path)
     from pathlib import Path
 
     torch.save({"unsupported": Path("unsupported")}, path)
     with pytest.raises(pickle.UnpicklingError):
         read_checkpoint(path)
+
+
+def test_v2_physx_gencoord_contract_upgrade_is_strict(resolved):
+    cfg, motion = resolved
+    current = environment_contract(cfg, TASK, motion)
+    legacy = copy.deepcopy(current)
+    legacy["version"] = 1
+    del legacy["backend_class"]
+    del legacy["observation"]["tracked_bodies"]
+    check_contract(legacy, current)
+    for overrides in (
+        [],
+        ["physics=isaacsim_physx", "env.sim.dt=0.0025", "env.decimation=8"],
+    ):
+        changed, _ = resolve_task_config(
+            TASK, "supermimic_cfg_entry_point", overrides=overrides
+        )
+        with pytest.raises(ValueError, match="Incompatible"):
+            check_contract(legacy, environment_contract(changed, TASK, motion))
+    with pytest.raises(ValueError, match="observation"):
+        check_contract(legacy, environment_contract(cfg, TASK, motion, "maxcoord"))
+
+
+def test_newton_kit_bootstrap_keeps_effective_physics():
+    from isaaclab.app.sim_launcher import validate_launch
+
+    cfg, _ = resolve_task_config(TASK, "supermimic_cfg_entry_point", overrides=[])
+    original = environment_contract(
+        cfg, TASK, {"sha256": "fixture", "physical_profiles": []}
+    )
+    scan, sources = validate_launch(cfg, {"headless": True, "require_kit": True})
+    assert sources and "explicit Kit requirement" in " ".join(sources)
+    assert type(scan.resolved_physics_cfg.solver_cfg).__name__ == "MJWarpSolverCfg"
+    check_contract(
+        original,
+        environment_contract(cfg, TASK, {"sha256": "fixture", "physical_profiles": []}),
+    )

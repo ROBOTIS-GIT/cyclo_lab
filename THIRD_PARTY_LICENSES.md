@@ -55,11 +55,13 @@ the FFW-SG2 embodiment and action configuration.
 Copyright 2026 The SuperMimic Authors. Apache-2.0.
 Source: https://github.com/HybridRobotics/supermimic, revision
 `abc124c1bd5976341034668af3d12c087f2f1f55`.
-Selected algorithm sources, complete LICENSE and original README acknowledgements
-are retained under `third_party/supermimic`. ROBOTIS modified only simulator import
-boundaries, the WM environment constructor contract and removed mjlab registration;
-marked files and `UPSTREAM.md` describe the port. Dynamics/replay/WM and policy
-learners remain verbatim; imagined-rollout math is unchanged. The new runner collects states in the existing Isaac Lab runtime.
+The shared ROBOTIS-GIT/supermimic fork is an HTTPS submodule at
+`third_party/supermimic`, descended from that official revision. Its unchanged
+Apache-2.0 LICENSE, original acknowledgements, BSD-3-Clause math notice and
+`PATCHES.md` describe the portable-core changes. Models, replay, WM/policy learners
+and imagined environments remain official; native Isaac/K1 topology, collection,
+motion validation and checkpoint adapters live in Cyclo Lab. No research MJLab
+runtime is required by the Lab integration.
 K1 assets and input motion data retain their existing licensing and gitlinks.
 
 ## Historical K1 motion inertial profile

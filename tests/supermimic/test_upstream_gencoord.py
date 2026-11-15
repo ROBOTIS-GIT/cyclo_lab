@@ -130,7 +130,7 @@ class TestGenCoordAccelPrediction:
 
     def test_kinematic_consistency(self):
         """qj integrates vj; z and gravity are derived from the root pose."""
-        from supermimic.math import quat_apply_inverse
+        from supermimic.utils.math import quat_apply_inverse
 
         rep = self._rep()
         dt = 0.02

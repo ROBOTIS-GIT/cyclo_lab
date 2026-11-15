@@ -3,6 +3,7 @@
 """Read live Isaac articulation state; adapt only the upstream learner contract."""
 
 import math
+from types import SimpleNamespace
 import torch
 from . import ROOT
 from .fk import UrdfKinematics
@@ -83,7 +84,9 @@ class IsaacBridge:
     documented no-DR configuration; no fake MuJoCo model or environment exists.
     """
 
-    def __init__(self, env):
+    def __init__(self, env, representation="gencoord"):
+        self.representation = representation
+        self.full_state_dim = 59 if representation == "gencoord" else 13 * len(BODIES)
         self.env = env.unwrapped
         self.device = self.env.device
         self.robot = self.env.scene["robot"]
@@ -107,19 +110,47 @@ class IsaacBridge:
         self.anchor_ori_threshold = self.env.cfg.terminations.anchor_ori.params[
             "threshold"
         ]
-        self.max_step_reward = self.step_dt * sum(
-            getattr(self.env.cfg.rewards, name).weight
-            for name in (
-                "reference_anchor_position",
-                "reference_anchor_orientation",
-                "reference_body_position",
-                "reference_body_orientation",
-                "reference_body_linear_velocity",
-                "reference_body_angular_velocity",
-            )
+
+    def world_model_facade(self):
+        """Configuration-only protocol consumed by the unchanged official WM env.
+
+        This exposes motion and scalar objective settings, never simulator IDs or
+        a surrogate physics model. All collection continues through the real env.
+        """
+        motion_command = SimpleNamespace(
+            motion=self.motion, motion_anchor_body_index=self.anchor_index
         )
 
-    def state(self):
+        def get_term(name):
+            if name != "motion":
+                raise KeyError(name)
+            return motion_command
+
+        rewards = {
+            k: v
+            for k, v in vars(self.env.cfg.rewards).items()
+            if not k.startswith("_") and v is not None
+        }
+        return SimpleNamespace(
+            num_actions=self.num_actions,
+            cfg=SimpleNamespace(
+                rewards=rewards,
+                terminations={
+                    "anchor_pos": SimpleNamespace(
+                        params={"threshold": self.anchor_pos_threshold}
+                    ),
+                    "anchor_ori": SimpleNamespace(
+                        params={"threshold": self.anchor_ori_threshold}
+                    ),
+                },
+            ),
+            unwrapped=SimpleNamespace(
+                step_dt=self.step_dt,
+                command_manager=SimpleNamespace(get_term=get_term),
+            ),
+        )
+
+    def generalized_state(self):
         d = self.robot.data
         # Link origin velocities, not COM velocities, match URDF FK and root pose.
         return torch.cat(
@@ -133,6 +164,20 @@ class IsaacBridge:
             ],
             -1,
         ).clone()
+
+    def state(self):
+        if self.representation == "gencoord":
+            return self.generalized_state()
+        d = self.robot.data
+        ids = [self.robot.body_names.index(n) for n in BODIES]
+        # Official field-major layout; all quantities are link-origin world states.
+        fields = (
+            d.body_link_pos_w.torch[:, ids] - self.env.scene.env_origins[:, None],
+            wxyz(d.body_link_quat_w.torch[:, ids]),
+            d.body_link_lin_vel_w.torch[:, ids],
+            d.body_link_ang_vel_w.torch[:, ids],
+        )
+        return torch.cat([v.flatten(-2) for v in fields], -1).clone()
 
     def frame_ids(self):
         return self.env.command_manager.get_term(
@@ -158,7 +203,7 @@ class IsaacBridge:
         return tensor(scale), tensor(offset)
 
     def check_fk(self, atol=2e-3):
-        state = self.state()
+        state = self.generalized_state()
         pos, quat, vel, ang = self.fk(
             state[:, :3],
             state[:, 3:7],

@@ -9,7 +9,7 @@ articulation; URDF document order is never assumed to match PhysX order.
 import math
 import xml.etree.ElementTree as ET
 import torch
-from supermimic.math import quat_apply, quat_mul
+from supermimic.utils.math import quat_apply, quat_mul
 
 
 def rpy_quat(rpy):

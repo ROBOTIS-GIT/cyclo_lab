@@ -14,7 +14,7 @@ import xml.etree.ElementTree as ET
 
 import numpy as np
 import torch
-from supermimic.math import quat_apply
+from supermimic.utils.math import quat_apply
 from . import ROOT
 from .fk import UrdfKinematics, rpy_quat
 from .motion import validate_motion, real_float32
@@ -158,7 +158,8 @@ def validate_motion_physics(path, urdf=URDF):
         if declared != "unspecified" and declared != convention:
             continue
         root_velocity = linear[:, root] - torch.linalg.cross(
-            angular[:, root], quat_apply(quat[:, root], offsets[root])
+            angular[:, root],
+            quat_apply(quat[:, root], offsets[root].expand_as(angular[:, root])),
         )
         p, q, v, w = fk(
             pos[:, root],
@@ -168,7 +169,7 @@ def validate_motion_physics(path, urdf=URDF):
             angular[:, root],
             tensors["joint_vel"],
         )
-        v = v + torch.linalg.cross(w, quat_apply(q, offsets))
+        v = v + torch.linalg.cross(w, quat_apply(q, offsets.expand_as(w)))
         errors = {
             "position": float((p - pos).abs().max()),
             "orientation": float(

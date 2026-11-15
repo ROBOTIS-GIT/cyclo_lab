@@ -12,7 +12,7 @@ from cyclo_lab.learning.supermimic.motion_physics import (
     URDF,
 )
 from cyclo_lab.learning.supermimic.fk import UrdfKinematics
-from supermimic.math import quat_apply
+from supermimic.utils.math import quat_apply
 
 SOURCE = ROOT / "source/cyclo_lab/data/motions/K1_rev1/dance1/dance1.npz"
 
@@ -45,7 +45,7 @@ def test_rotating_pelvis_com_to_link_conversion(tmp_path):
     angular = torch.tensor([[1.0, 2.0, 3.0]]).expand(frames, -1)
     joint = torch.zeros(frames, 23)
     p, q, v, w = fk(pos, quat, joint, linear, angular, joint)
-    com_v = v + torch.linalg.cross(w, quat_apply(q, offsets))
+    com_v = v + torch.linalg.cross(w, quat_apply(q, offsets.expand_as(w)))
     data.update(
         joint_pos=joint.numpy(),
         joint_vel=joint.numpy(),

@@ -95,9 +95,30 @@ class UnitEnv:
             action=torch.zeros(1, 23), get_term=lambda _: NS(_scale=0.1, _offset=0.0)
         )
         self.calls = 0
+        from cyclo_lab.learning.supermimic.fk import UrdfKinematics
+        from cyclo_lab.learning.supermimic.bridge import URDF
+
+        self._fk = UrdfKinematics(URDF, names, robot.body_names)
+        self._refresh_bodies()
+
+    def _refresh_bodies(self):
+        d = self.scene["robot"].data
+        fields = self._fk(
+            d.root_link_pos_w.torch,
+            d.root_link_quat_w.torch[:, [3, 0, 1, 2]],
+            d.joint_pos.torch,
+            d.root_link_lin_vel_w.torch,
+            d.root_link_ang_vel_w.torch,
+            d.joint_vel.torch,
+        )
+        d.body_link_pos_w = proxy(fields[0])
+        d.body_link_quat_w = proxy(fields[1][..., [1, 2, 3, 0]])
+        d.body_link_lin_vel_w = proxy(fields[2])
+        d.body_link_ang_vel_w = proxy(fields[3])
 
     def step(self, action):
         self.joints.add_(action.detach() * 0.01)
+        self._refresh_bodies()
         self.calls += 1
         done = torch.tensor([self.calls % 4 == 0])
         self.frames.add_(1)
@@ -108,10 +129,13 @@ class UnitEnv:
         return {}, torch.zeros(1), done, torch.zeros(1, dtype=torch.bool), {}
 
 
-def test_collection_boundaries_learning_and_checkpoint(tmp_path, monkeypatch):
+@pytest.mark.parametrize("representation", ["gencoord", "maxcoord"])
+def test_collection_boundaries_learning_and_checkpoint(
+    tmp_path, monkeypatch, representation
+):
     monkeypatch.setattr(
         "cyclo_lab.learning.supermimic.runner.environment_contract",
-        lambda cfg, task, motion: {
+        lambda cfg, task, motion, representation: {
             "unit_double": True,
             "task": task,
             "motion_sha256": motion["sha256"],
@@ -122,6 +146,7 @@ def test_collection_boundaries_learning_and_checkpoint(tmp_path, monkeypatch):
     try:
         env = UnitEnv()
         cfg = RunnerCfg(
+            representation=representation,
             hidden=(16, 16),
             latent=8,
             batch_size=2,
@@ -135,8 +160,10 @@ def test_collection_boundaries_learning_and_checkpoint(tmp_path, monkeypatch):
         torch.testing.assert_close(
             storage["state"][0, 0, :3], torch.tensor([0.0, 0.0, 0.8])
         )
+        quaternion_start = 3 if representation == "gencoord" else 42
         torch.testing.assert_close(
-            storage["state"][0, 0, 3:7], torch.tensor([1.0, 0.0, 0.0, 0.0])
+            storage["state"][0, 0, quaternion_start : quaternion_start + 4],
+            torch.tensor([1.0, 0.0, 0.0, 0.0]),
         )
         assert storage["terminated"][0, 3] and storage["terminated"][0, 7]
         assert storage["motion_time"][0, 4] == 0

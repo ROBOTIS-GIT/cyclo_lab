@@ -1,11 +1,18 @@
 # Choose BeyondMimic or SuperMimic in Isaac Lab
 
-Both choices run in this checkout's pinned Isaac Lab 3.0 / Isaac Sim 6.2 / Python
-3.12 environment. SuperMimic uses the official differentiable world model and
+Both choices run in this checkout's pinned Isaac Lab / Isaac Sim 6.2 / Python
+3.12 environment (exact runtime versions are in the
+[validation guide](supermimic-validation.md#runtime)). SuperMimic uses the official differentiable world model and
 BPTT actor-critic learners with Isaac-collected transitions. No mjlab runtime or
 separate Python environment is required.
 
 ## Setup and selection
+
+Initialize the shared core with `git submodule update --init third_party/supermimic`.
+It is the [ROBOTIS shared fork](https://github.com/ROBOTIS-GIT/supermimic/tree/10dd5dd3f02601caf1991790952a25db63a6fb99)
+at the repository gitlink, based on official `abc124c1`. Read its
+[portable-core API/provenance](https://github.com/ROBOTIS-GIT/supermimic/blob/10dd5dd3f02601caf1991790952a25db63a6fb99/PATCHES.md). Do not install
+its optional research extra or use its standalone lock to replace Lab dependencies.
 
 Use the existing [Docker environment](../docker/README.md). The RSL-RL extra
 provides the matching Torch, normalization and TensorDict packages. If omitted,
@@ -37,10 +44,21 @@ configs, observations and export code remain unchanged. The shared selector
 forwards backend-specific options. SuperMimic accepts both `--num-envs` /
 `--num_envs` and `--iterations` / `--max_iterations`.
 
-**Native SuperMimic supports PhysX only.** Its launcher explicitly selects
-`physics=isaacsim_physx` and rejects Newton overrides before simulation. Bare
-inherited K1 task construction still defaults to Newton; this is not the supported
-SuperMimic launch path. Existing BeyondMimic backend defaults are preserved.
+SuperMimic inherits **Newton/MJWarp by default**, including the original K1
+self-collision, actuator and solver presets. Select PhysX explicitly with
+`physics=isaacsim_physx` (or `--physics isaacsim_physx`). Conflicting spellings fail.
+The launcher starts Kit for the supported URDF importer/USD schemas; this does
+not change the chosen physics engine. There is no silent PhysX fallback.
+Additional Newton solver substeps are rejected: the supported preset uses
+`num_substeps=1`, independently of policy decimation.
+
+Select `--representation gencoord` (default) or `--representation maxcoord` with
+any existing SuperMimic Dance1/Dance2 task. The task/algorithm aliases stay intact.
+Both representations collect real Isaac state and call the same shared official
+learners. MaxCoord tracks 14 K1 bodies, initializes analytic IK from native URDF
+topology and integrates independent body states without FK projection. Native
+body and action-joint mapping is name-based, including K1 one-hinge chains.
+
 Material/friction, COM, home-offset and push randomization events must remain
 disabled: the port's dynamics context is constant zero. Overrides that activate
 these events fail. Reference-reset perturbations and collection exploration noise
@@ -96,17 +114,20 @@ python scripts/reinforcement_learning/train.py --algorithm supermimic \
   --checkpoint logs/supermimic/<run>/model_5.pt --iterations 100 --eager --headless
 ```
 
-Native checkpoints use `cyclo-supermimic-isaac-v2`, restricted Torch loading and
+Native checkpoints use `cyclo-supermimic-isaac-v3`, restricted Torch loading and
 atomic replacement. Every completed iteration saves the current dynamics, actor,
 critic, normalizers, optimizers and iteration/collection counters. There is no
 remote lookup, W&B account, upload or sync. v1 checkpoints are rejected because
-they lack the physical/reference contract.
+they lack the physical/reference contract. Published v2 PhysX/GenCoord files
+remain loadable when all existing physical/objective fields match; pass
+`physics=isaacsim_physx` because the current default is Newton. v2 is never
+silently reinterpreted as Newton or MaxCoord. New saves use v3.
 
 The versioned declarative contract validates task, motion digest, URDF/mesh and
-motion-profile hashes, exact physics timestep **and decimation**, solver config,
+motion-profile hashes, exact physics timestep **and decimation**, backend class, representation, solver config,
 robot/actuator settings, action transform/order, tracked bodies, privileged
 observations, reward/termination/reset settings and zero context. Learner/model
-configuration is restored from the file. Physical/environment configuration must
+configuration and representation are restored from the file. Physical/environment configuration must
 match; repeat any supported nondefault environment overrides on play/continuation
 or loading fails **before simulation**. Equal aggregate policy timestep alone is
 insufficient. The motion path may be relocated with `--motion-file`, but its digest
@@ -136,16 +157,16 @@ ends. Actual environment rewards are not WM targets or actor-update inputs; the
 actor uses the original imagined reward. Exact per-step equality of inherited
 simulator reward diagnostics and imagined rewards is not claimed.
 
-This port supports **GenCoord K1, a single clip, one motion encoder, privileged
+This port supports **GenCoord and MaxCoord K1, a single clip, one motion encoder, privileged
 rep-state actor observations, history length 1 and fixed dynamics/zero context**.
 It retains the Cyclo command's failure-adaptive start sampling, not the official
-return sampler. MaxCoord, proprio/history actors, velocity-task encoders,
+return sampler. Proprio/history actors, velocity-task encoders,
 motion-to-velocity latent behavior cloning, multi-clip training and return sampling
 are not integrated. There is no validated SuperMimic ONNX/robot-controller export.
 Existing BeyondMimic `policy.onnx` / `sim2real.yaml` deployment remains separate.
 
 The official constant-acceleration substep integration coefficient is preserved
-using the actual Isaac decimation. This does not establish numerical PhysX/MuJoCo
+using the actual Isaac decimation with Newton solver substeps fixed to one. This does not establish numerical PhysX/MuJoCo
 parity or validate long-training quality. `--eager` preserves the original losses
 and optimizers while disabling compilation/CUDA graphs. Compiled execution is
 not covered by the fresh validation. See [validation evidence](supermimic-validation.md)

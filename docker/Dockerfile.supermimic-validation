@@ -8,7 +8,7 @@ RUN bash /opt/IsaacLab/docker/scripts/install_carb_env_shim.sh /isaac-sim
 RUN ln -s /isaac-sim /opt/IsaacLab/_isaac_sim
 RUN uv venv --seed /opt/isaaclab-venv && cd /opt/IsaacLab && uv sync --frozen --extra rsl-rl --extra ov --extra importers --no-install-package imageio-ffmpeg
 RUN /opt/IsaacLab/isaaclab.sh -p -c 'from isaaclab.cli.commands.install import _repoint_prebundle_packages; _repoint_prebundle_packages()'
-RUN uv pip install --python /opt/isaaclab-venv/bin/python pytest==9.2.0 tensordict==0.14.2 pyyaml GitPython prettytable
+RUN uv pip install --python /opt/isaaclab-venv/bin/python pytest==9.2.0 tensordict==0.14.2 toml==0.10.2 pyyaml GitPython prettytable
 ENV PYTHONPATH=/workspace/cyclo_lab/source/cyclo_lab
 RUN apt-get update && apt-get install -y --no-install-recommends git && rm -rf /var/lib/apt/lists/*
 WORKDIR /workspace/cyclo_lab

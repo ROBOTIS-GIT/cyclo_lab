@@ -10,7 +10,7 @@ import torch
 from . import ROOT
 from .motion_physics import URDF, PROFILE
 
-FORMAT = "cyclo-supermimic-isaac-v2"
+FORMAT = "cyclo-supermimic-isaac-v3"
 OBSERVATION = {
     "representation": "gencoord",
     "full_state_width": 59,
@@ -52,10 +52,18 @@ def _plain(value):
 
 
 def validate_native_cfg(cfg):
-    if not type(cfg.sim.physics).__module__.startswith("isaaclab_physx."):
-        raise ValueError(
-            "Native SuperMimic supports physics=isaacsim_physx only; Newton is not validated"
-        )
+    module = type(cfg.sim.physics).__module__
+    if module.startswith("isaaclab_newton."):
+        from isaaclab_newton.physics import MJWarpSolverCfg
+
+        if not isinstance(cfg.sim.physics.solver_cfg, MJWarpSolverCfg):
+            raise ValueError("Native SuperMimic supports Newton MJWarp only")
+        if cfg.sim.physics.num_substeps != 1:
+            raise ValueError(
+                "Newton num_substeps must be 1; additional solver substeps are not supported"
+            )
+    elif not module.startswith("isaaclab_physx."):
+        raise ValueError("Native SuperMimic requires Newton MJWarp or Isaac Sim PhysX")
     if cfg.decimation < 1 or not math.isclose(
         cfg.sim.dt * cfg.decimation, 0.02, rel_tol=0, abs_tol=1e-12
     ):
@@ -72,7 +80,7 @@ def validate_native_cfg(cfg):
             f"Zero-context SuperMimic requires fixed dynamics; active events: {active}"
         )
     if cfg.commands.reference_trajectory.anchor_body_name != "pelvis":
-        raise ValueError("GenCoord motion tracking requires the pelvis anchor")
+        raise ValueError("SuperMimic motion tracking requires the pelvis anchor")
     if Path(cfg.scene.robot.spawn.asset_path).resolve() != URDF.resolve():
         raise ValueError("Only the pinned K1 URDF is supported")
     from .bridge import BODIES
@@ -117,7 +125,7 @@ def validate_native_cfg(cfg):
         raise ValueError("Native SuperMimic supports one joint-position action term")
 
 
-def environment_contract(cfg, task, motion):
+def environment_contract(cfg, task, motion, representation="gencoord"):
     """All learning-relevant config; display/device/env-count may differ on reload.
 
     Playback only changes initial frame selection. No play preset replaces timing,
@@ -144,14 +152,20 @@ def environment_contract(cfg, task, motion):
         else:
             raise ValueError(f"Unsupported model mesh location: {filename}")
     return {
-        "version": 1,
+        "version": 2,
         "task": task,
         "motion_sha256": motion["sha256"],
         "motion_profiles": motion["physical_profiles"],
         "model_sha256": hashlib.sha256(URDF.read_bytes()).hexdigest(),
         "motion_profile_sha256": hashlib.sha256(PROFILE.read_bytes()).hexdigest(),
         "meshes": meshes,
-        "observation": OBSERVATION,
+        "observation": {
+            **OBSERVATION,
+            "representation": representation,
+            "full_state_width": 59 if representation == "gencoord" else 182,
+            "tracked_bodies": list(cfg.commands.reference_trajectory.body_names),
+        },
+        "backend_class": f"{type(cfg.sim.physics).__module__}:{type(cfg.sim.physics).__qualname__}",
         "sim_dt": cfg.sim.dt,
         "decimation": cfg.decimation,
         "physics": _plain(cfg.sim.physics),
@@ -170,6 +184,24 @@ def environment_contract(cfg, task, motion):
 
 
 def check_contract(saved, current):
+    # Published v2 files could only be PhysX/GenCoord. Preserve continuation when
+    # every existing physical/objective field still matches. Only fill newly
+    # explicit metadata from that proven old schema, never relax physics checks.
+    if (
+        saved.get("version") == 1
+        and saved.get("observation") == OBSERVATION
+        and current.get("version") == 2
+        and current.get("backend_class", "").startswith("isaaclab_physx.")
+    ):
+        saved = {
+            **saved,
+            "version": 2,
+            "backend_class": current["backend_class"],
+            "observation": {
+                **OBSERVATION,
+                "tracked_bodies": saved.get("command", {}).get("body_names"),
+            },
+        }
     mismatches = [
         key
         for key in sorted(saved.keys() | current.keys())
@@ -183,9 +215,12 @@ def check_contract(saved, current):
 
 def read_checkpoint(path, device="cpu"):
     checkpoint = torch.load(path, map_location=device, weights_only=True)
-    if not isinstance(checkpoint, dict) or checkpoint.get("format") != FORMAT:
+    if not isinstance(checkpoint, dict) or checkpoint.get("format") not in (
+        FORMAT,
+        "cyclo-supermimic-isaac-v2",
+    ):
         raise ValueError(
-            "Expected native Isaac SuperMimic v2 checkpoint; v1/PPO/MJLab files lack this contract"
+            "Expected native Isaac SuperMimic v2/v3 checkpoint; v1/PPO/MJLab files lack this contract"
         )
     required = {
         "contract",
@@ -207,6 +242,15 @@ def read_checkpoint(path, device="cpu"):
         raise ValueError(
             f"Incomplete checkpoint: {sorted(required - checkpoint.keys())}"
         )
+    if checkpoint["format"] == "cyclo-supermimic-isaac-v2":
+        if (
+            checkpoint["contract"].get("version") != 1
+            or checkpoint["contract"].get("observation") != OBSERVATION
+        ):
+            raise ValueError(
+                "Legacy v2 checkpoint is not the supported PhysX/GenCoord contract"
+            )
+        checkpoint["cfg"] = {**checkpoint["cfg"], "representation": "gencoord"}
     return checkpoint
 
 

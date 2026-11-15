@@ -78,7 +78,7 @@ third_party/*
 !third_party/IsaacLab-Arena
 !third_party/ai_sapiens
 !third_party/zenoh_ros2_sdk
-!third_party/supermimic/
+!third_party/supermimic
 
 # Zenoh ROS2 SDK message cache mounted into Docker
 docker/zenoh_cache/

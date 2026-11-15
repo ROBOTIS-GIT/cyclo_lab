@@ -2,7 +2,7 @@ import xml.etree.ElementTree as ET
 import torch
 from cyclo_lab.learning.supermimic.bridge import URDF, BODIES, wxyz
 from cyclo_lab.learning.supermimic.fk import UrdfKinematics
-from supermimic.math import quat_mul, quat_apply
+from supermimic.utils.math import quat_mul, quat_apply
 
 
 def fk():

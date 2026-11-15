@@ -16,7 +16,8 @@ from supermimic.learners.policy_learner import (
     ActorCriticPolicyLearner,
     ActorCriticPolicyLearnerCfg,
 )
-from .bridge import IsaacBridge
+from .bridge import IsaacBridge, BODIES, URDF
+from .ik import build_urdf_analytic_ik
 from .checkpoint import (
     FORMAT,
     environment_contract,
@@ -28,6 +29,7 @@ from .checkpoint import (
 
 @dataclass
 class RunnerCfg:
+    representation: str = "gencoord"
     hidden: tuple[int, ...] = (256, 256)
     latent: int = 32
     batch_size: int = 64
@@ -49,8 +51,10 @@ class IsaacSuperMimicRunner:
             )
         if cfg.buffer_size < cfg.horizon:
             raise ValueError("Replay buffer smaller than WM horizon")
+        if cfg.representation not in ("gencoord", "maxcoord"):
+            raise ValueError("Unknown SuperMimic representation")
         self.cfg, self.env = cfg, env
-        self.bridge = IsaacBridge(env)
+        self.bridge = IsaacBridge(env, cfg.representation)
         b = self.bridge
         self.device = b.device
         self.iteration = 0
@@ -58,26 +62,34 @@ class IsaacSuperMimicRunner:
         self.contract = (
             contract
             if contract is not None
-            else environment_contract(env.unwrapped.cfg, env.spec.id, b.motion.contract)
+            else environment_contract(
+                env.unwrapped.cfg, env.spec.id, b.motion.contract, cfg.representation
+            )
         )
         self.rep = create_representation(
-            "gencoord",
-            59,
+            cfg.representation,
+            b.full_state_dim,
             23,
             b.step_dt,
             env.unwrapped.cfg.decimation,
             b.robot.data.default_joint_pos.torch[0].clone(),
             "rep_state",
         ).to(self.device)
-        self.rep._soft_joint_pos_limits = b.robot.data.soft_joint_pos_limits.torch[
-            0
-        ].clone()
-        self.rep.fk = b.fk
+        limits = b.robot.data.soft_joint_pos_limits.torch[0].clone()
+        if cfg.representation == "maxcoord":
+            self.rep.bind_native(
+                limits,
+                build_urdf_analytic_ik(URDF, b.robot.joint_names, BODIES, self.device),
+            )
+        else:
+            self.rep.bind_native(limits, b.fk)
         self.scale, self.offset = b.action_transform()
         self.dynamics = Dynamics(
             self.rep, 23, 1, self.scale, self.offset, cfg.hidden
         ).to(self.device)
-        goal, _ = self.rep.compute_wm_goal(b.motion, b.frame_ids(), b.state()[:, :7])
+        goal, _ = self.rep.compute_wm_goal(
+            b.motion, b.frame_ids(), self.rep.extract_aux_state(b.state())
+        )
         self.specs = [make_motion_task(self.rep, goal.shape[-1])]
         self.actor = MultiEncoderAE(
             self.rep.rep_state_dim,
@@ -94,7 +106,7 @@ class IsaacSuperMimicRunner:
         ).to(self.device)
         self.buffer = ReplayBuffer(
             {
-                "state": FieldSpec(59),
+                "state": FieldSpec(b.full_state_dim),
                 "action": FieldSpec(23),
                 "prev_action": FieldSpec(23),
                 "sim_ctx": FieldSpec(1),
@@ -109,7 +121,7 @@ class IsaacSuperMimicRunner:
         self.wm_env = MultiTaskWorldModelEnv(
             self.dynamics,
             self.rep,
-            b,
+            b.world_model_facade(),
             cfg.batch_size,
             self.buffer,
             self.specs,

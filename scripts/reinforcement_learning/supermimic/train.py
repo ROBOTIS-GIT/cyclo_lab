@@ -25,6 +25,7 @@ def main():
 
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--task")
+    parser.add_argument("--representation", choices=("gencoord", "maxcoord"))
     parser.add_argument("--motion-file", type=Path)
     parser.add_argument("--num-envs", "--num_envs", type=int, default=32)
     parser.add_argument("--iterations", "--max_iterations", type=int, default=1000)
@@ -71,6 +72,9 @@ def main():
                 parser.error(
                     "Saved motion path is unavailable; provide --motion-file for this checkout"
                 )
+    args.representation = args.representation or (
+        saved["cfg"]["representation"] if saved else "gencoord"
+    )
     args.task = args.task or "Cyclo-SuperMimic-K1-Rev1-Dance1"
     if args.task not in (
         "Cyclo-SuperMimic-K1-Rev1-Dance1",
@@ -79,11 +83,26 @@ def main():
         parser.error(
             "SuperMimic currently supports K1 Dance1/Dance2 configurations; use --motion-file for other clips"
         )
+    # Resolve the launcher spelling before building/checking the saved contract.
+    # Prevent launch_simulation from changing physics after that validation.
+    if getattr(args, "physics", None):
+        hydra_physics = [
+            value.split("=", 1)[1]
+            for value in overrides
+            if value.startswith("physics=")
+        ]
+        if hydra_physics and any(value != args.physics for value in hydra_physics):
+            parser.error("Conflicting --physics and physics= selections")
+        overrides = [
+            f"physics={args.physics}",
+            *[value for value in overrides if not value.startswith("physics=")],
+        ]
+        args.physics = None
     cfg, _ = resolve_task_config(
         args.task,
         "supermimic_cfg_entry_point",
         play_mode=False,
-        overrides=["physics=isaacsim_physx", *overrides],
+        overrides=overrides,
     )
     cfg.scene.num_envs = args.num_envs
     if args.motion_file:
@@ -103,7 +122,9 @@ def main():
     motion_contract, _ = validate_motion_physics(
         cfg.commands.reference_trajectory.trajectory_file
     )
-    contract = environment_contract(cfg, args.task, motion_contract)
+    contract = environment_contract(
+        cfg, args.task, motion_contract, args.representation
+    )
     if saved is not None:
         check_contract(saved["contract"], contract)
     if args.play:
@@ -118,6 +139,9 @@ def main():
     output = args.output or ROOT / "logs/supermimic" / datetime.now().strftime(
         "%Y-%m-%d_%H-%M-%S"
     )
+    # The supported Lab image uses Kit's URDF importer and registered USD schemas.
+    # Requiring Kit initializes those extensions without changing the physics cfg.
+    args.require_kit = True
     with launch_simulation(cfg, args):
         import gymnasium as gym
         import torch
@@ -132,6 +156,7 @@ def main():
         try:
             env.reset()
             runner_cfg = RunnerCfg(
+                representation=args.representation,
                 hidden=tuple(args.hidden),
                 latent=args.latent,
                 batch_size=args.batch_size,
@@ -171,6 +196,9 @@ def main():
                         "inference" if args.play else "continuation_with_fresh_replay",
                         flush=True,
                     )
+            from cyclo_lab.learning.supermimic.verification import runtime_physics
+
+            print("ISAAC_RUNTIME_PHYSICS", json.dumps(runtime_physics(env)), flush=True)
             print(
                 "ISAAC_BACKEND",
                 type(env.unwrapped).__module__,
@@ -178,7 +206,18 @@ def main():
                 flush=True,
             )
             if args.verify:
+                from cyclo_lab.learning.supermimic.verification import (
+                    check_ik,
+                    check_reset_twists,
+                    check_motion_wrap,
+                )
+
+                print(
+                    "ISAAC_RESET_TWIST_PARITY", check_reset_twists(runner), flush=True
+                )
                 print("ISAAC_FK_PARITY", runner.bridge.check_fk(), flush=True)
+                print("ISAAC_IK_PARITY", check_ik(runner), flush=True)
+                print("ISAAC_MOTION_WRAP_PASS", check_motion_wrap(runner), flush=True)
             if args.play:
                 with torch.no_grad():
                     runner.actor.eval()
@@ -201,6 +240,10 @@ def main():
                         "ISAAC_FK_PARITY_AFTER_COLLECTION",
                         runner.bridge.check_fk(atol=5e-3),
                         flush=True,
+                    )
+                if args.verify:
+                    print(
+                        "ISAAC_IK_PARITY_AFTER_COLLECTION", check_ik(runner), flush=True
                     )
                 metrics = runner.update()
                 print(

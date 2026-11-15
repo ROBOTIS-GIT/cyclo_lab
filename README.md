@@ -36,10 +36,12 @@ python scripts/reinforcement_learning/train.py --algorithm supermimic \
 
 See [SuperMimic setup, bounded verification and checkpoint contract](docs/supermimic.md).
 `--algorithm` may be omitted for a recognized task family; conflicting selections fail.
-Historical `mimic.py --method` commands remain valid. Native SuperMimic supports
-PhysX, GenCoord and a privileged single-motion actor; Newton and robot deployment
-are not validated. No separate mjlab runtime is required. Checkpoint formats differ
-by method and backend.
+Historical `mimic.py --method` commands remain valid. Native SuperMimic inherits
+Newton/MJWarp and accepts explicit `physics=isaacsim_physx`; choose
+`--representation gencoord|maxcoord`. Both use a privileged single-motion actor.
+See the [validation guide](docs/supermimic-validation.md) for measured coverage;
+robot deployment is not validated. The shared SuperMimic core is a pinned submodule,
+with no separate mjlab runtime. Checkpoint formats differ by method and backend.
 
 ## Installation (Docker)
 
