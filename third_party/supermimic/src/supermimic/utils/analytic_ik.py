@@ -1,3 +1,4 @@
+# Modified by ROBOTIS 2026: portable wxyz math import; algorithm unchanged.
 """Analytic inverse kinematics: joint angles and rates from tracked body poses.
 
 Between a tracked parent and child sit two or three hinges. Moving each fixed
@@ -17,7 +18,7 @@ import math
 
 import mujoco
 import torch
-from mjlab.utils.lab_api.math import matrix_from_quat
+from supermimic.math import matrix_from_quat
 
 from supermimic.utils.helpers import small_matmul
 

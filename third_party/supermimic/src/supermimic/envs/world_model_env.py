@@ -1,3 +1,4 @@
+# Modified by ROBOTIS 2026: explicit native environment contract in __init__; rollout equations unchanged.
 """Differentiable world model environment for motion tracking.
 
 Replaces the physics simulator with a learned ``Dynamics`` + ``StateRepresentation``
@@ -56,24 +57,20 @@ class WorldModelEnv(ABC):
     self.history_length = history_length
 
     # Analytic per-step reward ceiling: positive tracking-reward weights, dt-scaled.
-    self.max_step_reward = env.unwrapped.step_dt * sum(
-      term.weight for term in env.cfg.rewards.values() if term.weight > 0.0
-    )
+    self.max_step_reward = env.max_step_reward
 
     # Reference-motion buffers.
     self._num_actions = env.num_actions
-    motion_cmd = env.unwrapped.command_manager.get_term("motion")
-    self.motion = motion_cmd.motion
-    self._anchor_index = motion_cmd.motion_anchor_body_index
+    self.motion = env.motion
+    self._anchor_index = env.anchor_index
 
     if termination_softness <= 0.0:
       raise ValueError(
         f"termination_softness must be positive, got {termination_softness}"
       )
-    terms = env.cfg.terminations
     self._termination_softness = termination_softness
-    self._anchor_pos_threshold = terms["anchor_pos"].params["threshold"]
-    self._anchor_ori_threshold = terms["anchor_ori"].params["threshold"]
+    self._anchor_pos_threshold = env.anchor_pos_threshold
+    self._anchor_ori_threshold = env.anchor_ori_threshold
 
   # ------------------------------------------------------------------
   # Subclass surface

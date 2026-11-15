@@ -1,99 +1,129 @@
-# SuperMimic on K1
+# Choose BeyondMimic or SuperMimic in Isaac Lab
 
-This integration calls the official SuperMimic differentiable world-model trainer,
-not the Isaac Lab PPO launcher. It registers `SuperMimic-GenCoord-K1` in the
-separate MuJoCo / mjlab_research runtime. Isaac Sim 6.2 / Isaac Lab 3.0 tasks remain
-available through their existing scripts. No cyclo_mjlab checkout is required.
+Both choices use this checkout's pinned Isaac Lab 3.0 / Isaac Sim 6.2 and Python
+3.12 environment. The algorithm uses Isaac-collected states directly. Do not install the original
+upstream mjlab project or a separate Python 3.13 environment in Cyclo Lab.
 
-## Reproducible setup
+## Setup and selection
 
-From the cyclo_lab repository root:
-
-```bash
-git submodule update --init third_party/ai_sapiens
-python3 scripts/supermimic/bootstrap.py
-uv sync --project third_party/supermimic --python 3.13
-PY=third_party/supermimic/.venv/bin/python
-```
-
-Use a separate Python 3.13 environment. Do not install this into Isaac Sim's Python.
-The source in `third_party/supermimic` is preserved from official commit
-`abc124c1bd5976341034668af3d12c087f2f1f55`; bootstrap fetches the official
-`mjlab_research` revision `dd51a9fcc98791a2f0b018b3c7f71a3eefd5ecdd` as its
-sibling. Bootstrap refuses to reset an existing dependency at another revision.
-The upstream uv lock is preserved; uv may resolve it against the pinned sibling's
-current package requirements. The complete original LICENSE and acknowledgements
-are retained. K1 assets come from this branch's ai_sapiens gitlink
-`611a070fad83d2a9ef9c1bc82213988450cf471c`.
-
-## Motion preparation
-
-Use Cyclo's existing CSV retarget/conversion pipeline first, then:
+Build/start/enter the existing [Docker environment](../docker/README.md). The RSL-RL
+extra already supplies the algorithm's Torch, RSL normalization and TensorDict
+requirements. If that extra was omitted, install only the matching versions:
 
 ```bash
-$PY scripts/supermimic/convert_motion.py \
-  source/cyclo_lab/data/motions/K1_rev1/dance1/dance1.npz \
-  data/supermimic/dance1.npz
+uv pip install --python /opt/isaaclab-venv/bin/python -r requirements/supermimic.txt
 ```
 
-The converter reads named 23-joint Cyclo NPZ, selects the pelvis root world pose
-and twist, reorders joints into MJCF depth-first order, normalizes and converts
-quaternions to wxyz, and writes the six fields consumed by official MotionLoader.
-It rejects missing/duplicate joints, missing pelvis, nonfinite arrays, zero
-quaternions, wrong shapes and non-50-Hz clips. Legacy files without quaternion
-metadata need `--quaternion-order xyzw` or `wxyz`; never guess the convention.
-Output uses exclusive creation, so existing reference data cannot be overwritten.
-Resampling belongs to the existing CSV tool (`--output_fps 50`). Body arrays are
-not reused for training: the official differentiable FK recomputes bodies from
-K1 joints and root state. Outputs live in ignored `data/supermimic/`.
-
-## Simulation, training and playback
+Existing commands and `Cyclo-Mimic-K1-Rev1-Dance1` / `Dance2` PPO registrations are
+unchanged. `Cyclo-BeyondMimic-*` aliases use exactly their existing configurations.
+The new `Cyclo-SuperMimic-*` registrations expose a distinct learner config key,
+so accidentally selecting a SuperMimic task in the PPO launcher fails instead of
+training PPO under the wrong name.
 
 ```bash
-$PY scripts/supermimic/smoke.py --motion-file data/supermimic/dance1.npz --device cpu
-$PY scripts/supermimic/smoke.py --motion-file data/supermimic/dance1.npz --device cpu --learn
-$PY scripts/supermimic/run.py train --help
-WANDB_MODE=offline $PY scripts/supermimic/run.py train \
-  --motion-file "$PWD/data/supermimic/dance1.npz" \
-  --num-envs 32 --runner.max-iterations 10 --runner.run-name k1-check
-$PY scripts/supermimic/run.py play --wandb-path ENTITY/PROJECT/RUN \
-  --motion-file "$PWD/data/supermimic/dance1.npz"
+# Existing direct PPO command remains valid.
+python scripts/reinforcement_learning/rsl_rl/train.py \
+  --task Cyclo-Mimic-K1-Rev1-Dance1 --num_envs 4096 --headless
+# Explicit algorithm choice, same runtime.
+python scripts/reinforcement_learning/mimic.py --method beyondmimic train \
+  --task Cyclo-BeyondMimic-K1-Rev1-Dance1 --num_envs 4096 --headless
+python scripts/reinforcement_learning/mimic.py --method supermimic train \
+  --task Cyclo-SuperMimic-K1-Rev1-Dance1 --num-envs 32 --iterations 1000 --headless
 ```
 
-Inspect GPU occupancy before any GPU run. The smoke command uses one environment,
-builds a small real world model and steps the simulator three times, without
-starting a learner or W&B run. Adding `--learn` collects twelve small replay
-transitions and runs one real world-model update and one actor-critic update
-with tiny networks and batches. It asserts both sets of parameters changed and
-all metrics are finite; it does not create a W&B run or save a trained policy. The training command above is an example, not an
-automatically started job; the upstream defaults are large (4096 environments,
-one million iterations), so set bounds deliberately. Upstream output paths are
-relative to the launch directory (`logs/`); launch from the repository root.
-Official playback loads model bundles and run config via W&B; an offline training
-run needs to be synced before this playback command can retrieve it.
+The SuperMimic path selects Isaac Sim PhysX by default. The original PPO task's
+physics presets remain unchanged. Existing underscore `--num_envs` and
+`--max_iterations` spellings are also accepted by the new learner.
 
-K1 uses the inertia-tuned Cyclo PD formula (10 Hz, damping ratio 2), motor armature
-and effort limits, default pose and `0.25 * torque / stiffness` action scaling.
-XML torque actuators and home keyframes are removed in memory before mjlab adds
-position actuators; robot asset files are never edited. IMU sensors use the root
-frame. G1 foot contact matching is replaced with K1 ankle collision geometry,
-and tracked hands use K1's rubber-hand body names. The existing upstream world
-model, replay buffer, learners, rewards and return sampler remain unmodified.
-Generalized-coordinate state is 59-wide for K1 (13 + 2*23); actions are 23-wide.
+## Shared input, separate checkpoints
 
-MaxCoord K1 is deliberately not registered: its analytic IK path needs separate
-robot-specific validation. No Isaac Lab backend port of the world model, trained
-K1 policy quality, sim-to-real export compatibility or real-robot operation is
-claimed. Existing Isaac checkpoints are not SuperMimic model bundles.
-
-## Tests
+Use the existing Soma-retargeter/CSV-to-NPZ workflow. Both methods consume the
+same Cyclo NPZ directly; no second conversion, MJCF joint order or duplicated
+motion dataset is needed. For another named 23-joint K1 clip:
 
 ```bash
-$PY -m pytest tests/supermimic -q
-$PY -m pytest third_party/supermimic/tests/test_gencoord.py \
-  third_party/supermimic/tests/test_wm_loss_space.py -q
+python scripts/reinforcement_learning/mimic.py --method supermimic train \
+  --task Cyclo-SuperMimic-K1-Rev1-Dance1 --motion-file /absolute/path/my_motion.npz \
+  --num-envs 32 --iterations 1000 --headless
 ```
 
-Tests require pytest and the full runtime (including NumPy and MuJoCo).
-The asset test compiles the actual pinned K1 MJCF and performs ten CPU physics
-steps. See `docs/supermimic-validation.md` for observed results and limitations.
+The selector's common `--motion-file` validates input for either method. SuperMimic
+also validates its default/resolved file before launch and checks names again
+against the live articulation before collection. The existing motion loader then
+reorders named columns to the actual Isaac articulation order and converts
+quaternions to Isaac 3.0 xyzw. The bridge converts
+root quaternions to the original algorithm's wxyz once. Explicit unique `joint_names`, `body_names` and consistent `quaternion_order`
+(or `quat_order`) metadata are required. All 23 joint names must match; body names
+must cover the live articulation (extra named merged bodies may be omitted by the
+shared loader). Arrays must have matching frame counts and widths, finite SI
+world-frame values and unit quaternions. Units and frame semantics remain a
+producer contract; numerical validation does not guess mislabeled units. Missing required body names, unmatched/duplicate joint names, duplicate body names, conflicting or
+missing conventions, nonunit/zero quaternions, malformed arrays and non-50-Hz
+input fail clearly. No resampling or rewriting occurs in either selector path.
+The unchanged direct legacy PPO launcher retains its historical unnamed-K1
+fallback for compatibility; use the selector and `--motion-file` for strict input.
+Resample explicitly with the existing motion tools before selecting a learner.
+
+| Method | Output | Playback |
+| --- | --- | --- |
+| BeyondMimic PPO | `logs/rsl_rl/<experiment>/<run>/model_*.pt`, params and exported policy | existing RSL-RL play launcher |
+| SuperMimic | `logs/supermimic/<run>/model_<iteration>.pt` | new local checkpoint play path |
+
+```bash
+python scripts/reinforcement_learning/mimic.py --method supermimic play \
+  --checkpoint logs/supermimic/<run>/model_1.pt --num-envs 1 --play-steps 1000 --headless
+# Resume training, refilling replay with fresh Isaac transitions.
+python scripts/reinforcement_learning/mimic.py --method supermimic train \
+  --checkpoint logs/supermimic/<run>/model_1.pt --iterations 100 --headless
+```
+
+SuperMimic checkpoints contain dynamics, actor, critic, normalizers, optimizer
+states, learner config, joint order, action transform, timestep, iteration and
+motion path/digest and task. Play/resume restores the saved task and motion path
+unless explicitly overridden; provide `--motion-file` if the saved path is no
+longer available. They are not interchangeable with PPO or original mjlab bundles.
+Replay and simulator state are recollected on resume; exact mid-episode replay
+continuation is not promised. Local playback needs no W&B account.
+
+## Bounded verification
+
+Inspect GPU occupancy before running. This checks live Isaac FK parity, collects
+a small sequence, updates the real world model and imagined-rollout policy,
+asserts both parameter sets changed and metrics are finite, then saves/reloads
+a checkpoint:
+
+```bash
+python scripts/reinforcement_learning/mimic.py --method supermimic train \
+  --num-envs 2 --iterations 1 --collection-steps 8 --batch-size 2 \
+  --horizon 2 --policy-horizon 2 --hidden 32 32 --latent 8 \
+  --eager --verify --headless --output logs/supermimic/isaac-smoke
+python -m pytest tests/supermimic -q
+```
+
+`--eager` disables compilation/graph capture only, retaining the same losses,
+rollout gradients and optimizers. Without it, first compilation may take several
+minutes. There is no arbitrary compile timeout in the launcher. The new process
+uses spawned compiler workers, and eager mode requests one compile thread before
+Torch initialization so no forked worker inherits a live Kit/CUDA context.
+
+## Algorithm and supported scope
+
+`cyclo_lab/learning/supermimic` owns the Isaac bridge, URDF FK and collection loop.
+The vendored original dynamics, replay buffer, WM learner, differentiable WM env
+and BPTT/actor-critic policy learners are called directly. They are not a PPO
+substitute. The new task config inherits the same K1 asset and motion command,
+then selects the original SuperMimic root anchor/reward/termination contract.
+Only this new config disables material/COM/encoder randomization and pushes; its
+constant context is explicitly zero. Existing PPO config remains unchanged.
+
+The first native port supports generalized-coordinate K1 motion tracking,
+rep-state actor input and one motion encoder (the original default active task).
+The actor therefore uses privileged simulator state. History/proprio deployment,
+multiple encoder tasks, MaxCoord K1, multi-clip return sampling, full convergence
+and robot policy quality are not validated features of this port.
+
+Existing BeyondMimic deployment uses `exported/policy.onnx`, matched
+`params/sim2real.yaml` and motion CSV. The new SuperMimic checkpoint has no
+validated Sim2Real export/controller contract. Do not deploy it through the
+existing robot workflow. See [observed validation](supermimic-validation.md)
+for actual execution results and remaining limitations.

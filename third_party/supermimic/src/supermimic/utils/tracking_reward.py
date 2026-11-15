@@ -1,3 +1,4 @@
+# Modified by ROBOTIS 2026: portable wxyz math import; algorithm unchanged.
 """Gaussian-kernel tracking reward on world-frame bodies.
 
 Mirrors ``mjlab.tasks.tracking.tracking_env_cfg.rewards``: each tracking term is
@@ -10,7 +11,7 @@ to the predicted root xy + yaw, matching
 from __future__ import annotations
 
 import torch
-from mjlab.utils.lab_api.math import matrix_from_quat, quat_inv, quat_mul, yaw_quat
+from supermimic.math import matrix_from_quat, quat_inv, quat_mul, yaw_quat
 
 from supermimic.utils.helpers import rotation_error_magnitude, small_matmul
 

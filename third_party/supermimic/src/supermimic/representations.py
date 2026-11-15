@@ -1,3 +1,4 @@
+# Modified by ROBOTIS 2026: portable wxyz math import; algorithm unchanged.
 """State representations for the world model.
 
 Two representations are provided:
@@ -13,7 +14,7 @@ from typing import TYPE_CHECKING, Literal
 
 import torch
 import torch.nn as nn
-from mjlab.utils.lab_api.math import (
+from supermimic.math import (
   matrix_from_quat,
   quat_apply,
   quat_apply_inverse,
@@ -21,11 +22,11 @@ from mjlab.utils.lab_api.math import (
 )
 
 if TYPE_CHECKING:
-  from mjlab.envs import ManagerBasedRlEnv
-  from mjlab.tasks.tracking.mdp.commands import MotionLoader
-  from mjlab.utils.forward_kinematics import ForwardKinematics
+  from typing import Any as ManagerBasedRlEnv
+  from typing import Any as MotionLoader
+  from typing import Any as ForwardKinematics
 
-  from supermimic.sim_context import SimContext
+  from typing import Any as SimContext
 
 from supermimic.utils.analytic_ik import AnalyticIK
 from supermimic.utils.gencoord_helpers import (

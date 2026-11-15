@@ -17,6 +17,26 @@ This project provides simulation environments, configuration tools, and task def
 > Requires **Isaac Sim 6.2.0 / Python 3.12** and the pinned **Isaac Lab 3.0.0** submodule.
 > See [environment setup](docker/README.md).
 
+## Choose a K1 motion tracker
+
+Both methods run in the same Isaac Sim 6.2 / Isaac Lab 3.0 / Python 3.12 environment.
+Existing `Cyclo-Mimic-*` PPO tasks and direct RSL-RL commands remain supported.
+
+| Method | Training | Task family |
+| --- | --- | --- |
+| BeyondMimic-based PPO | Existing Isaac/RSL-RL on-policy training | `Cyclo-Mimic-*`, explicit aliases `Cyclo-BeyondMimic-*` |
+| SuperMimic | Isaac collection, learned world model, imagined differentiable policy update | `Cyclo-SuperMimic-*` |
+
+```bash
+python scripts/reinforcement_learning/mimic.py --method beyondmimic train \
+  --task Cyclo-Mimic-K1-Rev1-Dance1 --num_envs 4096 --headless
+python scripts/reinforcement_learning/mimic.py --method supermimic train \
+  --task Cyclo-SuperMimic-K1-Rev1-Dance1 --num-envs 32 --iterations 1000 --headless
+```
+
+See [SuperMimic setup, bounded verification and checkpoint contract](docs/supermimic.md).
+No separate mjlab runtime is required. Checkpoints and Sim2Real support differ by method.
+
 ## Installation (Docker)
 
 Docker installation provides a consistent environment with all dependencies pre-installed.
@@ -388,10 +408,3 @@ This repository is licensed under the **Apache 2.0 License**. See [LICENSE](LICE
 ### Third-party components
 
 - **Isaac Lab**: BSD-3-Clause License, see [LICENSE-IsaacLab](LICENSE-IsaacLab)
-
-### SuperMimic world-model tracking (K1)
-
-The optional [SuperMimic integration](docs/supermimic.md) connects K1 motion data
-and inertia-tuned actuation to the official differentiable world-model trainer
-in its own Python 3.13 runtime. It includes named-joint NPZ conversion, a bounded
-simulator smoke command, training and playback launchers, and tests.

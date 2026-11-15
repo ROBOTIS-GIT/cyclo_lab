@@ -84,7 +84,4 @@ third_party/*
 docker/zenoh_cache/
 
 # Isolated SuperMimic runtime and generated motion / training output
-third_party/mjlab_research/
-third_party/supermimic/.venv/
-data/supermimic/
 logs/supermimic/

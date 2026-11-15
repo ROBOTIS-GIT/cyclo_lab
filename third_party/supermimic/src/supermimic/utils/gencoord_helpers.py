@@ -1,3 +1,4 @@
+# Modified by ROBOTIS 2026: portable wxyz math import; algorithm unchanged.
 """Generalized-coordinate (gencoord) representation helper functions.
 
 Full state: [root_pos(3), root_quat(4), qj(N), root_lin_vel(3), root_ang_vel(3), vj(N)]
@@ -5,7 +6,7 @@ Rep state:  [z(1), g_b(3), v_b(3), w_b(3), qj(N), vj(N)]
 """
 
 import torch
-from mjlab.utils.lab_api.math import quat_apply_inverse
+from supermimic.math import quat_apply_inverse
 
 
 def infer_num_joints_from_state_dim(state_dim: int) -> int:

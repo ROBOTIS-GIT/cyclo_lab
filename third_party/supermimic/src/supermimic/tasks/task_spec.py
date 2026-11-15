@@ -1,3 +1,4 @@
+# Modified by ROBOTIS 2026: portable wxyz math import; algorithm unchanged.
 """Per-task specs for the multi-encoder actor.
 
 A ``TaskSpec`` bundles everything needed to route one task through the actor:
@@ -14,13 +15,13 @@ from dataclasses import dataclass, field
 from typing import TYPE_CHECKING
 
 import torch
-from mjlab.utils.lab_api.math import quat_apply_inverse
+from supermimic.math import quat_apply_inverse
 from tensordict import TensorDict
 
 from supermimic.representations import actor_goal_dim
 
 if TYPE_CHECKING:
-  from mjlab.tasks.tracking.mdp.commands import MotionLoader
+  from typing import Any as MotionLoader
 
   from supermimic.representations import StateRepresentation
 

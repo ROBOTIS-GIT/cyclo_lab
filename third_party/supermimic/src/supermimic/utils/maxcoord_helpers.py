@@ -1,3 +1,4 @@
+# Modified by ROBOTIS 2026: portable wxyz math import; algorithm unchanged.
 """Maximal-coordinate representation helper functions.
 
 Full state layout:
@@ -21,7 +22,7 @@ Prediction layout (dyn_head output):
 from __future__ import annotations
 
 import torch
-from mjlab.utils.lab_api.math import (
+from supermimic.math import (
   matrix_from_quat,
   quat_apply_inverse,
   quat_inv,

@@ -1,0 +1,343 @@
+[WARNING] isaaclab.sh is deprecated and will be removed in Isaac Lab 3.1. Use 'uv run isaaclab' instead.
+[INFO]: Parsing configuration from: cyclo_lab.manager_based.mimic.config.k1_rev1.dance1_env_cfg:K1Rev1EnvCfg
+[INFO]: Parsing configuration from: cyclo_lab.manager_based.mimic.config.k1_rev1.agents.rsl_rl_ppo_cfg:K1Rev1MimicPPORunnerCfg
+
+╭─ Isaac Lab · train ────────────────────────────╮
+│ Task          Cyclo-Mimic-K1-Rev1-Dance1       │
+│ Workflow      manager-based                    │                \   /
+│ RL library    rsl_rl                           │              .-------.
+│ Physics       isaacsim_physx                   │              | o   o |
+│ Renderer      n/a (no camera sensors)          │              |   _   |
+│ Visualizer    none (headless)                  │              '-------'
+│ Device        cuda:0                           │
+│ Environments  2                                │      Welcome to Isaac Lab 3!
+╰────────────────────────────────────────────────╯
+
+
+
+[1/3] Launching simulation
+2026-11-15T02:51:19Z [0ms] [Warning] [carb.omniclient.plugin]  195: OmniHub: ThreadId(03) Hub encountered error. Trying to reconnect to Hub. retry_reason="Hub failed to launch: Io(\"child exited with exit status: 1 without writing file \\\"/tmp/hub-root-DB4B71E9.config.json\\\"\")"
+2026-11-15T02:51:20Z [71ms] [Warning] [carb.omniclient.plugin]  195: OmniHub: ThreadId(03) Hub encountered error. Trying to reconnect to Hub. retry_reason="Hub failed to launch: Io(\"child exited with exit status: 1 without writing file \\\"/tmp/hub-root-DB4B71E9.config.json\\\"\")"
+2026-11-15T02:51:20Z [153ms] [Warning] [carb.omniclient.plugin]  195: OmniHub: ThreadId(03) Hub encountered error. Trying to reconnect to Hub. retry_reason="Hub failed to launch: Io(\"child exited with exit status: 1 without writing file \\\"/tmp/hub-root-DB4B71E9.config.json\\\"\")"
+2026-11-15T02:51:20Z [245ms] [Warning] [carb.omniclient.plugin]  195: OmniHub: ThreadId(03) Hub encountered error. Trying to reconnect to Hub. retry_reason="Hub failed to launch: Io(\"child exited with exit status: 1 without writing file \\\"/tmp/hub-root-DB4B71E9.config.json\\\"\")"
+2026-11-15T02:51:20Z [346ms] [Warning] [carb.omniclient.plugin]  195: OmniHub: ThreadId(03) Hub encountered error. Trying to reconnect to Hub. retry_reason="Hub failed to launch: Io(\"child exited with exit status: 1 without writing file \\\"/tmp/hub-root-DB4B71E9.config.json\\\"\")"
+2026-11-15T02:51:20Z [557ms] [Warning] [carb.omniclient.plugin]  195: OmniHub: ThreadId(03) Hub encountered error. Trying to reconnect to Hub. retry_reason="Hub failed to launch: Io(\"child exited with exit status: 1 without writing file \\\"/tmp/hub-root-DB4B71E9.config.json\\\"\")"
+2026-11-15T02:51:20Z [679ms] [Warning] [carb.omniclient.plugin]  195: OmniHub: ThreadId(03) Hub encountered error. Trying to reconnect to Hub. retry_reason="Hub failed to launch: Io(\"child exited with exit status: 1 without writing file \\\"/tmp/hub-root-DB4B71E9.config.json\\\"\")"
+2026-11-15T02:51:20Z [811ms] [Warning] [carb.omniclient.plugin]  195: OmniHub: ThreadId(03) Hub encountered error. Trying to reconnect to Hub. retry_reason="Hub failed to launch: Io(\"child exited with exit status: 1 without writing file \\\"/tmp/hub-root-DB4B71E9.config.json\\\"\")"
+2026-11-15T02:51:20Z [952ms] [Warning] [carb.omniclient.plugin]  195: OmniHub: ThreadId(03) Hub encountered error. Trying to reconnect to Hub. retry_reason="Hub failed to launch: Io(\"child exited with exit status: 1 without writing file \\\"/tmp/hub-root-DB4B71E9.config.json\\\"\")"
+2026-11-15T02:51:21Z [1,104ms] [Warning] [carb.omniclient.plugin]  195: OmniHub: ThreadId(03) Hub encountered error. Trying to reconnect to Hub. retry_reason="Hub failed to launch: Io(\"child exited with exit status: 1 without writing file \\\"/tmp/hub-root-DB4B71E9.config.json\\\"\")"
+2026-11-15T02:51:21Z [1,266ms] [Warning] [carb.omniclient.plugin]  195: OmniHub: ThreadId(03) Hub encountered error. Trying to reconnect to Hub. retry_reason="Hub failed to launch: Io(\"child exited with exit status: 1 without writing file \\\"/tmp/hub-root-DB4B71E9.config.json\\\"\")"
+2026-11-15T02:51:21Z [1,438ms] [Warning] [carb.omniclient.plugin]  195: OmniHub: ThreadId(03) Hub encountered error. Trying to reconnect to Hub. retry_reason="Hub failed to launch: Io(\"child exited with exit status: 1 without writing file \\\"/tmp/hub-root-DB4B71E9.config.json\\\"\")"
+2026-11-15T02:51:21Z [1,618ms] [Warning] [carb.omniclient.plugin]  195: OmniHub: ThreadId(03) Hub encountered error. Trying to reconnect to Hub. retry_reason="Hub failed to launch: Io(\"child exited with exit status: 1 without writing file \\\"/tmp/hub-root-DB4B71E9.config.json\\\"\")"
+2026-11-15T02:51:21Z [1,810ms] [Warning] [carb.omniclient.plugin]  195: OmniHub: ThreadId(03) Hub encountered error. Trying to reconnect to Hub. retry_reason="Hub failed to launch: Io(\"child exited with exit status: 1 without writing file \\\"/tmp/hub-root-DB4B71E9.config.json\\\"\")"
+2026-11-15T02:51:21Z [2,012ms] [Warning] [carb.omniclient.plugin]  195: OmniHub: ThreadId(03) Hub encountered error. Trying to reconnect to Hub. retry_reason="Hub failed to launch: Io(\"child exited with exit status: 1 without writing file \\\"/tmp/hub-root-DB4B71E9.config.json\\\"\")"
+2026-11-15T02:51:22Z [2,223ms] [Warning] [carb.omniclient.plugin]  195: OmniHub: ThreadId(03) Hub encountered error. Trying to reconnect to Hub. retry_reason="Hub failed to launch: Io(\"child exited with exit status: 1 without writing file \\\"/tmp/hub-root-DB4B71E9.config.json\\\"\")"
+2026-11-15T02:51:22Z [2,445ms] [Warning] [carb.omniclient.plugin]  195: OmniHub: ThreadId(03) Hub encountered error. Trying to reconnect to Hub. retry_reason="Hub failed to launch: Io(\"child exited with exit status: 1 without writing file \\\"/tmp/hub-root-DB4B71E9.config.json\\\"\")"
+2026-11-15T02:51:22Z [2,677ms] [Warning] [carb.omniclient.plugin]  195: OmniHub: ThreadId(03) Hub encountered error. Trying to reconnect to Hub. retry_reason="Hub failed to launch: Io(\"child exited with exit status: 1 without writing file \\\"/tmp/hub-root-DB4B71E9.config.json\\\"\")"
+2026-11-15T02:51:22Z [2,920ms] [Warning] [carb.omniclient.plugin]  195: OmniHub: ThreadId(03) Hub encountered error. Trying to reconnect to Hub. retry_reason="Hub failed to launch: Io(\"child exited with exit status: 1 without writing file \\\"/tmp/hub-root-DB4B71E9.config.json\\\"\")"
+2026-11-15T02:51:23Z [3,171ms] [Warning] [carb.omniclient.plugin]  195: OmniHub: ThreadId(03) Hub encountered error. Trying to reconnect to Hub. retry_reason="Hub failed to launch: Io(\"child exited with exit status: 1 without writing file \\\"/tmp/hub-root-DB4B71E9.config.json\\\"\")"
+2026-11-15T02:51:23Z [3,431ms] [Warning] [carb.omniclient.plugin]  195: OmniHub: ThreadId(03) Hub encountered error. Trying to reconnect to Hub. retry_reason="Hub failed to launch: Io(\"child exited with exit status: 1 without writing file \\\"/tmp/hub-root-DB4B71E9.config.json\\\"\")"
+2026-11-15T02:51:23Z [3,703ms] [Warning] [carb.omniclient.plugin]  195: OmniHub: ThreadId(03) Hub encountered error. Trying to reconnect to Hub. retry_reason="Hub failed to launch: Io(\"child exited with exit status: 1 without writing file \\\"/tmp/hub-root-DB4B71E9.config.json\\\"\")"
+2026-11-15T02:51:23Z [3,985ms] [Warning] [carb.omniclient.plugin]  195: OmniHub: ThreadId(03) Hub encountered error. Trying to reconnect to Hub. retry_reason="Hub failed to launch: Io(\"child exited with exit status: 1 without writing file \\\"/tmp/hub-root-DB4B71E9.config.json\\\"\")"
+2026-11-15T02:51:24Z [4,277ms] [Warning] [carb.omniclient.plugin]  195: OmniHub: ThreadId(03) Hub encountered error. Trying to reconnect to Hub. retry_reason="Hub failed to launch: Io(\"child exited with exit status: 1 without writing file \\\"/tmp/hub-root-DB4B71E9.config.json\\\"\")"
+2026-11-15T02:51:24Z [4,579ms] [Warning] [carb.omniclient.plugin]  195: OmniHub: ThreadId(03) Hub encountered error. Trying to reconnect to Hub. retry_reason="Hub failed to launch: Io(\"child exited with exit status: 1 without writing file \\\"/tmp/hub-root-DB4B71E9.config.json\\\"\")"
+2026-11-15T02:51:24Z [4,892ms] [Warning] [carb.omniclient.plugin]  195: OmniHub: ThreadId(03) Hub encountered error. Trying to reconnect to Hub. retry_reason="Hub failed to launch: Io(\"child exited with exit status: 1 without writing file \\\"/tmp/hub-root-DB4B71E9.config.json\\\"\")"
+2026-11-15T02:51:25Z [5,213ms] [Warning] [carb.omniclient.plugin]  195: OmniHub: ThreadId(03) Hub encountered error. Trying to reconnect to Hub. retry_reason="Hub failed to launch: Io(\"child exited with exit status: 1 without writing file \\\"/tmp/hub-root-DB4B71E9.config.json\\\"\")"
+2026-11-15T02:51:25Z [5,545ms] [Warning] [carb.omniclient.plugin]  195: OmniHub: ThreadId(03) Hub encountered error. Trying to reconnect to Hub. retry_reason="Hub failed to launch: Io(\"child exited with exit status: 1 without writing file \\\"/tmp/hub-root-DB4B71E9.config.json\\\"\")"
+2026-11-15T02:51:25Z [5,888ms] [Warning] [carb.omniclient.plugin]  195: OmniHub: ThreadId(03) Hub encountered error. Trying to reconnect to Hub. retry_reason="Hub failed to launch: Io(\"child exited with exit status: 1 without writing file \\\"/tmp/hub-root-DB4B71E9.config.json\\\"\")"
+2026-11-15T02:51:26Z [6,291ms] [Warning] [carb.omniclient.plugin]  195: OmniHub: ThreadId(03) Hub encountered error. Trying to reconnect to Hub. retry_reason="Hub failed to launch: Io(\"child exited with exit status: 1 without writing file \\\"/tmp/hub-root-DB4B71E9.config.json\\\"\")"
+WARNING: All log messages before absl::InitializeLog() is called are written to STDERR
+E0000 00:00:1794711090.562378     104 descriptor_database.cc:633] File already exists in database: grpc/health/v1/health.proto
+W0000 00:00:1794711090.562552     104 message.cc:301] Protobuf GeneratedMessageFactory: File is already registered: grpc/health/v1/health.proto
+Warning: Possible version incompatibility. Attempting to load carb::ujitso::IFactory with version v0.3 against v0.2.
+[ISAACLAB] KitLauncher initialization complete
+[INFO] Logging experiment in directory: /workspace/cyclo_lab/logs/rsl_rl/cyclo_mimic_k1_rev1_dance1
+Exact experiment name requested from command line: 2026-11-15_02-51-38
+[2/3] Creating environment
+[INFO]: Base environment:
+	Environment device    : cuda:0
+	Environment seed      : 42
+	Physics step-size     : 0.005
+	Rendering step-size   : 0.02
+	Environment step-size : 0.02
+[INFO]: Registered backend 'physx' for factory Articulation.
+2026-11-15T02:51:26Z [6,654ms] [Warning] [carb.omniclient.plugin]  195: OmniHub: ThreadId(03) Hub encountered error. Trying to reconnect to Hub. retry_reason="Hub failed to launch: Io(\"child exited with exit status: 1 without writing file \\\"/tmp/hub-root-DB4B71E9.config.json\\\"\")"
+2026-11-15T02:51:27Z [7,077ms] [Warning] [carb.omniclient.plugin]  195: OmniHub: ThreadId(03) Hub encountered error. Trying to reconnect to Hub. retry_reason="Hub failed to launch: Io(\"child exited with exit status: 1 without writing file \\\"/tmp/hub-root-DB4B71E9.config.json\\\"\")"
+2026-11-15T02:51:27Z [7,514ms] [Warning] [carb.omniclient.plugin]  195: OmniHub: ThreadId(03) Hub encountered error. Trying to reconnect to Hub. retry_reason="Hub failed to launch: Io(\"child exited with exit status: 1 without writing file \\\"/tmp/hub-root-DB4B71E9.config.json\\\"\")"
+2026-11-15T02:51:27Z [7,957ms] [Warning] [carb.omniclient.plugin]  195: OmniHub: ThreadId(03) Hub encountered error. Trying to reconnect to Hub. retry_reason="Hub failed to launch: Io(\"child exited with exit status: 1 without writing file \\\"/tmp/hub-root-DB4B71E9.config.json\\\"\")"
+2026-11-15T02:51:28Z [8,359ms] [Warning] [carb.omniclient.plugin]  195: OmniHub: ThreadId(03) Hub encountered error. Trying to reconnect to Hub. retry_reason="Hub failed to launch: Io(\"child exited with exit status: 1 without writing file \\\"/tmp/hub-root-DB4B71E9.config.json\\\"\")"
+2026-11-15T02:51:28Z [8,770ms] [Warning] [carb.omniclient.plugin]  195: OmniHub: ThreadId(03) Hub encountered error. Trying to reconnect to Hub. retry_reason="Hub failed to launch: Io(\"child exited with exit status: 1 without writing file \\\"/tmp/hub-root-DB4B71E9.config.json\\\"\")"
+2026-11-15T02:51:29Z [9,193ms] [Warning] [carb.omniclient.plugin]  195: OmniHub: ThreadId(03) Hub encountered error. Trying to reconnect to Hub. retry_reason="Hub failed to launch: Io(\"child exited with exit status: 1 without writing file \\\"/tmp/hub-root-DB4B71E9.config.json\\\"\")"
+2026-11-15T02:51:29Z [9,624ms] [Warning] [carb.omniclient.plugin]  195: OmniHub: ThreadId(03) Hub encountered error. Trying to reconnect to Hub. retry_reason="Hub failed to launch: Io(\"child exited with exit status: 1 without writing file \\\"/tmp/hub-root-DB4B71E9.config.json\\\"\")"
+2026-11-15T02:51:30Z [10,067ms] [Warning] [carb.omniclient.plugin]  195: OmniHub: ThreadId(03) Hub encountered error. Trying to reconnect to Hub. retry_reason="Hub failed to launch: Io(\"child exited with exit status: 1 without writing file \\\"/tmp/hub-root-DB4B71E9.config.json\\\"\")"
+2026-11-15T02:51:31Z [11,855ms] [Warning] [omni.platforminfo.plugin] failed to open the default display.  Can't verify X Server version.
+2026-11-15T02:51:31Z [11,877ms] [Warning] [omni.usd_config.extension] Enable omni.materialx.libs extension to use MaterialX
+2026-11-15T02:51:45Z [25,478ms] [Warning] [isaaclab.terrains.terrain_importer] Visual material specified for ground plane but no diffuse color found. Preserving the ground plane's authored material.
+2026-11-15T02:51:53Z [33,455ms] [Warning] [isaaclab.sim.converters.urdf_converter] UrdfConverter: 'replace_cylinders_with_capsules' is no longer supported by the URDF importer 3.0.
+2026-11-15T02:51:54Z [34,860ms] [Warning] [isaacsim.asset.importer.utils.impl.urdf_to_mjc_physx_conversion_utils] Stiffness and damping not available joint /k1/Physics/left_hip_pitch_joint, actuator will be created without gain parameters
+2026-11-15T02:51:54Z [34,861ms] [Warning] [isaacsim.asset.importer.utils.impl.urdf_to_mjc_physx_conversion_utils] Stiffness and damping not available joint /k1/Physics/left_hip_roll_joint, actuator will be created without gain parameters
+2026-11-15T02:51:54Z [34,862ms] [Warning] [isaacsim.asset.importer.utils.impl.urdf_to_mjc_physx_conversion_utils] Stiffness and damping not available joint /k1/Physics/left_hip_yaw_joint, actuator will be created without gain parameters
+2026-11-15T02:51:54Z [34,864ms] [Warning] [isaacsim.asset.importer.utils.impl.urdf_to_mjc_physx_conversion_utils] Stiffness and damping not available joint /k1/Physics/left_knee_joint, actuator will be created without gain parameters
+2026-11-15T02:51:54Z [34,865ms] [Warning] [isaacsim.asset.importer.utils.impl.urdf_to_mjc_physx_conversion_utils] Stiffness and damping not available joint /k1/Physics/left_ankle_pitch_joint, actuator will be created without gain parameters
+2026-11-15T02:51:54Z [34,866ms] [Warning] [isaacsim.asset.importer.utils.impl.urdf_to_mjc_physx_conversion_utils] Stiffness and damping not available joint /k1/Physics/left_ankle_roll_joint, actuator will be created without gain parameters
+2026-11-15T02:51:54Z [34,868ms] [Warning] [isaacsim.asset.importer.utils.impl.urdf_to_mjc_physx_conversion_utils] Stiffness and damping not available joint /k1/Physics/right_hip_pitch_joint, actuator will be created without gain parameters
+2026-11-15T02:51:54Z [34,869ms] [Warning] [isaacsim.asset.importer.utils.impl.urdf_to_mjc_physx_conversion_utils] Stiffness and damping not available joint /k1/Physics/right_hip_roll_joint, actuator will be created without gain parameters
+2026-11-15T02:51:54Z [34,870ms] [Warning] [isaacsim.asset.importer.utils.impl.urdf_to_mjc_physx_conversion_utils] Stiffness and damping not available joint /k1/Physics/right_hip_yaw_joint, actuator will be created without gain parameters
+2026-11-15T02:51:54Z [34,871ms] [Warning] [isaacsim.asset.importer.utils.impl.urdf_to_mjc_physx_conversion_utils] Stiffness and damping not available joint /k1/Physics/right_knee_joint, actuator will be created without gain parameters
+2026-11-15T02:51:54Z [34,873ms] [Warning] [isaacsim.asset.importer.utils.impl.urdf_to_mjc_physx_conversion_utils] Stiffness and damping not available joint /k1/Physics/right_ankle_pitch_joint, actuator will be created without gain parameters
+2026-11-15T02:51:54Z [34,874ms] [Warning] [isaacsim.asset.importer.utils.impl.urdf_to_mjc_physx_conversion_utils] Stiffness and damping not available joint /k1/Physics/right_ankle_roll_joint, actuator will be created without gain parameters
+2026-11-15T02:51:54Z [34,875ms] [Warning] [isaacsim.asset.importer.utils.impl.urdf_to_mjc_physx_conversion_utils] Stiffness and damping not available joint /k1/Physics/waist_yaw_joint, actuator will be created without gain parameters
+2026-11-15T02:51:54Z [34,876ms] [Warning] [isaacsim.asset.importer.utils.impl.urdf_to_mjc_physx_conversion_utils] Stiffness and damping not available joint /k1/Physics/left_shoulder_pitch_joint, actuator will be created without gain parameters
+2026-11-15T02:51:54Z [34,877ms] [Warning] [isaacsim.asset.importer.utils.impl.urdf_to_mjc_physx_conversion_utils] Stiffness and damping not available joint /k1/Physics/left_shoulder_roll_joint, actuator will be created without gain parameters
+2026-11-15T02:51:54Z [34,878ms] [Warning] [isaacsim.asset.importer.utils.impl.urdf_to_mjc_physx_conversion_utils] Stiffness and damping not available joint /k1/Physics/left_shoulder_yaw_joint, actuator will be created without gain parameters
+2026-11-15T02:51:54Z [34,879ms] [Warning] [isaacsim.asset.importer.utils.impl.urdf_to_mjc_physx_conversion_utils] Stiffness and damping not available joint /k1/Physics/left_elbow_joint, actuator will be created without gain parameters
+2026-11-15T02:51:54Z [34,881ms] [Warning] [isaacsim.asset.importer.utils.impl.urdf_to_mjc_physx_conversion_utils] Stiffness and damping not available joint /k1/Physics/left_wrist_roll_joint, actuator will be created without gain parameters
+2026-11-15T02:51:54Z [34,882ms] [Warning] [isaacsim.asset.importer.utils.impl.urdf_to_mjc_physx_conversion_utils] Stiffness and damping not available joint /k1/Physics/right_shoulder_pitch_joint, actuator will be created without gain parameters
+2026-11-15T02:51:54Z [34,883ms] [Warning] [isaacsim.asset.importer.utils.impl.urdf_to_mjc_physx_conversion_utils] Stiffness and damping not available joint /k1/Physics/right_shoulder_roll_joint, actuator will be created without gain parameters
+2026-11-15T02:51:54Z [34,884ms] [Warning] [isaacsim.asset.importer.utils.impl.urdf_to_mjc_physx_conversion_utils] Stiffness and damping not available joint /k1/Physics/right_shoulder_yaw_joint, actuator will be created without gain parameters
+2026-11-15T02:51:54Z [34,885ms] [Warning] [isaacsim.asset.importer.utils.impl.urdf_to_mjc_physx_conversion_utils] Stiffness and damping not available joint /k1/Physics/right_elbow_joint, actuator will be created without gain parameters
+[INFO]: Registered backend 'physx' for factory ContactSensor.
+[INFO]: Physics scene prim path: /physicsScene
+[INFO]: Time taken for scene creation Last: 20.694757 s, Mean: 20.694757 s, Std: 0.000000 s, N: 1
+[INFO]: Scene manager:  <class InteractiveScene>
+	Number of environments: 2
+	Environment spacing   : 2.5
+	Source prim name      : /World/envs/env_0
+	Global prim paths     : ['/World/ground']
+	Replicate physics     : True
+[INFO]: Simulation parameters for joints in /World/envs/env_[^/]+/Robot:
++---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+|                                                      Simulation Joint Information (Prim path: /World/envs/env_[^/]+/Robot)                                                      |
++-------+----------------------------+-----------+---------+----------+-----------------+------------------+------------------+-----------------+-----------------+---------------+
+| Index | Name                       | Stiffness | Damping | Armature | Static Friction | Dynamic Friction | Viscous Friction | Position Limits | Velocity Limits | Effort Limits |
++-------+----------------------------+-----------+---------+----------+-----------------+------------------+------------------+-----------------+-----------------+---------------+
+|   0   | left_hip_pitch_joint       |   76.452  |  4.867  |  0.019   |      0.000      |      0.000       |      0.000       | [-2.444, 2.444] |      11.519     |     96.864    |
+|   1   | right_hip_pitch_joint      |   76.452  |  4.867  |  0.019   |      0.000      |      0.000       |      0.000       | [-2.444, 2.444] |      11.519     |     96.864    |
+|   2   | waist_yaw_joint            |   76.452  |  4.867  |  0.019   |      0.000      |      0.000       |      0.000       | [-6.283, 6.283] |      11.519     |     96.864    |
+|   3   | left_hip_roll_joint        |   76.452  |  4.867  |  0.019   |      0.000      |      0.000       |      0.000       | [-0.611, 2.531] |      11.519     |     96.864    |
+|   4   | right_hip_roll_joint       |   76.452  |  4.867  |  0.019   |      0.000      |      0.000       |      0.000       | [-2.531, 0.611] |      11.519     |     96.864    |
+|   5   | left_shoulder_pitch_joint  |   22.301  |  1.420  |  0.006   |      0.000      |      0.000       |      0.000       | [-3.142, 3.142] |      20.944     |     47.277    |
+|   6   | right_shoulder_pitch_joint |   22.301  |  1.420  |  0.006   |      0.000      |      0.000       |      0.000       | [-3.142, 3.142] |      20.944     |     47.277    |
+|   7   | left_hip_yaw_joint         |   76.452  |  4.867  |  0.019   |      0.000      |      0.000       |      0.000       | [-3.142, 3.142] |      11.519     |     96.864    |
+|   8   | right_hip_yaw_joint        |   76.452  |  4.867  |  0.019   |      0.000      |      0.000       |      0.000       | [-3.142, 3.142] |      11.519     |     96.864    |
+|   9   | left_shoulder_roll_joint   |   22.301  |  1.420  |  0.006   |      0.000      |      0.000       |      0.000       |  [0.000, 3.142] |      20.944     |     47.277    |
+|   10  | right_shoulder_roll_joint  |   22.301  |  1.420  |  0.006   |      0.000      |      0.000       |      0.000       | [-3.142, 0.000] |      20.944     |     47.277    |
+|   11  | left_knee_joint            |   76.452  |  4.867  |  0.019   |      0.000      |      0.000       |      0.000       |  [0.000, 2.356] |      11.519     |     96.864    |
+|   12  | right_knee_joint           |   76.452  |  4.867  |  0.019   |      0.000      |      0.000       |      0.000       |  [0.000, 2.356] |      11.519     |     96.864    |
+|   13  | left_shoulder_yaw_joint    |   22.301  |  1.420  |  0.006   |      0.000      |      0.000       |      0.000       | [-3.142, 3.142] |      20.944     |     47.277    |
+|   14  | right_shoulder_yaw_joint   |   22.301  |  1.420  |  0.006   |      0.000      |      0.000       |      0.000       | [-3.142, 3.142] |      20.944     |     47.277    |
+|   15  | left_ankle_pitch_joint     |   76.452  |  4.867  |  0.019   |      0.000      |      0.000       |      0.000       | [-0.785, 0.785] |      11.519     |     96.864    |
+|   16  | right_ankle_pitch_joint    |   76.452  |  4.867  |  0.019   |      0.000      |      0.000       |      0.000       | [-0.785, 0.785] |      11.519     |     96.864    |
+|   17  | left_elbow_joint           |   22.301  |  1.420  |  0.006   |      0.000      |      0.000       |      0.000       | [-0.785, 2.182] |      20.944     |     47.277    |
+|   18  | right_elbow_joint          |   22.301  |  1.420  |  0.006   |      0.000      |      0.000       |      0.000       | [-0.785, 2.182] |      20.944     |     47.277    |
+|   19  | left_ankle_roll_joint      |   22.301  |  1.420  |  0.006   |      0.000      |      0.000       |      0.000       | [-0.524, 0.524] |      20.944     |     47.277    |
+|   20  | right_ankle_roll_joint     |   22.301  |  1.420  |  0.006   |      0.000      |      0.000       |      0.000       | [-0.524, 0.524] |      20.944     |     47.277    |
+|   21  | left_wrist_roll_joint      |   22.301  |  1.420  |  0.006   |      0.000      |      0.000       |      0.000       | [-3.142, 3.142] |      20.944     |     47.277    |
+|   22  | right_wrist_roll_joint     |   22.301  |  1.420  |  0.006   |      0.000      |      0.000       |      0.000       | [-3.142, 3.142] |      20.944     |     47.277    |
++-------+----------------------------+-----------+---------+----------+-----------------+------------------+------------------+-----------------+-----------------+---------------+
+[INFO]: Time taken for simulation start Last: 20.706487 s, Mean: 20.706487 s, Std: 0.000000 s, N: 1
+[INFO] [Motion] /workspace/cyclo_lab/source/cyclo_lab/data/motions/K1_rev1/dance1/dance1.npz: metadata, 23 joints / 24 bodies, xyzw
+[INFO] Command Manager:  <CommandManager> contains 1 active terms.
++-----------------------------------------------------------+
+|                    Active Command Terms                   |
++-------+----------------------+----------------------------+
+| Index | Name                 |            Type            |
++-------+----------------------+----------------------------+
+|   0   | reference_trajectory | ReferenceTrajectoryCommand |
++-------+----------------------+----------------------------+
+
+[INFO] Event Manager:  <EventManager> contains 2 active terms.
++---------------------------------------+
+| Active Event Terms in Mode: 'startup' |
++--------+------------------------------+
+| Index  | Name                         |
++--------+------------------------------+
+|   0    | physics_material             |
+|   1    | joint_home_offset_noise      |
+|   2    | torso_com_offset_noise       |
++--------+------------------------------+
++----------------------------------------------+
+|    Active Event Terms in Mode: 'interval'    |
++-------+------------+-------------------------+
+| Index | Name       | Interval time range (s) |
++-------+------------+-------------------------+
+|   0   | push_robot |        (1.0, 3.0)       |
++-------+------------+-------------------------+
+
+[INFO] Recorder Manager:  <RecorderManager> contains 0 active terms.
++-----------------------+
+| Active Recorder Terms |
++------------+----------+
+|   Index    | Name     |
++------------+----------+
++------------+----------+
+
+[INFO]: Resolved joint names for the action term JointPositionAction: ['left_hip_pitch_joint', 'right_hip_pitch_joint', 'waist_yaw_joint', 'left_hip_roll_joint', 'right_hip_roll_joint', 'left_shoulder_pitch_joint', 'right_shoulder_pitch_joint', 'left_hip_yaw_joint', 'right_hip_yaw_joint', 'left_shoulder_roll_joint', 'right_shoulder_roll_joint', 'left_knee_joint', 'right_knee_joint', 'left_shoulder_yaw_joint', 'right_shoulder_yaw_joint', 'left_ankle_pitch_joint', 'right_ankle_pitch_joint', 'left_elbow_joint', 'right_elbow_joint', 'left_ankle_roll_joint', 'right_ankle_roll_joint', 'left_wrist_roll_joint', 'right_wrist_roll_joint'] [tensor([ 0,  1,  2,  3,  4,  5,  6,  7,  8,  9, 10, 11, 12, 13, 14, 15, 16, 17,
+        18, 19, 20, 21, 22], device='cuda:0', dtype=torch.int32)]
+[INFO] Action Manager:  <ActionManager> contains 1 active terms.
++---------------------------------+
+| Active Action Terms (shape: 23) |
++-------+-----------+-------------+
+| Index | Name      |   Dimension |
++-------+-----------+-------------+
+|   0   | joint_pos |          23 |
++-------+-----------+-------------+
+
+[INFO] Observation Manager: <ObservationManager> contains 2 groups.
++-------------------------------------------------------------+
+| Active Observation Terms in Group: 'policy' (shape: (124,)) |
++-----------+------------------------------------+------------+
+|   Index   | Name                               |   Shape    |
++-----------+------------------------------------+------------+
+|     0     | motion_command                     |   (46,)    |
+|     1     | motion_anchor_ori_b                |    (6,)    |
+|     2     | base_ang_vel                       |    (3,)    |
+|     3     | joint_pos_rel                      |   (23,)    |
+|     4     | joint_vel_rel                      |   (23,)    |
+|     5     | last_action                        |   (23,)    |
++-----------+------------------------------------+------------+
++-------------------------------------------------------------+
+| Active Observation Terms in Group: 'critic' (shape: (256,)) |
++--------+-----------------------------------------+----------+
+| Index  | Name                                    |  Shape   |
++--------+-----------------------------------------+----------+
+|   0    | motion_command                          |  (46,)   |
+|   1    | reference_anchor_position_b             |   (3,)   |
+|   2    | motion_anchor_ori_b                     |   (6,)   |
+|   3    | measured_body_positions_b               |  (42,)   |
+|   4    | measured_body_orientations_b            |  (84,)   |
+|   5    | base_lin_vel                            |   (3,)   |
+|   6    | base_ang_vel                            |   (3,)   |
+|   7    | joint_pos                               |  (23,)   |
+|   8    | joint_vel                               |  (23,)   |
+|   9    | actions                                 |  (23,)   |
++--------+-----------------------------------------+----------+
+
+[INFO] Termination Manager:  <TerminationManager> contains 6 active terms.
++----------------------------------------+
+|        Active Termination Terms        |
++-------+---------------------+----------+
+| Index | Name                | Time Out |
++-------+---------------------+----------+
+|   0   | time_out            |   True   |
+|   1   | anchor_height       |  False   |
+|   2   | anchor_ori          |  False   |
+|   3   | end_body_pos        |  False   |
+|   4   | joint_vel_explosion |  False   |
+|   5   | physx_nan           |  False   |
++-------+---------------------+----------+
+
+[INFO] Reward Manager:  <RewardManager> contains 11 active terms.
++----------------------------------------------------+
+|                Active Reward Terms                 |
++-------+---------------------------------+----------+
+| Index | Name                            |   Weight |
++-------+---------------------------------+----------+
+|   0   | reference_anchor_position       |      0.5 |
+|   1   | reference_anchor_orientation    |      0.5 |
+|   2   | reference_body_position         |      1.0 |
+|   3   | reference_body_orientation      |      1.0 |
+|   4   | reference_body_linear_velocity  |      1.0 |
+|   5   | reference_body_angular_velocity |      1.0 |
+|   6   | joint_acc                       | -2.5e-07 |
+|   7   | joint_torque                    |   -1e-05 |
+|   8   | action_rate_l2                  |     -0.1 |
+|   9   | joint_limit                     |    -10.0 |
+|   10  | undesired_contacts              |     -0.1 |
++-------+---------------------------------+----------+
+
+[INFO] Curriculum Manager:  <CurriculumManager> contains 0 active terms.
++-------------------------+
+| Active Curriculum Terms |
++-------------+-----------+
+|    Index    | Name      |
++-------------+-----------+
++-------------+-----------+
+
+[INFO]: Completed setting up the environment...
+[3/3] Preparing agent
+--------------------------------------------------------------------------------
+Resolved observation sets:
+	 actor :  ['policy']
+	 critic :  ['critic']
+--------------------------------------------------------------------------------
+Actor Model: MLPModel(
+  (obs_normalizer): Identity()
+  (distribution): GaussianDistribution()
+  (mlp): MLP(
+    (0): Linear(in_features=124, out_features=512, bias=True)
+    (1): ELU(alpha=1.0)
+    (2): Linear(in_features=512, out_features=256, bias=True)
+    (3): ELU(alpha=1.0)
+    (4): Linear(in_features=256, out_features=128, bias=True)
+    (5): ELU(alpha=1.0)
+    (6): Linear(in_features=128, out_features=23, bias=True)
+  )
+)
+Critic Model: MLPModel(
+  (obs_normalizer): Identity()
+  (mlp): MLP(
+    (0): Linear(in_features=256, out_features=512, bias=True)
+    (1): ELU(alpha=1.0)
+    (2): Linear(in_features=512, out_features=256, bias=True)
+    (3): ELU(alpha=1.0)
+    (4): Linear(in_features=256, out_features=128, bias=True)
+    (5): ELU(alpha=1.0)
+    (6): Linear(in_features=128, out_features=1, bias=True)
+  )
+)
+[WARNING]: Skipping Git state export: fatal: not a git repository: third_party/IsaacLab/../../../../../../../Desktop/cyclo_lab/.git/worktrees/feature-supermimic/modules/third_party/IsaacLab
+Could not find git repository in /opt/isaaclab-venv/lib/python3.12/site-packages/rsl_rl/__init__.py. Skipping.
+Could not find git repository in /workspace/cyclo_lab/scripts/reinforcement_learning/rsl_rl/train.py. Skipping.
+################################################################################
+                             Learning iteration 0/1
+
+                            Total steps: 48
+                       Steps per second: 38
+                        Collection time: 1.051s
+                          Learning time: 0.198s
+                        Mean value loss: 0.1973
+                    Mean surrogate loss: -0.0824
+                      Mean entropy loss: 32.6252
+                            Mean reward: -0.03
+                    Mean episode length: 1.00
+                        Mean action std: 1.00
+Episode_Reward/reference_anchor_position: 0.0003
+Episode_Reward/reference_anchor_orientation: 0.0003
+ Episode_Reward/reference_body_position: 0.0000
+Episode_Reward/reference_body_orientation: 0.0000
+Episode_Reward/reference_body_linear_velocity: 0.0004
+Episode_Reward/reference_body_angular_velocity: 0.0000
+               Episode_Reward/joint_acc: -0.0000
+            Episode_Reward/joint_torque: -0.0000
+          Episode_Reward/action_rate_l2: -0.0018
+             Episode_Reward/joint_limit: 0.0000
+      Episode_Reward/undesired_contacts: 0.0000
+Metrics/reference_trajectory/error_anchor_pos: 0.0000
+Metrics/reference_trajectory/error_anchor_rot: 0.0000
+Metrics/reference_trajectory/error_anchor_lin_vel: 0.0000
+Metrics/reference_trajectory/error_anchor_ang_vel: 0.0000
+Metrics/reference_trajectory/error_body_pos: 0.0000
+Metrics/reference_trajectory/error_body_rot: 0.0000
+Metrics/reference_trajectory/error_joint_pos: 0.0000
+Metrics/reference_trajectory/error_joint_vel: 0.0000
+Metrics/reference_trajectory/start_sampling_entropy: 1.0000
+Metrics/reference_trajectory/start_sampling_top1_prob: 0.1429
+Metrics/reference_trajectory/start_sampling_top1_bin: 0.0000
+           Episode_Termination/time_out: 0.0000
+      Episode_Termination/anchor_height: 0.0000
+         Episode_Termination/anchor_ori: 0.0000
+       Episode_Termination/end_body_pos: 1.0000
+Episode_Termination/joint_vel_explosion: 0.0000
+          Episode_Termination/physx_nan: 0.0000
+--------------------------------------------------------------------------------
+                         Iteration time: 1.25s
+                           Time elapsed: 0:00:01
+                                    ETA: 0:00:00
+
+Training time: 2.46 seconds
+[INFO]: SimulationContext cleared
+2026-11-15T02:51:54Z [34,886ms] [Warning] [isaacsim.asset.importer.utils.impl.urdf_to_mjc_physx_conversion_utils] Stiffness and damping not available joint /k1/Physics/right_wrist_roll_joint, actuator will be created without gain parameters
+2026-11-15T02:52:02Z [42,372ms] [Warning] [usdrt.population.plugin] Last global time was not created. Did you call setEnableUsdNoticeHandling?
+2026-11-15T02:52:19Z [59,348ms] [Warning] [isaacsim.asset.transformer.rules.utils] omni.kit.material.library is not available; using hardcoded built-in MDL list (15 basename(s)).
+[INFO] Using Python: "/opt/isaaclab-venv/bin/python"
