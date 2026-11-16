@@ -205,12 +205,6 @@ RUN --mount=type=cache,target=${DOCKER_USER_HOME}/.cache/pip \
     echo "Installing h5py..." && \
     ${LEROBOT_VENV}/bin/python3 -m pip install h5py
 
-# Arena's lockfile can upgrade these beyond the versions required by Isaac Sim 6.2.
-RUN --mount=type=cache,target=${DOCKER_USER_HOME}/.cache/uv \
-    uv pip install --python ${VIRTUAL_ENV}/bin/python --no-deps \
-        'usd-exchange==2.3.0' 'usd-optimize==1.1.0' && \
-    ${VIRTUAL_ENV}/bin/python -c "import importlib.metadata as m; assert m.version('usd-exchange') == '2.3.0'; assert m.version('usd-optimize') == '1.1.0'"
-
 # Set up aliases and environment
 RUN echo "# Environment variables" >> ${DOCKER_USER_HOME}/.bashrc && \
     echo "export ISAACLAB_PATH=${ISAACLAB_PATH}" >> ${DOCKER_USER_HOME}/.bashrc && \
