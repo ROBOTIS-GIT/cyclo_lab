@@ -197,7 +197,7 @@ ENV HUB__ARGS__DETECT_ONLY=false
 ENV LEROBOT_VENV=${DOCKER_USER_HOME}/lerobot_env
 RUN python3 -m venv ${LEROBOT_VENV}
 
-# Install LeRobot: prefer third_party submodule if exists, otherwise install from PyPI
+# Install LeRobot from PyPI in its separate virtual environment.
 RUN --mount=type=cache,target=${DOCKER_USER_HOME}/.cache/pip \
     ${LEROBOT_VENV}/bin/python3 -m pip install --upgrade pip && \
     echo "Installing LeRobot from PyPI..." && \

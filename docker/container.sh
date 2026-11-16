@@ -75,29 +75,57 @@ initialize_submodules() {
     fi
 }
 
+# Reuse an existing container's authentication path, or create one for a new container.
+prepare_x11_auth_path() {
+    # x11.yaml mounts the authentication directory at the same host/container path.
+    if [ -n "${1:-}" ]; then
+        __CYCLOLAB_TMP_XAUTH=$(docker inspect --format '{{range .Config.Env}}{{println .}}{{end}}' "$1" | sed -n 's/^XAUTHORITY=//p')
+        if [ -z "$__CYCLOLAB_TMP_XAUTH" ]; then
+            echo "[WARN] Existing container has no XAUTHORITY. Run './docker/container.sh recreate' to enable X11."
+            return 1
+        fi
+        __CYCLOLAB_TMP_DIR=$(dirname "$__CYCLOLAB_TMP_XAUTH")
+        if [ ! -d "$__CYCLOLAB_TMP_DIR" ]; then
+            echo "[WARN] X11 authentication directory is missing. Run './docker/container.sh recreate' to restore its mount."
+            return 1
+        fi
+    else
+        __CYCLOLAB_TMP_DIR=$(mktemp -d) || return 1
+        __CYCLOLAB_TMP_XAUTH="${__CYCLOLAB_TMP_DIR}/.xauth"
+    fi
+    export __CYCLOLAB_TMP_DIR __CYCLOLAB_TMP_XAUTH
+}
+
+# Update the prepared authentication file with the current display's cookie.
+refresh_x11_cookie() {
+    local cookies
+    cookies=$(xauth nlist "$DISPLAY") || return 1
+    if [ -z "$cookies" ]; then
+        echo "[WARN] No X11 authentication cookie found for DISPLAY=$DISPLAY"
+        return 1
+    fi
+    touch "$__CYCLOLAB_TMP_XAUTH" || return 1
+    (set -o pipefail; printf '%s\n' "$cookies" | sed -e 's/^..../ffff/' | xauth -f "$__CYCLOLAB_TMP_XAUTH" nmerge -) || return 1
+    # Allow the container user to read authentication created by a different host UID.
+    chmod 711 "$__CYCLOLAB_TMP_DIR" && chmod 644 "$__CYCLOLAB_TMP_XAUTH" || return 1
+}
+
 # Configure X11 forwarding
 setup_x11() {
-    # Check if xauth is installed
     if ! command -v xauth &> /dev/null; then
         echo "[WARN] xauth is not installed. X11 forwarding will not work."
         echo "[WARN] Install with: sudo apt install xauth"
         return 1
     fi
 
-    # Check if DISPLAY is set
     if [ -z "$DISPLAY" ]; then
         echo "[WARN] DISPLAY variable is not set. X11 forwarding will not work."
         return 1
     fi
 
-    # Create temporary directory for xauth
-    export __CYCLOLAB_TMP_DIR=$(mktemp -d)
-    export __CYCLOLAB_TMP_XAUTH="${__CYCLOLAB_TMP_DIR}/.xauth"
+    prepare_x11_auth_path "${1:-}" || return 1
+    refresh_x11_cookie || return 1
 
-    # Create xauth file
-    touch "${__CYCLOLAB_TMP_XAUTH}"
-    xauth nlist "$DISPLAY" | sed -e 's/^..../ffff/' | xauth -f "${__CYCLOLAB_TMP_XAUTH}" nmerge -
-    
     echo "[INFO] X11 forwarding configured"
     echo "[INFO] XAUTH file: ${__CYCLOLAB_TMP_XAUTH}"
 
@@ -131,17 +159,6 @@ start_container() {
 
     cd "${DOCKER_DIR}"
 
-    # Setup X11 forwarding
-    X11_COMPOSE_FILE=""
-    if check_x11; then
-        if setup_x11; then
-            X11_COMPOSE_FILE="-f x11.yaml"
-            echo "[INFO] X11 forwarding enabled"
-        fi
-    else
-        echo "[INFO] X11 forwarding not available (no DISPLAY or xauth)"
-    fi
-
     # Check if container is already running
     if [ -n "$(docker ps -q --filter "name=^cyclo_lab${DOCKER_NAME_SUFFIX}$")" ]; then
         echo "[INFO] Container is already running"
@@ -153,6 +170,11 @@ start_container() {
         echo "[INFO] Starting existing container..."
         docker start cyclo_lab${DOCKER_NAME_SUFFIX}
     else
+        X11_COMPOSE_FILE=""
+        if check_x11 && setup_x11; then
+            X11_COMPOSE_FILE="-f x11.yaml"
+            echo "[INFO] X11 forwarding enabled"
+        fi
         echo "[INFO] Creating and starting new container..."
         docker compose -f docker-compose.yaml ${X11_COMPOSE_FILE} up -d cyclo_lab
     fi
@@ -185,6 +207,11 @@ enter_container() {
     if [ -z "$(docker ps -q --filter "name=^cyclo_lab${DOCKER_NAME_SUFFIX}$")" ]; then
         echo "[ERROR] Container is not running. Start it first with './docker/container.sh start'"
         exit 1
+    fi
+
+    # Refresh authentication before entering, as in Isaac Lab's container.py.
+    if check_x11 && ! setup_x11 "cyclo_lab${DOCKER_NAME_SUFFIX}"; then
+        echo "[WARN] Entering without refreshed X11 authentication; GUI applications may not work."
     fi
 
     # Pass DISPLAY environment variable to the container
