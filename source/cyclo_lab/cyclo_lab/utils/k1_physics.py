@@ -71,8 +71,8 @@ def configure_k1_physics(env_cfg, *, locomotion: bool = False) -> None:
         env_cfg.observations.critic.base_lin_vel.clip = preset(
             default=(-10.0, 10.0), isaacsim_physx=None, physx=None
         )
-        # MJWarp takes the larger collider friction: let the robot material control contact.
-        material = env_cfg.scene.terrain.physics_material
-        material.static_friction = preset(default=0.0, isaacsim_physx=1.0, physx=1.0)
-        material.dynamic_friction = preset(default=0.0, isaacsim_physx=1.0, physx=1.0)
-        env_cfg.sim.physics_material = material
+    # MJWarp takes the larger collider friction: let the robot material control contact.
+    material = env_cfg.scene.terrain.physics_material
+    material.static_friction = preset(default=0.0, isaacsim_physx=1.0, physx=1.0)
+    material.dynamic_friction = preset(default=0.0, isaacsim_physx=1.0, physx=1.0)
+    env_cfg.sim.physics_material = material
