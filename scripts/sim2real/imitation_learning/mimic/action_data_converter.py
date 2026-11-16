@@ -29,6 +29,7 @@ from copy import deepcopy
 import torch
 from cyclo_lab.robot_specs.ffw.sg2 import FFW_SG2_PUBLISHED_TO_ACTION_INDICES
 from isaaclab.utils.datasets import EpisodeData, HDF5DatasetFileHandler
+from isaaclab.utils.math import convert_quat
 from tqdm import tqdm
 
 if multiprocessing.get_start_method(allow_none=True) != "spawn":
@@ -131,6 +132,12 @@ def process_dataset(input_file: str, output_file: str, action_type: str, robot_t
                     continue
 
                 processed = deepcopy(ep_data)
+                if input_handler.is_legacy_quaternion_format():
+                    # The dataset loader converts root_pose, but not these custom EEF observations.
+                    for key in ("eef_pose", "left_eef_pose", "right_eef_pose"):
+                        pose = processed.data.get("obs", {}).get(key)
+                        if pose is not None:
+                            pose[..., 3:7] = convert_quat(pose[..., 3:7], to="xyzw")
 
                 # Apply conversion based on action type
                 if action_type == "ik":
