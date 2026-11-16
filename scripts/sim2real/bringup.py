@@ -33,13 +33,15 @@ parser.add_argument("--disable_head", action="store_true", help="FFW-SH5 only: d
 parser.add_argument("--disable_lift", action="store_true", help="FFW-SH5 only: disable the lift command topic.")
 parser.add_argument("--disable_cmd_vel", action="store_true", help="FFW-SH5 only: disable mobile-base commands.")
 AppLauncher.add_app_launcher_args(parser)
+parser.add_argument("--headless", action="store_true", help="Run without a window.")
+parser.add_argument("--enable_cameras", action="store_true", help="Enable camera rendering.")
 args_cli = parser.parse_args()
 if args_cli.task is None:
     parser.error("the following argument is required: --task")
 if args_cli.camera_view == "operator":
     args_cli.enable_cameras = True
 
-app_launcher = AppLauncher(vars(args_cli))
+app_launcher = AppLauncher(vars(args_cli).copy())
 simulation_app = app_launcher.app
 
 import cyclo_lab  # noqa: F401 - registers Cyclo Gym tasks after AppLauncher

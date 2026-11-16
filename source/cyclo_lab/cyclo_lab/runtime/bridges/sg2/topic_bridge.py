@@ -165,7 +165,7 @@ class FFWSG2TopicBridge:
         return True
 
     def _read_current_joint_state(self) -> dict[str, float]:
-        positions = self.robot.data.joint_pos[0].detach().cpu().tolist()
+        positions = self.robot.data.joint_pos.torch[0].detach().cpu().tolist()
         name_to_index = {name: index for index, name in enumerate(self.robot.data.joint_names)}
         return {
             name: self._clamp_joint(name, positions[name_to_index[name]])

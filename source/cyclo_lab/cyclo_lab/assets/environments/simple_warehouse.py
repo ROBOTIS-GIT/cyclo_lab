@@ -15,7 +15,7 @@ SIMPLE_WAREHOUSE_ENVIRONMENT_USD_PATH = (
 
 ENVIRONMENT_SCALE = 0.7
 ENVIRONMENT_POS = (1.25, 0.5, 0.0)
-ENVIRONMENT_ROT = (1.0, 0.0, 0.0, 0.0)
+ENVIRONMENT_ROT = (0.0, 0.0, 0.0, 1.0)
 
 GRASPABLE_CARD_BOX_MASS = 0.2
 GRASPABLE_CARD_BOX_PRIM_PATHS = tuple(
@@ -53,7 +53,7 @@ def make_card_boxes_graspable():
     """Apply rigid body, mass, and collision properties to selected warehouse card boxes."""
     import isaaclab.sim as sim_utils
     from isaaclab.sim.utils import make_uninstanceable
-    from isaacsim.core.utils.stage import get_current_stage
+    from isaaclab.sim.utils import get_current_stage
 
     stage = get_current_stage()
     rigid_props = sim_utils.RigidBodyPropertiesCfg(

@@ -137,7 +137,7 @@ def ankle_coupling_penalty(
     lr_idx = joint_names.index(left_roll_name)
     rp_idx = joint_names.index(right_pitch_name)
     rr_idx = joint_names.index(right_roll_name)
-    joint_pos = asset.data.joint_pos
+    joint_pos = asset.data.joint_pos.torch
 
     def ellipse_violation(pitch: torch.Tensor, roll: torch.Tensor) -> torch.Tensor:
         pitch_norm = torch.where(pitch < 0, pitch / p_neg, pitch / p_pos)

@@ -79,15 +79,15 @@ FFW_SG2_CFG = ArticulationCfg(
         # These gains and limits are not measured SG2 motor specifications.
         "base_steer": ImplicitActuatorCfg(
             joint_names_expr=list(SG2_SWERVE_STEERING_JOINTS),
-            velocity_limit_sim=FFW_SG2_SWERVE_STEERING_ANGULAR_VELOCITY_LIMIT,
-            effort_limit_sim=100000.0,
+            joint_velocity_limit=FFW_SG2_SWERVE_STEERING_ANGULAR_VELOCITY_LIMIT,
+            joint_effort_limit=100000.0,
             stiffness=10000.0,
             damping=100.0,
         ),
         "base_drive": ImplicitActuatorCfg(
             joint_names_expr=list(SG2_SWERVE_WHEEL_JOINTS),
-            velocity_limit_sim=50.0,
-            effort_limit_sim=100000.0,
+            joint_velocity_limit=50.0,
+            joint_effort_limit=100000.0,
             # Track wheel velocity without pulling the wheel back to a fixed angle.
             stiffness=0.0,
             damping=SG2_SWERVE_DRIVE_DAMPING,
@@ -95,8 +95,8 @@ FFW_SG2_CFG = ArticulationCfg(
         # Actuator for vertical lift joint
         "lift": ImplicitActuatorCfg(
             joint_names_expr=["lift_joint"],
-            velocity_limit_sim=0.2,
-            effort_limit_sim=1000000.0,
+            joint_velocity_limit=0.2,
+            joint_effort_limit=1000000.0,
             stiffness=10000.0,
             damping=100.0,
         ),
@@ -106,8 +106,8 @@ FFW_SG2_CFG = ArticulationCfg(
                 "arm_l_joint[1-2]",
                 "arm_r_joint[1-2]",
             ],
-            velocity_limit_sim=15.0,
-            effort_limit_sim=61.4,
+            joint_velocity_limit=15.0,
+            joint_effort_limit=61.4,
             stiffness=600.0,
             damping=30.0,
         ),
@@ -116,8 +116,8 @@ FFW_SG2_CFG = ArticulationCfg(
                 "arm_l_joint[3-6]",
                 "arm_r_joint[3-6]",
             ],
-            velocity_limit_sim=15.0,
-            effort_limit_sim=31.7,
+            joint_velocity_limit=15.0,
+            joint_effort_limit=31.7,
             stiffness=600.0,
             damping=20.0,
         ),
@@ -126,31 +126,31 @@ FFW_SG2_CFG = ArticulationCfg(
                 "arm_l_joint7",
                 "arm_r_joint7",
             ],
-            velocity_limit_sim=6.0,
-            effort_limit_sim=5.1,
+            joint_velocity_limit=6.0,
+            joint_effort_limit=5.1,
             stiffness=200.0,
             damping=3.0,
         ),
         # Actuators for grippers
         "gripper_master": ImplicitActuatorCfg(
             joint_names_expr=["gripper_l_joint1", "gripper_r_joint1"],
-            velocity_limit_sim=2.2,
-            effort_limit_sim=30.0,
+            joint_velocity_limit=2.2,
+            joint_effort_limit=30.0,
             stiffness=100.0,
             damping=4.0,
         ),
         "gripper_passive": ImplicitActuatorCfg(
             joint_names_expr=["gripper_l_joint[2-4]", "gripper_r_joint[2-4]"],
-            velocity_limit_sim=10.0,
-            effort_limit_sim=1.0,
+            joint_velocity_limit=10.0,
+            joint_effort_limit=1.0,
             stiffness=0.0,
             damping=0.0,
         ),
         # Actuators for head joints
         "head": ImplicitActuatorCfg(
             joint_names_expr=["head_joint1", "head_joint2"],
-            velocity_limit_sim=2.0,
-            effort_limit_sim=30.0,
+            joint_velocity_limit=2.0,
+            joint_effort_limit=30.0,
             stiffness=150.0,
             damping=3.0,
         ),
@@ -162,6 +162,6 @@ FFW_SG2_PHYSICS_CFG = deepcopy(FFW_SG2_CFG)
 FFW_SG2_PHYSICS_CFG.spawn.rigid_props.linear_damping = 2.0
 FFW_SG2_PHYSICS_CFG.spawn.rigid_props.angular_damping = 4.0
 FFW_SG2_PHYSICS_CFG.articulation_root_prim_path = "/ffw_sg2_follower/world"
-FFW_SG2_PHYSICS_CFG.actuators["lift"].effort_limit_sim = _SG2_PHYSICS_LIFT_EFFORT_LIMIT
+FFW_SG2_PHYSICS_CFG.actuators["lift"].joint_effort_limit = _SG2_PHYSICS_LIFT_EFFORT_LIMIT
 FFW_SG2_PHYSICS_CFG.actuators["lift"].stiffness = _SG2_PHYSICS_LIFT_STIFFNESS
 FFW_SG2_PHYSICS_CFG.actuators["lift"].damping = _SG2_PHYSICS_LIFT_DAMPING

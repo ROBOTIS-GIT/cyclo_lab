@@ -27,8 +27,8 @@ def foot_clearance_reward(
 ) -> torch.Tensor:
     """Reward the swinging feet for clearing a specified height off the ground"""
     asset: RigidObject = env.scene[asset_cfg.name]
-    foot_z_target_error = torch.square(asset.data.body_pos_w[:, asset_cfg.body_ids, 2] - target_height)
-    foot_velocity_tanh = torch.tanh(tanh_mult * torch.norm(asset.data.body_lin_vel_w[:, asset_cfg.body_ids, :2], dim=2))
+    foot_z_target_error = torch.square(asset.data.body_pos_w.torch[:, asset_cfg.body_ids, 2] - target_height)
+    foot_velocity_tanh = torch.tanh(tanh_mult * torch.norm(asset.data.body_lin_vel_w.torch[:, asset_cfg.body_ids, :2], dim=2))
     reward = foot_z_target_error * foot_velocity_tanh
     return torch.exp(-torch.sum(reward, dim=1) / std)
 
@@ -46,8 +46,8 @@ def feet_airtime_touchdown(
     if contact_sensor.cfg.track_air_time is False:
         raise RuntimeError("Activate ContactSensor's track_air_time!")
 
-    first_contact = contact_sensor.compute_first_contact(env.step_dt)[:, sensor_cfg.body_ids]
-    last_air_time = contact_sensor.data.last_air_time[:, sensor_cfg.body_ids]
+    first_contact = contact_sensor.compute_first_contact(env.step_dt).torch[:, sensor_cfg.body_ids]
+    last_air_time = contact_sensor.data.last_air_time.torch[:, sensor_cfg.body_ids]
     walking_reward = ((last_air_time - target_air_time) * first_contact.float()).sum(dim=1)
 
     cmd_norm = torch.norm(env.command_manager.get_command(command_name)[:, :2], dim=1)
@@ -67,8 +67,8 @@ def feet_single_contact(
     if contact_sensor.cfg.track_air_time is False:
         raise RuntimeError("Activate ContactSensor's track_air_time!")
 
-    contact_time = contact_sensor.data.current_contact_time[:, sensor_cfg.body_ids]
-    air_time = contact_sensor.data.current_air_time[:, sensor_cfg.body_ids]
+    contact_time = contact_sensor.data.current_contact_time.torch[:, sensor_cfg.body_ids]
+    air_time = contact_sensor.data.current_air_time.torch[:, sensor_cfg.body_ids]
 
     num_contacts = torch.sum(contact_time > 0.0, dim=1)
     is_single_stance = num_contacts == 1
@@ -95,8 +95,8 @@ def feet_touchdown_acc(
         raise RuntimeError("Activate ContactSensor's track_air_time!")
 
     asset: RigidObject = env.scene[asset_cfg.name]
-    first_contact = contact_sensor.compute_first_contact(env.step_dt)[:, sensor_cfg.body_ids]
-    foot_acc = torch.norm(asset.data.body_lin_acc_w[:, asset_cfg.body_ids, :], dim=-1)
+    first_contact = contact_sensor.compute_first_contact(env.step_dt).torch[:, sensor_cfg.body_ids]
+    foot_acc = torch.norm(asset.data.body_lin_acc_w.torch[:, asset_cfg.body_ids, :], dim=-1)
     impact_acc = torch.clamp(foot_acc - threshold, min=0.0)
     return torch.sum(first_contact.float() * impact_acc, dim=1)
 
@@ -112,8 +112,8 @@ def feet_touchdown_xy_vel_l2(
         raise RuntimeError("Activate ContactSensor's track_air_time!")
 
     asset: RigidObject = env.scene[asset_cfg.name]
-    first_contact = contact_sensor.compute_first_contact(env.step_dt)[:, sensor_cfg.body_ids]
-    foot_xy_vel = torch.sum(torch.square(asset.data.body_lin_vel_w[:, asset_cfg.body_ids, :2]), dim=-1)
+    first_contact = contact_sensor.compute_first_contact(env.step_dt).torch[:, sensor_cfg.body_ids]
+    foot_xy_vel = torch.sum(torch.square(asset.data.body_lin_vel_w.torch[:, asset_cfg.body_ids, :2]), dim=-1)
     return torch.sum(first_contact.float() * foot_xy_vel, dim=1)
 
 
@@ -121,7 +121,7 @@ def feet_orientation_l2(env: ManagerBasedRLEnv, asset_cfg: SceneEntityCfg) -> to
     """Penalize feet orientation not parallel to the ground."""
     asset: RigidObject = env.scene[asset_cfg.name]
     num_feet = len(asset_cfg.body_ids)
-    feet_quat = asset.data.body_quat_w[:, asset_cfg.body_ids, :]
-    gravity_w = asset.data.GRAVITY_VEC_W.unsqueeze(1).expand(-1, num_feet, -1)
+    feet_quat = asset.data.body_quat_w.torch[:, asset_cfg.body_ids, :]
+    gravity_w = asset.data.GRAVITY_VEC_W.torch.unsqueeze(1).expand(-1, num_feet, -1)
     feet_proj_g = quat_apply_inverse(feet_quat, gravity_w)
     return torch.sum(torch.square(feet_proj_g[:, :, :2]), dim=-1).sum(dim=-1)

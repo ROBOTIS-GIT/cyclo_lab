@@ -25,8 +25,9 @@ from __future__ import annotations
 from collections.abc import Sequence
 from pathlib import Path
 
-import numpy as np
 import torch
+
+from cyclo_lab.utils.motion_npz import load_motion_npz
 
 
 class ReferenceTrajectory:
@@ -42,12 +43,15 @@ class ReferenceTrajectory:
         "body_ang_vel_w",
     )
 
-    def __init__(self, trajectory_file: str, tracked_body_ids: Sequence[int], device: str = "cpu"):
+    def __init__(
+        self, trajectory_file: str, tracked_body_ids: Sequence[int], device: str = "cpu",
+        joint_names: Sequence[str] | None = None, body_names: Sequence[str] | None = None,
+    ):
         path = Path(trajectory_file)
         if not path.is_file():
             raise FileNotFoundError(f"Reference trajectory file does not exist: {path}")
 
-        data = np.load(path)
+        data = load_motion_npz(path, joint_names=joint_names, body_names=body_names)
         missing = [key for key in self.REQUIRED_KEYS if key not in data]
         if missing:
             raise KeyError(f"Reference trajectory file is missing keys: {missing}")

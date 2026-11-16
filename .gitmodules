@@ -11,4 +11,4 @@
 [submodule "third_party/IsaacLab-Arena"]
 	path = third_party/IsaacLab-Arena
 	url = https://github.com/isaac-sim/IsaacLab-Arena.git
-	branch = feature/arena_v0.2_on_lab_2.3
+	branch = main

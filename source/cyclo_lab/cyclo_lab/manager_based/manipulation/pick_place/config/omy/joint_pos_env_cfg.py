@@ -146,8 +146,8 @@ class OMYBottlePickPlaceEnvCfg(PickPlaceEnvCfg):
             ),
             offset=CameraCfg.OffsetCfg(
                 pos=(0.0, -0.08, 0.07),
-                rot=(0.5, -0.5, -0.5, -0.5),
-                convention="isaac",
+                rot=(-0.5, -0.5, -0.5, 0.5),
+                convention="opengl",
             )
         )
         self.scene.cam_top = CameraCfg(
@@ -161,8 +161,8 @@ class OMYBottlePickPlaceEnvCfg(PickPlaceEnvCfg):
             ),
             offset=CameraCfg.OffsetCfg(
                 pos=(0.0, 0.0, 0.0),
-                rot=(0.0, 0.0, 0.0, 0.0),
-                convention="isaac",
+                rot=(0.0, 0.0, 0.0, 1.0),
+                convention="opengl",
             )
         )
 

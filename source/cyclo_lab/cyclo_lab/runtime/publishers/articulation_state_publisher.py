@@ -108,8 +108,8 @@ class ArticulationStatePublisher:
         self.publish_tf(stamp=stamp)
 
     def publish_joint_states(self, *, stamp=None) -> None:
-        joint_values = self.robot.data.joint_pos[0, self._published_joint_ids]
-        joint_velocities = self.robot.data.joint_vel[0, self._published_joint_ids]
+        joint_values = self.robot.data.joint_pos.torch[0, self._published_joint_ids]
+        joint_velocities = self.robot.data.joint_vel.torch[0, self._published_joint_ids]
         state = torch.stack((joint_values, joint_velocities), dim=1)
         state_cpu = state.detach().cpu().tolist()
         positions = [joint_state[0] for joint_state in state_cpu]
@@ -135,8 +135,8 @@ class ArticulationStatePublisher:
             return
 
         try:
-            root_pos_w = self.robot.data.root_pos_w[0:1]
-            root_quat_w = self.robot.data.root_quat_w[0:1]
+            root_pos_w = self.robot.data.root_pos_w.torch[0:1]
+            root_quat_w = self.robot.data.root_quat_w.torch[0:1]
             if self._odom_origin_pos_w is None or self._odom_origin_quat_w is None:
                 self._odom_origin_pos_w = root_pos_w.detach().clone()
                 self._odom_origin_quat_w = root_quat_w.detach().clone()
@@ -150,12 +150,12 @@ class ArticulationStatePublisher:
             odom_state = torch.cat((
                 odom_pos[0],
                 odom_quat[0],
-                self.robot.data.root_lin_vel_b[0],
-                self.robot.data.root_ang_vel_b[0],
+                self.robot.data.root_lin_vel_b.torch[0],
+                self.robot.data.root_ang_vel_b.torch[0],
             ))
             odom_state_cpu = odom_state.detach().cpu().tolist()
             pos = odom_state_cpu[0:3]
-            quat_wxyz = odom_state_cpu[3:7]
+            quat_xyzw = odom_state_cpu[3:7]
             linear_velocity = odom_state_cpu[7:10]
             angular_velocity = odom_state_cpu[10:13]
 
@@ -165,10 +165,10 @@ class ArticulationStatePublisher:
                     child_frame_id=self.base_frame,
                     position_xyz=(float(pos[0]), float(pos[1]), float(pos[2])),
                     orientation_xyzw=(
-                        float(quat_wxyz[1]),
-                        float(quat_wxyz[2]),
-                        float(quat_wxyz[3]),
-                        float(quat_wxyz[0]),
+                        float(quat_xyzw[0]),
+                        float(quat_xyzw[1]),
+                        float(quat_xyzw[2]),
+                        float(quat_xyzw[3]),
                     ),
                     linear_xyz=(
                         float(linear_velocity[0]),
@@ -200,7 +200,7 @@ class ArticulationStatePublisher:
             return
 
         try:
-            body_pose_w = self.robot.data.body_link_state_w[0, :, :7]
+            body_pose_w = self.robot.data.body_link_state_w.torch[0, :, :7]
             base_pose_w = body_pose_w[self._base_id]
             child_poses_w = body_pose_w[self._tf_body_ids]
             child_pos_b, child_quat_b = math_utils.subtract_frame_transforms(
@@ -215,17 +215,17 @@ class ArticulationStatePublisher:
             transforms = []
             for child_frame, transform_b in zip(self._tf_child_frames, transforms_cpu):
                 pos = transform_b[:3]
-                quat_wxyz = transform_b[3:7]
+                quat_xyzw = transform_b[3:7]
                 transforms.append(
                     transform_stamped_msg(
                         parent_frame=self.base_frame,
                         child_frame=child_frame,
                         translation=(float(pos[0]), float(pos[1]), float(pos[2])),
                         rotation_xyzw=(
-                            float(quat_wxyz[1]),
-                            float(quat_wxyz[2]),
-                            float(quat_wxyz[3]),
-                            float(quat_wxyz[0]),
+                            float(quat_xyzw[0]),
+                            float(quat_xyzw[1]),
+                            float(quat_xyzw[2]),
+                            float(quat_xyzw[3]),
                         ),
                         stamp=stamp,
                     )

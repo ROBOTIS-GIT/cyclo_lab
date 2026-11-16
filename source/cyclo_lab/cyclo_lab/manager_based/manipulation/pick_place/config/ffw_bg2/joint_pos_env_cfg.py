@@ -121,7 +121,7 @@ class PickPlaceFFWBG2EnvCfg(PickPlaceEnvCfg):
                 focal_length=18.0, focus_distance=400.0, horizontal_aperture=20.955, clipping_range=(0.1, 2)
             ),
             offset=CameraCfg.OffsetCfg(
-                pos=(-0.08, 0.0, 0.0), rot=(0.5, -0.5, -0.5, 0.5), convention="isaac"
+                pos=(-0.08, 0.0, 0.0), rot=(-0.5, -0.5, 0.5, 0.5), convention="opengl"
             ),
         )
         self.scene.head_cam = CameraCfg(
@@ -134,7 +134,7 @@ class PickPlaceFFWBG2EnvCfg(PickPlaceEnvCfg):
                 focal_length=12.0, focus_distance=400.0, horizontal_aperture=20.955, clipping_range=(0.1, 2)
             ),
             offset=CameraCfg.OffsetCfg(
-                pos=(-0.03, 0.04, 0.0), rot=(0.5, 0.5, -0.5, -0.5), convention="isaac"
+                pos=(-0.03, 0.04, 0.0), rot=(0.5, -0.5, -0.5, 0.5), convention="opengl"
             ),
         )
 

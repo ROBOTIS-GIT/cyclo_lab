@@ -13,13 +13,13 @@ ROBOTIS_SHOWROOM_BACKGROUND_TEXTURE_PATHS = tuple(
 )
 
 ROBOTIS_SHOWROOM_ENVIRONMENT_POS = (0.0, 0.0, 0.0)
-ROBOTIS_SHOWROOM_ENVIRONMENT_ROT = (1.0, 0.0, 0.0, 0.0)
+ROBOTIS_SHOWROOM_ENVIRONMENT_ROT = (0.0, 0.0, 0.0, 1.0)
 
 _SPAWN_ROBOTIS_SHOWROOM_ENVIRONMENT = None
 
 
 def _make_showroom_floor_visual_only(prim_path: str) -> None:
-    from isaacsim.core.utils.stage import get_current_stage
+    from isaaclab.sim.utils import get_current_stage
     from pxr import Usd, UsdGeom, UsdPhysics
 
     stage = get_current_stage()

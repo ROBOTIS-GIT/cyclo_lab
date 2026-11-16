@@ -65,7 +65,7 @@ class OMYCubeLiftEnvCfg(LiftEnvCfg):
         # Set Cube as object
         self.scene.object = RigidObjectCfg(
             prim_path="{ENV_REGEX_NS}/Object",
-            init_state=RigidObjectCfg.InitialStateCfg(pos=[0.5, 0, 0.055], rot=[1, 0, 0, 0]),
+            init_state=RigidObjectCfg.InitialStateCfg(pos=[0.5, 0, 0.055], rot=[0, 0, 0, 1]),
             spawn=sim_utils.UsdFileCfg(
                 usd_path=f"{ISAAC_NUCLEUS_DIR}/Props/Blocks/DexCube/dex_cube_instanceable.usd",
                 scale=(0.8, 0.8, 0.8),
@@ -99,14 +99,8 @@ class OMYCubeLiftEnvCfg(LiftEnvCfg):
             ],
         )
 
-
-@configclass
-class OMYCubeLiftEnvCfg_PLAY(OMYCubeLiftEnvCfg):
-    def __post_init__(self):
-        # post init of parent
-        super().__post_init__()
-        # make a smaller scene for play
+    def play_mode(self):
+        """Configure the environment for policy playback."""
         self.scene.num_envs = 50
         self.scene.env_spacing = 2.5
-        # disable randomization for play
         self.observations.policy.enable_corruption = False

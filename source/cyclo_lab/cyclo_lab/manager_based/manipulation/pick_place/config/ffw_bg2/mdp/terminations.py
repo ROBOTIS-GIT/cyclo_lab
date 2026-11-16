@@ -74,13 +74,13 @@ def task_done(
     object: RigidObject = env.scene[object_cfg.name]
 
     # Extract wheel position relative to environment origin
-    wheel_x = object.data.root_pos_w[:, 0] - env.scene.env_origins[:, 0]
-    wheel_y = object.data.root_pos_w[:, 1] - env.scene.env_origins[:, 1]
-    wheel_height = object.data.root_pos_w[:, 2] - env.scene.env_origins[:, 2]
-    wheel_vel = torch.abs(object.data.root_vel_w)
+    wheel_x = object.data.root_pos_w.torch[:, 0] - env.scene.env_origins[:, 0]
+    wheel_y = object.data.root_pos_w.torch[:, 1] - env.scene.env_origins[:, 1]
+    wheel_height = object.data.root_pos_w.torch[:, 2] - env.scene.env_origins[:, 2]
+    wheel_vel = torch.abs(object.data.root_vel_w.torch)
 
     # Get right wrist position relative to environment origin
-    robot_body_pos_w = env.scene["robot"].data.body_pos_w
+    robot_body_pos_w = env.scene["robot"].data.body_pos_w.torch
     right_eef_idx = env.scene["robot"].data.body_names.index("arm_r_link7")
     right_wrist_x = robot_body_pos_w[:, right_eef_idx, 0] - env.scene.env_origins[:, 0]
 
@@ -109,8 +109,8 @@ def object_fallen_over(
     object: RigidObject = env.scene[object_cfg.name]
 
     # Extract wheel position relative to environment origin
-    wheel_y = object.data.root_pos_w[:, 1] - env.scene.env_origins[:, 1]
-    wheel_height = object.data.root_pos_w[:, 2] - env.scene.env_origins[:, 2]
+    wheel_y = object.data.root_pos_w.torch[:, 1] - env.scene.env_origins[:, 1]
+    wheel_height = object.data.root_pos_w.torch[:, 2] - env.scene.env_origins[:, 2]
 
     # Check all success conditions and combine with logical AND
     fail = wheel_y > max_y

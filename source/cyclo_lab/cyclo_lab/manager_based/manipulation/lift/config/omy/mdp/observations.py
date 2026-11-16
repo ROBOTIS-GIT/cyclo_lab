@@ -40,6 +40,6 @@ def object_position_in_robot_root_frame(
     """Position of the object in the robot's root frame."""
     robot: RigidObject = env.scene[robot_cfg.name]
     object: RigidObject = env.scene[object_cfg.name]
-    object_pos_w = object.data.root_pos_w[:, :3]
-    object_pos_b, _ = subtract_frame_transforms(robot.data.root_pos_w, robot.data.root_quat_w, object_pos_w)
+    object_pos_w = object.data.root_pos_w.torch[:, :3]
+    object_pos_b, _ = subtract_frame_transforms(robot.data.root_pos_w.torch, robot.data.root_quat_w.torch, object_pos_w)
     return object_pos_b

@@ -20,6 +20,7 @@ from isaaclab.utils import configclass
 from isaaclab_arena.assets.register import register_asset
 from isaaclab_arena.embodiments.common.arm_mode import ArmMode
 from isaaclab_arena.embodiments.embodiment_base import EmbodimentBase
+from isaaclab_arena.utils.cameras import ArenaCameraCfg
 
 
 def _make_robot_cfg() -> ArticulationCfg:
@@ -63,7 +64,7 @@ class FFWSG2GalileoSceneCfg:
 
 
 @configclass
-class FFWSG2GalileoCameraCfg:
+class FFWSG2GalileoCameraCfg(ArenaCameraCfg):
     cam_head: CameraCfg = make_ffw_sg2_head_camera_cfg(height=480, width=640)
     cam_wrist_left: CameraCfg = make_ffw_sg2_wrist_camera_cfg("left")
     cam_wrist_right: CameraCfg = make_ffw_sg2_wrist_camera_cfg("right")
@@ -107,7 +108,7 @@ class FFWSG2GalileoObservationsCfg:
 class FFWSG2GalileoEmbodiment(EmbodimentBase):
     """FFW-SG2 with 19 absolute joint targets and 3D swerve velocity."""
 
-    name = "ffw_sg2_mobile_abs_joint_pos"
+    registry_name = "ffw_sg2_mobile_abs_joint_pos"
     default_arm_mode = ArmMode.DUAL_ARM
 
     def __init__(
@@ -120,6 +121,7 @@ class FFWSG2GalileoEmbodiment(EmbodimentBase):
         super().__init__(enable_cameras, initial_pose, concatenate_observation_terms, arm_mode)
         self.scene_config = FFWSG2GalileoSceneCfg()
         self.camera_config = FFWSG2GalileoCameraCfg()
+        self.camera_config.set_use_tiled_camera(False)
         self.action_config = FFWSG2MobileActionsCfg()
         self.observation_config = FFWSG2GalileoObservationsCfg()
         self.observation_config.policy.concatenate_terms = concatenate_observation_terms

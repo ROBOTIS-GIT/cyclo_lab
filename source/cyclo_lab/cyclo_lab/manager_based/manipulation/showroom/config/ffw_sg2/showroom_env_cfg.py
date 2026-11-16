@@ -15,6 +15,7 @@ from isaaclab.scene import InteractiveSceneCfg
 from isaaclab.sensors import CameraCfg
 from isaaclab.sim.spawners.from_files.from_files_cfg import GroundPlaneCfg
 from isaaclab.utils import configclass
+from isaaclab_physx.physics import PhysxCfg
 
 from . import mdp
 
@@ -130,10 +131,12 @@ class ShowroomEnvCfg(ManagerBasedEnvCfg):
         self.decimation = int(physics_steps_per_control)
         self.sim.dt = 1.0 / self.physics_hz
         self.sim.render_interval = int(physics_steps_per_render)
-        self.sim.physx.bounce_threshold_velocity = 0.01
-        self.sim.physx.gpu_found_lost_aggregate_pairs_capacity = 1024 * 1024 * 4
-        self.sim.physx.gpu_total_aggregate_pairs_capacity = 16 * 1024
-        self.sim.physx.friction_correlation_distance = 0.00625
+        self.sim.physics = PhysxCfg(
+            bounce_threshold_velocity=0.01,
+            gpu_found_lost_aggregate_pairs_capacity=1024 * 1024 * 4,
+            gpu_total_aggregate_pairs_capacity=16 * 1024,
+            friction_correlation_distance=0.00625,
+        )
 
     def set_camera_set(self, camera_set: str):
         """Enable or disable all robot camera sensors."""

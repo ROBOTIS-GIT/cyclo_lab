@@ -17,7 +17,7 @@
 """RSL-RL PPO configurations for K1 Rev.1 Mimic."""
 
 from isaaclab.utils import configclass
-from isaaclab_rl.rsl_rl import RslRlOnPolicyRunnerCfg, RslRlPpoActorCriticCfg, RslRlPpoAlgorithmCfg
+from isaaclab_rl.rsl_rl import RslRlOnPolicyRunnerCfg, RslRlMLPModelCfg, RslRlPpoAlgorithmCfg
 
 
 @configclass
@@ -29,16 +29,20 @@ class K1Rev1MimicPPORunnerCfg(RslRlOnPolicyRunnerCfg):
     experiment_name = ""
     run_name = ""
     resume = False
-    empirical_normalization = False
-    obs_groups = {"policy": ["policy"], "critic": ["critic"]}
-    policy = RslRlPpoActorCriticCfg(
-        init_noise_std=1.0,
-        noise_std_type="log",
-        actor_obs_normalization=False,
-        critic_obs_normalization=False,
-        actor_hidden_dims=[512, 256, 128],
-        critic_hidden_dims=[512, 256, 128],
+    obs_groups = {"actor": ["policy"], "critic": ["critic"]}
+    actor = RslRlMLPModelCfg(
+        hidden_dims=[512, 256, 128],
         activation="elu",
+        obs_normalization=False,
+        distribution_cfg=RslRlMLPModelCfg.GaussianDistributionCfg(
+            init_std=1.0,
+            std_type="log",
+        ),
+    )
+    critic = RslRlMLPModelCfg(
+        hidden_dims=[512, 256, 128],
+        activation="elu",
+        obs_normalization=False,
     )
     algorithm = RslRlPpoAlgorithmCfg(
         value_loss_coef=1.0,

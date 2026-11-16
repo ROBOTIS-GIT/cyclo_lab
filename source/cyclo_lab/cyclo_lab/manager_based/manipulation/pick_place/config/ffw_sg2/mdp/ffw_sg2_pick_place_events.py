@@ -27,7 +27,7 @@ import torch
 from typing import TYPE_CHECKING
 
 import isaaclab.utils.math as math_utils
-from isaaclab.assets import Articulation, AssetBase
+from isaaclab.assets import Articulation, Asset
 from isaaclab.sensors.camera import Camera
 from isaaclab.managers import SceneEntityCfg
 from typing import Literal
@@ -53,11 +53,14 @@ def create_joint_position_mapping(joint_names: list[str], desired_values: dict[s
 
 def set_default_joint_pose(
     env: ManagerBasedEnv,
-    env_ids: torch.Tensor,
+    env_ids: torch.Tensor | slice,
     joint_positions: dict[str, float],  # Change to dict instead of list
     asset_cfg: SceneEntityCfg = SceneEntityCfg("robot"),
 ):
     """Set the default joint positions for the robot using joint names."""
+    if isinstance(env_ids, slice):
+        env_ids = torch.arange(env.num_envs, device=env.device)[env_ids]
+
     asset: Articulation = env.scene[asset_cfg.name]
 
     # Create properly ordered tensor from joint name mapping
@@ -69,23 +72,26 @@ def set_default_joint_pose(
         default_pose_tensor = default_pose_tensor.unsqueeze(0).repeat(len(env_ids), 1)
 
     # Set joint positions
-    asset.set_joint_position_target(default_pose_tensor, env_ids=env_ids)
-    asset.write_joint_state_to_sim(default_pose_tensor, torch.zeros_like(default_pose_tensor), env_ids=env_ids)
+    asset.actuators.target_command.set_position_index(value=default_pose_tensor, env_ids=env_ids)
+    asset.write_joint_state_to_sim_index(position=default_pose_tensor, velocity=torch.zeros_like(default_pose_tensor), env_ids=env_ids)
 
 
 def randomize_joint_by_gaussian_offset(
     env: ManagerBasedEnv,
-    env_ids: torch.Tensor,
+    env_ids: torch.Tensor | slice,
     mean: float,
     std: float,
     asset_cfg: SceneEntityCfg = SceneEntityCfg("robot"),
     joint_names: list[str] = None,  # Add parameter to specify which joints to randomize
 ):
+    if isinstance(env_ids, slice):
+        env_ids = torch.arange(env.num_envs, device=env.device)[env_ids]
+
     asset: Articulation = env.scene[asset_cfg.name]
 
     # Use current joint positions instead of default positions
-    joint_pos = asset.data.joint_pos[env_ids].clone()
-    joint_vel = asset.data.joint_vel[env_ids].clone()
+    joint_pos = asset.data.joint_pos.torch[env_ids].clone()
+    joint_vel = asset.data.joint_vel.torch[env_ids].clone()
 
     # If joint_names is specified, only randomize those joints
     if joint_names is not None:
@@ -99,13 +105,13 @@ def randomize_joint_by_gaussian_offset(
         joint_pos += math_utils.sample_gaussian(mean, std, joint_pos.shape, joint_pos.device)
 
     # Clamp joint pos to limits
-    joint_pos_limits = asset.data.soft_joint_pos_limits[env_ids]
+    joint_pos_limits = asset.data.soft_joint_pos_limits.torch[env_ids]
     joint_pos = joint_pos.clamp_(joint_pos_limits[..., 0], joint_pos_limits[..., 1])
 
     # Set into the physics simulation
-    asset.set_joint_position_target(joint_pos, env_ids=env_ids)
-    asset.set_joint_velocity_target(joint_vel, env_ids=env_ids)
-    asset.write_joint_state_to_sim(joint_pos, joint_vel, env_ids=env_ids)
+    asset.actuators.target_command.set_position_index(value=joint_pos, env_ids=env_ids)
+    asset.actuators.target_command.set_velocity_index(value=joint_vel, env_ids=env_ids)
+    asset.write_joint_state_to_sim_index(position=joint_pos, velocity=joint_vel, env_ids=env_ids)
 
 
 def sample_object_poses(
@@ -164,11 +170,11 @@ def randomize_object_pose(
             pose_tensor = torch.tensor([pose_list[i]], device=env.device)
             positions = pose_tensor[:, 0:3] + env.scene.env_origins[cur_env, 0:3]
             orientations = math_utils.quat_from_euler_xyz(pose_tensor[:, 3], pose_tensor[:, 4], pose_tensor[:, 5])
-            asset.write_root_pose_to_sim(
-                torch.cat([positions, orientations], dim=-1), env_ids=torch.tensor([cur_env], device=env.device)
+            asset.write_root_pose_to_sim_index(
+                root_pose=torch.cat([positions, orientations], dim=-1), env_ids=torch.tensor([cur_env], device=env.device)
             )
-            asset.write_root_velocity_to_sim(
-                torch.zeros(1, 6, device=env.device), env_ids=torch.tensor([cur_env], device=env.device)
+            asset.write_root_velocity_to_sim_index(
+                root_velocity=torch.zeros(1, 6, device=env.device), env_ids=torch.tensor([cur_env], device=env.device)
             )
 
 
@@ -179,8 +185,8 @@ def randomize_scene_lighting_domelight(
     color_range: tuple[tuple[float, float], tuple[float, float], tuple[float, float]] = ((0.5, 1.0), (0.5, 1.0), (0.5, 1.0)),
     asset_cfg: SceneEntityCfg = SceneEntityCfg("light"),
 ):
-    asset: AssetBase = env.scene[asset_cfg.name]
-    light_prim = asset.prims[0]
+    asset: Asset = env.scene[asset_cfg.name]
+    light_prim = asset.prim
 
     # Random intensity
     new_intensity = random.uniform(intensity_range[0], intensity_range[1])
@@ -199,12 +205,15 @@ def randomize_scene_lighting_domelight(
 
 def randomize_camera_pose(
     env: ManagerBasedEnv,
-    env_ids: torch.Tensor,
+    env_ids: torch.Tensor | slice,
     asset_cfg: SceneEntityCfg,
     pose_range: dict[str, tuple[float, float]] = None,
     convention: Literal["opengl", "ros", "world"] = "ros",
 ):
     """Reset the camera to a random position and rotation within the given ranges."""
+    if isinstance(env_ids, slice):
+        env_ids = torch.arange(env.num_envs, device=env.device)[env_ids]
+
     if pose_range is None:
         pose_range = {
             "x": (-0.02, 0.02),
@@ -219,10 +228,10 @@ def randomize_camera_pose(
 
     # Store initial positions and quaternions once
     if not hasattr(asset, "_initial_pos_w"):
-        asset._initial_pos_w = asset.data.pos_w.clone()
-        asset._initial_quat_w_ros = asset.data.quat_w_ros.clone()
-        asset._initial_quat_w_opengl = asset.data.quat_w_opengl.clone()
-        asset._initial_quat_w_world = asset.data.quat_w_world.clone()
+        asset._initial_pos_w = asset.data.pos_w.torch.clone()
+        asset._initial_quat_w_ros = asset.data.quat_w_ros.torch.clone()
+        asset._initial_quat_w_opengl = asset.data.quat_w_opengl.torch.clone()
+        asset._initial_quat_w_world = asset.data.quat_w_world.torch.clone()
 
     ori_pos_w = asset._initial_pos_w
     if convention == "ros":
@@ -280,12 +289,12 @@ def randomize_robot_base_pose(
         orientation = math_utils.quat_from_euler_xyz(pose_tensor[:, 3], pose_tensor[:, 4], pose_tensor[:, 5])
 
         # Write pose to simulation
-        asset.write_root_pose_to_sim(
-            torch.cat([position, orientation], dim=-1), 
+        asset.write_root_pose_to_sim_index(
+            root_pose=torch.cat([position, orientation], dim=-1),
             env_ids=torch.tensor([cur_env], device=env.device)
         )
-        asset.write_root_velocity_to_sim(
-            torch.zeros(1, 6, device=env.device), 
+        asset.write_root_velocity_to_sim_index(
+            root_velocity=torch.zeros(1, 6, device=env.device),
             env_ids=torch.tensor([cur_env], device=env.device)
         )
 
@@ -321,12 +330,12 @@ def set_object_pose(
         )
 
         # Write pose to simulation
-        asset.write_root_pose_to_sim(
-            torch.cat([position, orientation], dim=-1),
+        asset.write_root_pose_to_sim_index(
+            root_pose=torch.cat([position, orientation], dim=-1),
             env_ids=torch.tensor([cur_env], device=env.device)
         )
-        asset.write_root_velocity_to_sim(
-            torch.zeros(1, 6, device=env.device),
+        asset.write_root_velocity_to_sim_index(
+            root_velocity=torch.zeros(1, 6, device=env.device),
             env_ids=torch.tensor([cur_env], device=env.device)
         )
 
@@ -383,12 +392,12 @@ def randomize_table_with_objects(
         )
 
         # 2. Write table pose
-        table_asset.write_root_pose_to_sim(
-            torch.cat([table_pos, table_quat], dim=-1),
+        table_asset.write_root_pose_to_sim_index(
+            root_pose=torch.cat([table_pos, table_quat], dim=-1),
             env_ids=torch.tensor([cur_env], device=env.device)
         )
-        table_asset.write_root_velocity_to_sim(
-            torch.zeros(1, 6, device=env.device),
+        table_asset.write_root_velocity_to_sim_index(
+            root_velocity=torch.zeros(1, 6, device=env.device),
             env_ids=torch.tensor([cur_env], device=env.device)
         )
 
@@ -417,19 +426,19 @@ def randomize_table_with_objects(
             obj_quat_world = math_utils.quat_mul(table_quat, rel_quat)
 
             # Write object pose
-            obj_asset.write_root_pose_to_sim(
-                torch.cat([obj_pos_world, obj_quat_world], dim=-1),
+            obj_asset.write_root_pose_to_sim_index(
+                root_pose=torch.cat([obj_pos_world, obj_quat_world], dim=-1),
                 env_ids=torch.tensor([cur_env], device=env.device)
             )
-            obj_asset.write_root_velocity_to_sim(
-                torch.zeros(1, 6, device=env.device),
+            obj_asset.write_root_velocity_to_sim_index(
+                root_velocity=torch.zeros(1, 6, device=env.device),
                 env_ids=torch.tensor([cur_env], device=env.device)
             )
 
 
 def randomize_table_with_objects_on_slots(
     env: ManagerBasedEnv,
-    env_ids: torch.Tensor,
+    env_ids: torch.Tensor | slice,
     table_cfg: SceneEntityCfg,
     basket_cfg: SceneEntityCfg,
     target_asset_cfg: SceneEntityCfg,
@@ -443,6 +452,9 @@ def randomize_table_with_objects_on_slots(
     This maintains relative positions between objects for proper trajectory augmentation.
     The target object is placed on a random slot on target_side, other objects on remaining slots.
     """
+    if isinstance(env_ids, slice):
+        env_ids = torch.arange(env.num_envs, device=env.device)[env_ids]
+
     if env_ids is None:
         return
 
@@ -475,12 +487,12 @@ def randomize_table_with_objects_on_slots(
         )
 
         # 2. Write table pose
-        table_asset.write_root_pose_to_sim(
-            torch.cat([table_pos, table_quat], dim=-1),
+        table_asset.write_root_pose_to_sim_index(
+            root_pose=torch.cat([table_pos, table_quat], dim=-1),
             env_ids=torch.tensor([cur_env], device=env.device)
         )
-        table_asset.write_root_velocity_to_sim(
-            torch.zeros(1, 6, device=env.device),
+        table_asset.write_root_velocity_to_sim_index(
+            root_velocity=torch.zeros(1, 6, device=env.device),
             env_ids=torch.tensor([cur_env], device=env.device)
         )
 
@@ -500,12 +512,12 @@ def randomize_table_with_objects_on_slots(
         basket_pos_world = table_pos + rotated_basket_pos
         basket_quat_world = math_utils.quat_mul(table_quat, basket_rel_quat)
 
-        basket_asset.write_root_pose_to_sim(
-            torch.cat([basket_pos_world, basket_quat_world], dim=-1),
+        basket_asset.write_root_pose_to_sim_index(
+            root_pose=torch.cat([basket_pos_world, basket_quat_world], dim=-1),
             env_ids=torch.tensor([cur_env], device=env.device)
         )
-        basket_asset.write_root_velocity_to_sim(
-            torch.zeros(1, 6, device=env.device),
+        basket_asset.write_root_velocity_to_sim_index(
+            root_velocity=torch.zeros(1, 6, device=env.device),
             env_ids=torch.tensor([cur_env], device=env.device)
         )
 
@@ -524,12 +536,12 @@ def randomize_table_with_objects_on_slots(
         target_pos_world = table_pos + rotated_slot_pos
         target_quat_world = table_quat.clone()  # Same orientation as table
 
-        target_asset.write_root_pose_to_sim(
-            torch.cat([target_pos_world, target_quat_world], dim=-1),
+        target_asset.write_root_pose_to_sim_index(
+            root_pose=torch.cat([target_pos_world, target_quat_world], dim=-1),
             env_ids=torch.tensor([cur_env], device=env.device)
         )
-        target_asset.write_root_velocity_to_sim(
-            torch.zeros(1, 6, device=env.device),
+        target_asset.write_root_velocity_to_sim_index(
+            root_velocity=torch.zeros(1, 6, device=env.device),
             env_ids=torch.tensor([cur_env], device=env.device)
         )
 
@@ -548,23 +560,26 @@ def randomize_table_with_objects_on_slots(
             obj_pos_world = table_pos + rotated_slot_pos
             obj_quat_world = table_quat.clone()
 
-            asset.write_root_pose_to_sim(
-                torch.cat([obj_pos_world, obj_quat_world], dim=-1),
+            asset.write_root_pose_to_sim_index(
+                root_pose=torch.cat([obj_pos_world, obj_quat_world], dim=-1),
                 env_ids=torch.tensor([cur_env], device=env.device)
             )
-            asset.write_root_velocity_to_sim(
-                torch.zeros(1, 6, device=env.device),
+            asset.write_root_velocity_to_sim_index(
+                root_velocity=torch.zeros(1, 6, device=env.device),
                 env_ids=torch.tensor([cur_env], device=env.device)
             )
 
 
 def randomize_background_color(
     env: ManagerBasedEnv,
-    env_ids: torch.Tensor,
+    env_ids: torch.Tensor | slice,
     asset_cfg: SceneEntityCfg,
     color_range: tuple[tuple[float, float], tuple[float, float], tuple[float, float]] = ((0.0, 1.0), (0.0, 1.0), (0.0, 1.0)),
 ):
     """Randomize the color of a background cube for visual domain randomization."""
+    if isinstance(env_ids, slice):
+        env_ids = torch.arange(env.num_envs, device=env.device)[env_ids]
+
     if env_ids is None:
         return
 

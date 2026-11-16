@@ -80,8 +80,8 @@ class SwerveBaseVelocityAction(ActionTerm):
             torch.cat(
                 (
                     self._processed_actions,
-                    self._asset.data.joint_pos[:, self._steering_joint_ids],
-                    self._asset.data.joint_vel[:, self._wheel_joint_ids],
+                    self._asset.data.joint_pos.torch[:, self._steering_joint_ids],
+                    self._asset.data.joint_vel.torch[:, self._wheel_joint_ids],
                 ),
                 dim=1,
             )
@@ -115,8 +115,8 @@ class SwerveBaseVelocityAction(ActionTerm):
             torch.as_tensor(wheel_velocity_targets, device=self.device, dtype=self._wheel_velocity_targets.dtype)
         )
 
-        self._asset.set_joint_position_target(self._steering_targets, joint_ids=self._steering_joint_ids)
-        self._asset.set_joint_velocity_target(self._wheel_velocity_targets, joint_ids=self._wheel_joint_ids)
+        self._asset.actuators.target_command.set_position_index(value=self._steering_targets, joint_ids=self._steering_joint_ids)
+        self._asset.actuators.target_command.set_velocity_index(value=self._wheel_velocity_targets, joint_ids=self._wheel_joint_ids)
 
     def reset(self, env_ids: Sequence[int] | None = None) -> None:
         if env_ids is None:

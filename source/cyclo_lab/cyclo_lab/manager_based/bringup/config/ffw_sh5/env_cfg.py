@@ -42,7 +42,7 @@ def _make_robot_cfg() -> ArticulationCfg:
     return robot_cfg.replace(prim_path="{ENV_REGEX_NS}/Robot")
 
 
-def _make_warehouse_boxes_graspable(_env, _env_ids=None) -> None:
+def _make_warehouse_boxes_graspable(_env, _env_ids) -> None:
     make_card_boxes_graspable()
 
 

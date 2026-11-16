@@ -57,7 +57,7 @@ class OMYReachPolicy(PolicyExecutor):
         self.joint_names = self.get_observation_joint_names()
         self.default_pos = self.get_default_joint_positions(self.joint_names)
 
-        self.target_command = np.zeros(7)  # [x, y, z, qw, qx, qy, qz]
+        self.target_command = np.zeros(7)  # [x, y, z, qx, qy, qz, qw]
         self.num_joints = len(self.joint_names)
         self.previous_action = np.zeros(self.num_joints)
         self.current_joint_positions = np.zeros(self.num_joints)
@@ -150,10 +150,10 @@ class OMYReachPolicy(PolicyExecutor):
                 self.target_command[2],
             ),
             rotation_xyzw=(
+                self.target_command[3],
                 self.target_command[4],
                 self.target_command[5],
                 self.target_command[6],
-                self.target_command[3],
             ),
         )
         self.tf_writer.publish(**make_tf_message_kwargs([transform]))

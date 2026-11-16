@@ -46,8 +46,8 @@ def task_done(env: ManagerBasedRLEnv, bottle_cfg: SceneEntityCfg, basket_cfg: Sc
     bottle: RigidObject = env.scene[bottle_cfg.name]
     basket: RigidObject = env.scene[basket_cfg.name]
 
-    bottle_pos = bottle.data.root_pos_w
-    basket_pos = basket.data.root_pos_w
+    bottle_pos = bottle.data.root_pos_w.torch
+    basket_pos = basket.data.root_pos_w.torch
 
     # Check if bottle is close to basket horizontally (x, y)
     horizontal_distance = torch.linalg.vector_norm(bottle_pos[:, :2] - basket_pos[:, :2], dim=1)

@@ -178,8 +178,8 @@ class OMYSdk:
     # ----------------------
     def _publish_joint_states(self):
         obs_joint_name = self.env.scene["robot"].data.joint_names
-        all_positions = self.env.scene["robot"].data.joint_pos.squeeze(0).tolist()
-        all_velocities = self.env.scene["robot"].data.joint_vel.squeeze(0).tolist()
+        all_positions = self.env.scene["robot"].data.joint_pos.torch.squeeze(0).tolist()
+        all_velocities = self.env.scene["robot"].data.joint_vel.torch.squeeze(0).tolist()
         all_efforts = [0.0] * len(all_positions)
 
         if isinstance(all_positions[0], list):
@@ -230,7 +230,7 @@ class OMYSdk:
     def _get_device_state(self):
         with self.lock:
             obs_joint_name = self.env.scene["robot"].data.joint_names
-            all_positions = self.env.scene["robot"].data.joint_pos.squeeze(0).tolist()
+            all_positions = self.env.scene["robot"].data.joint_pos.torch.squeeze(0).tolist()
 
             if isinstance(all_positions[0], list):
                 all_positions = [p for sub in all_positions for p in sub]

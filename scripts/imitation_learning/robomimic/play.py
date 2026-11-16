@@ -45,6 +45,8 @@ parser.add_argument("--enable_pinocchio", default=False, action="store_true", he
 
 # append AppLauncher cli args
 AppLauncher.add_app_launcher_args(parser)
+parser.add_argument("--headless", action="store_true", help="Run without a window.")
+parser.add_argument("--enable_cameras", action="store_true", help="Enable camera rendering.")
 # parse the arguments
 args_cli = parser.parse_args()
 
@@ -64,10 +66,11 @@ import gymnasium as gym
 import torch
 
 import robomimic.utils.file_utils as FileUtils
+import robomimic.utils.obs_utils as ObsUtils
 import robomimic.utils.torch_utils as TorchUtils
 
 if args_cli.enable_pinocchio:
-    import isaaclab_tasks.manager_based.manipulation.pick_place  # noqa: F401
+    import isaaclab_tasks.contrib.pick_place  # noqa: F401
 
 from isaaclab_tasks.utils import parse_env_cfg
 
@@ -95,24 +98,10 @@ def rollout(policy, env, success_term, horizon, device):
         # Prepare observations
         obs = copy.deepcopy(obs_dict["policy"])
         for ob in obs:
-            obs[ob] = torch.squeeze(obs[ob])
+            obs[ob] = obs[ob].squeeze(0)
 
-        # Identify image keys from env.cfg
-        image_keys = [
-            name
-            for name, term_cfg in vars(env.cfg.observations.policy).items()
-            if hasattr(term_cfg, "func") and term_cfg.func.__name__ == "image" and term_cfg.params.get("data_type") == "rgb"
-        ]
-
-        # Process image observations
-        for key in image_keys:
-            if key in obs_dict["policy"].keys():
-                # Convert from chw uint8 to hwc normalized float
-                image = torch.squeeze(obs_dict["policy"][key])
-                image = image.permute(2, 0, 1).clone().float()
-                image = image / 255.0
-                image = image.clip(0.0, 1.0)
-                obs[key] = image
+        # Use the checkpoint's modalities and the same preprocessing as training.
+        obs = ObsUtils.process_obs_dict(obs)
 
         traj["obs"].append(obs)
 

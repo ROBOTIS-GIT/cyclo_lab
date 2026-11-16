@@ -22,10 +22,7 @@ from cyclo_lab.robot_specs.ffw.sh5.mobile_base import SH5_SWERVE_WHEEL_JOINTS as
 from isaaclab.actuators import ImplicitActuatorCfg
 from isaaclab.assets.articulation import ArticulationCfg
 from isaaclab.sim import ArticulationRootPropertiesCfg, RigidBodyMaterialCfg, RigidBodyPropertiesCfg, UsdFileCfg
-from isaaclab.sim.spawners.from_files import from_files
-from isaaclab.sim.utils import bind_physics_material, clone, make_uninstanceable
-from isaacsim.core.utils.stage import get_current_stage
-from pxr import Sdf, Usd, UsdPhysics
+from isaaclab.sim.utils import bind_physics_material, clone, get_current_stage, make_uninstanceable
 
 _SH5_FINGER_TIP_MATERIAL = RigidBodyMaterialCfg(
     friction_combine_mode="max",
@@ -46,6 +43,8 @@ def _is_sh5_finger_tip_prim(prim_path: str) -> bool:
 
 
 def _iter_robot_prims(stage, prim_path: str):
+    from pxr import Usd
+
     robot_prim = stage.GetPrimAtPath(prim_path)
     if not robot_prim.IsValid():
         return ()
@@ -54,6 +53,8 @@ def _iter_robot_prims(stage, prim_path: str):
 
 def _filter_sh5_base_finger_collisions(stage, prim_path: str) -> None:
     """Disable collision checks between each hand base and the MCP/PIP finger links."""
+    from pxr import Sdf, UsdPhysics
+
     collision_paths_by_link_name = {}
     base_collision_paths_by_side = {"l": [], "r": []}
     for child_prim in _iter_robot_prims(stage, prim_path):
@@ -94,6 +95,8 @@ def _filter_sh5_base_finger_collisions(stage, prim_path: str) -> None:
 
 
 def _add_filtered_collision_pairs(stage, source_paths: list[str], target_paths: list[str]) -> None:
+    from pxr import Sdf, UsdPhysics
+
     for source_path in source_paths:
         source_prim = stage.GetPrimAtPath(source_path)
         filtered_pairs_api = UsdPhysics.FilteredPairsAPI.Apply(source_prim)
@@ -130,6 +133,8 @@ def _filter_sh5_base_wheel_drive_collisions(stage, prim_path: str) -> None:
 @clone
 def spawn_sh5_with_finger_tip_friction(prim_path, cfg, translation=None, orientation=None, **kwargs):
     """Spawn SH5 and bind high-friction material to fingertip bodies."""
+    from isaaclab.sim.spawners.from_files import from_files
+
     prim = from_files.spawn_from_usd(prim_path, cfg, translation, orientation, **kwargs)
 
     material_path = f"{prim_path}/fingerTipPhysicsMaterial"
@@ -201,23 +206,23 @@ FFW_SH5_CFG = ArticulationCfg(
         # Actuators for swerve base
         "base_steer": ImplicitActuatorCfg(
             joint_names_expr=list(_SH5_SWERVE_STEERING_JOINTS),
-            velocity_limit_sim=10.0,
-            effort_limit_sim=100000.0,
+            joint_velocity_limit=10.0,
+            joint_effort_limit=100000.0,
             stiffness=10000.0,
             damping=100.0,
         ),
         "base_drive": ImplicitActuatorCfg(
             joint_names_expr=list(_SH5_SWERVE_WHEEL_JOINTS),
-            velocity_limit_sim=50.0,
-            effort_limit_sim=100000.0,
+            joint_velocity_limit=50.0,
+            joint_effort_limit=100000.0,
             stiffness=0.0,
             damping=100.0,
         ),
         # Actuator for vertical lift joint
         "lift": ImplicitActuatorCfg(
             joint_names_expr=["lift_joint"],
-            velocity_limit_sim=0.2,  # 0.0001
-            effort_limit_sim=1000000.0,
+            joint_velocity_limit=0.2,  # 0.0001
+            joint_effort_limit=1000000.0,
             stiffness=10000.0,
             damping=100.0,  # 0.0
         ),
@@ -227,8 +232,8 @@ FFW_SH5_CFG = ArticulationCfg(
                 "arm_l_joint[1-2]",
                 "arm_r_joint[1-2]",
             ],
-            velocity_limit_sim=15.0,
-            effort_limit_sim=61.4,
+            joint_velocity_limit=15.0,
+            joint_effort_limit=61.4,
             stiffness=600.0,
             damping=30.0,
         ),
@@ -237,8 +242,8 @@ FFW_SH5_CFG = ArticulationCfg(
                 "arm_l_joint[3-6]",
                 "arm_r_joint[3-6]",
             ],
-            velocity_limit_sim=15.0,
-            effort_limit_sim=31.7,
+            joint_velocity_limit=15.0,
+            joint_effort_limit=31.7,
             stiffness=600.0,
             damping=20.0,
         ),
@@ -247,8 +252,8 @@ FFW_SH5_CFG = ArticulationCfg(
                 "arm_l_joint7",
                 "arm_r_joint7",
             ],
-            velocity_limit_sim=6.0,
-            effort_limit_sim=5.1,
+            joint_velocity_limit=6.0,
+            joint_effort_limit=5.1,
             stiffness=200.0,
             damping=3.0,
         ),
@@ -262,16 +267,16 @@ FFW_SH5_CFG = ArticulationCfg(
                 "finger_r_joint1[0-9]",
                 "finger_r_joint20",
             ],
-            velocity_limit_sim=15.0,
-            effort_limit_sim=3.09,
+            joint_velocity_limit=15.0,
+            joint_effort_limit=3.09,
             stiffness=500.0,
             damping=30.0,
         ),
         # Actuators for head joints
         "head": ImplicitActuatorCfg(
             joint_names_expr=["head_joint1", "head_joint2"],
-            velocity_limit_sim=2.0,
-            effort_limit_sim=30.0,
+            joint_velocity_limit=2.0,
+            joint_effort_limit=30.0,
             stiffness=150.0,
             damping=3.0,
         ),
