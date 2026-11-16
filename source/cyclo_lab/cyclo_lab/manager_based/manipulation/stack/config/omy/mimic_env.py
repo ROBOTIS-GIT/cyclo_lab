@@ -32,7 +32,7 @@ class OMYStackMimicEnv(ManagerBasedRLMimicEnv):
         # Retrieve end effector pose from the observation buffer
         eef_pos = self.obs_buf["policy"]["eef_pos"][env_ids]
         eef_quat = self.obs_buf["policy"]["eef_quat"][env_ids]
-        # Quaternion format is w,x,y,z
+        # Quaternion format is x,y,z,w
         return PoseUtils.make_pose(eef_pos, PoseUtils.matrix_from_quat(eef_quat))
 
     def target_eef_pose_to_action(
@@ -79,6 +79,10 @@ class OMYStackMimicEnv(ManagerBasedRLMimicEnv):
 
         # add noise to action
         pose_action = torch.cat([delta_position, delta_rotation], dim=0)
+        arm_cfg = self.cfg.actions.arm_action
+        scale = torch.as_tensor(arm_cfg.scale, dtype=pose_action.dtype, device=pose_action.device)
+        offset = torch.as_tensor(arm_cfg.offset, dtype=pose_action.dtype, device=pose_action.device)
+        pose_action = (pose_action - offset) / scale
         if action_noise_dict is not None:
             noise = action_noise_dict["omy"] * torch.randn_like(pose_action)
             pose_action += noise
@@ -100,8 +104,12 @@ class OMYStackMimicEnv(ManagerBasedRLMimicEnv):
         """
         eef_name = list(self.cfg.subtask_configs.keys())[0]
 
-        delta_position = action[:, :3]
-        delta_rotation = action[:, 3:6]
+        arm_cfg = self.cfg.actions.arm_action
+        scale = torch.as_tensor(arm_cfg.scale, dtype=action.dtype, device=action.device)
+        offset = torch.as_tensor(arm_cfg.offset, dtype=action.dtype, device=action.device)
+        delta_pose = action[:, :6] * scale + offset
+        delta_position = delta_pose[:, :3]
+        delta_rotation = delta_pose[:, 3:6]
 
         # current position and rotation
         curr_pose = self.get_robot_eef_pose(eef_name, env_ids=None)

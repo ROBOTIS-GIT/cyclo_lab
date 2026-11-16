@@ -142,6 +142,13 @@ class FFWSG2PickPlaceMimicEnv(ManagerBasedRLMimicEnv):
             )
 
             result = action.unsqueeze(0)
+        if action_noise_dict is not None and action_noise_dict[eef_name] != 0:
+            # Perturb only the Mimic-controlled arm; keep grippers and other joints unchanged.
+            start = 8 if "right" in eef_name.lower() else 0
+            pose_action = result[:, start : start + 7]
+            delta_pose = pose_action.new_empty((1, 6)).normal_() * action_noise_dict[eef_name]
+            position, rotation = PoseUtils.apply_delta_pose(pose_action[:, :3], pose_action[:, 3:], delta_pose)
+            result[:, start : start + 7] = torch.cat([position, rotation], dim=-1)
         return result
 
     def action_to_target_eef_pose(self, action: torch.Tensor) -> dict[str, torch.Tensor]:

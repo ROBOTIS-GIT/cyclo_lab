@@ -48,14 +48,15 @@ class OMYPickPlaceMimicEnv(ManagerBasedRLMimicEnv):
 
         (gripper_action,) = gripper_action_dict.values()
 
-        # add noise to action
+        eef_name = next(iter(self.cfg.subtask_configs))
+        if action_noise_dict is not None and action_noise_dict[eef_name] != 0:
+            # Perturb translation and axis-angle rotation, preserving a unit quaternion.
+            delta_pose = target_eef_pos.new_empty((1, 6)).normal_() * action_noise_dict[eef_name]
+            target_eef_pos, target_eef_quat = PoseUtils.apply_delta_pose(
+                target_eef_pos.unsqueeze(0), target_eef_quat.unsqueeze(0), delta_pose
+            )
+            target_eef_pos, target_eef_quat = target_eef_pos[0], target_eef_quat[0]
         pose_action = torch.cat([target_eef_pos, target_eef_quat], dim=0)
-        # eef_name = list(self.cfg.subtask_configs.keys())[0]
-        # if action_noise_dict is not None:
-        #     noise = action_noise_dict[eef_name] * torch.randn_like(pose_action)
-        #     pose_action += noise
-
-        # print("pose_action: ", pose_action)
 
         return torch.cat([pose_action, gripper_action], dim=0).unsqueeze(0)
 
