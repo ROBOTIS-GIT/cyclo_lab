@@ -52,6 +52,7 @@ def randomize_joint_by_gaussian_offset(
     std: float,
     asset_cfg: SceneEntityCfg = SceneEntityCfg("robot"),
 ):
+    env_ids = torch.arange(env.scene.num_envs, device=env.device)[env_ids] if isinstance(env_ids, slice) else env_ids
     asset: Articulation = env.scene[asset_cfg.name]
 
     # Add gaussian noise to joint states
@@ -124,6 +125,7 @@ def randomize_object_pose(
     pose_range: dict[str, tuple[float, float]] = {},
     max_sample_tries: int = 5000,
 ):
+    env_ids = torch.arange(env.scene.num_envs, device=env.device)[env_ids] if isinstance(env_ids, slice) else env_ids
     if env_ids is None:
         return
 

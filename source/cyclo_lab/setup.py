@@ -29,6 +29,7 @@ INSTALL_REQUIRES = [
     # automate
     "scikit-learn",
     "pynput",
+    "toml",
 ]
 
 # Installation operation

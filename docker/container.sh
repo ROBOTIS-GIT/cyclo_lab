@@ -127,6 +127,8 @@ start_container() {
     echo "[INFO] Starting Cyclo Lab docker container..."
     initialize_submodules
 
+    mkdir -p "${DOCKER_DIR}/zenoh_cache"
+
     cd "${DOCKER_DIR}"
 
     # Setup X11 forwarding
@@ -162,6 +164,7 @@ start_container() {
 # Recreate the container from the current image.
 recreate_container() {
     echo "[INFO] Recreating Cyclo Lab docker container..."
+    mkdir -p "${DOCKER_DIR}/zenoh_cache"
     cd "${DOCKER_DIR}"
 
     X11_COMPOSE_FILE=""
@@ -185,7 +188,7 @@ enter_container() {
     fi
 
     # Pass DISPLAY environment variable to the container
-    docker exec -it -e DISPLAY="${DISPLAY}" cyclo_lab${DOCKER_NAME_SUFFIX} /bin/bash
+    docker exec -it -e DISPLAY="${DISPLAY}" -e TERM="${TERM:-xterm-256color}" cyclo_lab${DOCKER_NAME_SUFFIX} /bin/bash
 }
 
 # Stop container
