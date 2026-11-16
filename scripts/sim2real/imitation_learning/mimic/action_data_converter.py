@@ -118,7 +118,7 @@ def process_dataset(input_file: str, output_file: str, action_type: str, robot_t
     output_handler = HDF5DatasetFileHandler()
 
     input_handler.open(input_file)
-    output_handler.create(output_file)
+    output_handler.create(output_file, env_name=input_handler.get_env_name())
 
     try:
         episode_names = list(input_handler.get_episode_names())
