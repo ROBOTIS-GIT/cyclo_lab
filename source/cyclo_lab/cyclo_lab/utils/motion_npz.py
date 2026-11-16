@@ -109,6 +109,14 @@ def load_motion_npz(path, joint_names: Sequence[str] | None = None, body_names: 
 
 def _resolve_metadata(data, path) -> str:
     """Validate explicit metadata or supply the known legacy K1 layout."""
+    # Format              | Detection                         | Interpretation
+    #
+    # Legacy K1, 24-body  | No metadata; 23 joints, 24 bodies | PhysX order, WXYZ
+    # Legacy K1, 25-body  | No metadata; 23 joints, 25 bodies | PhysX order + head_link, WXYZ
+    # With metadata       | Joint/body names + quat order     | Use declared names and order
+    #
+    # Files without metadata assume PhysX ordering and WXYZ.
+    # Archives with a different ordering need metadata.
     metadata_keys = {"joint_names", "body_names", "quaternion_order", "quat_order"}
 
     if metadata_keys.intersection(data):
