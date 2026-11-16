@@ -331,10 +331,10 @@ def object_stacked(
     lower_object: RigidObject = env.scene[lower_object_cfg.name]
 
     pos_diff = upper_object.data.root_pos_w.torch - lower_object.data.root_pos_w.torch
-    height_dist = torch.linalg.vector_norm(pos_diff[:, 2:], dim=1)
+    height_dist = pos_diff[:, 2]
     xy_dist = torch.linalg.vector_norm(pos_diff[:, :2], dim=1)
 
-    stacked = torch.logical_and(xy_dist < xy_threshold, (height_dist - height_diff) < height_threshold)
+    stacked = torch.logical_and(xy_dist < xy_threshold, torch.abs(height_dist - height_diff) < height_threshold)
 
     stacked = torch.logical_and(
         robot.data.joint_pos.torch[:, -1] <= gripper_open_threshold.to(env.device), stacked
