@@ -2,6 +2,13 @@
 Changelog for package cyclo_lab
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+3.1.0 (2026-11-17)
+------------------
+* Added an HX5-D20 fingertip tactile sensor (HandTactile) that turns PhysX contacts into 3x3 readings per fingertip pad, laid out like the real hand's sensors, with a fingertip overlay and a heatmap window per hand.
+* Added a hand tactile demo (scripts/demos/sensors/hand_tactile.py) that presses each fingertip without hardware.
+* Added Cyclo-Bringup-FFW-SH5-Tactile-v0, the FFW-SH5 bringup task with tactile sensors on both hands for VR teleoperation.
+* Contributors: Sunghyun Park
+
 3.0.0 (2026-11-13)
 ------------------
 * Migrated to Isaac Lab 3.0 and Isaac Sim 6.2, with a locked Python environment in Docker.
