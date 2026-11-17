@@ -44,6 +44,7 @@ JOINT_STATE = "sensor_msgs/msg/JointState"
 COMPRESSED_IMAGE = "sensor_msgs/msg/CompressedImage"
 ODOMETRY = "nav_msgs/msg/Odometry"
 TF_MESSAGE = "tf2_msgs/msg/TFMessage"
+CLOCK = "rosgraph_msgs/msg/Clock"
 TWIST = "geometry_msgs/msg/Twist"
 STRING = "std_msgs/msg/String"
 EMPTY = "std_msgs/msg/Empty"
@@ -72,6 +73,15 @@ def zenoh_router_port() -> int:
 def best_effort_qos(depth: int = 10) -> QosProfile:
     return QosProfile(
         reliability=QosReliability.BEST_EFFORT,
+        durability=QosDurability.VOLATILE,
+        history_kind=QosHistoryKind.KEEP_LAST,
+        history_depth=depth,
+    )
+
+
+def reliable_qos(depth: int = 10) -> QosProfile:
+    return QosProfile(
+        reliability=QosReliability.RELIABLE,
         durability=QosDurability.VOLATILE,
         history_kind=QosHistoryKind.KEEP_LAST,
         history_depth=depth,

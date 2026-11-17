@@ -215,6 +215,7 @@ https://github.com/user-attachments/assets/67267195-db02-4dd9-83cf-00830b4bc13f
 Launch AI Worker SH5
 
 ```bash
+# SG2/SH5 bridges publish /clock (Unix time), shared by state, TF, and camera headers.
 # Run SH5 on a ground plane through the Zenoh ROS2 bridge.
 python scripts/sim2real/bringup.py \
     --task Cyclo-Bringup-FFW-SH5-v0 \

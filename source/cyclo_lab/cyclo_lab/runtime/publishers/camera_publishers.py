@@ -158,7 +158,7 @@ class CompressedCameraPublishers:
     def endpoints(self) -> tuple:
         return tuple(self.writers.values())
 
-    def publish(self) -> None:
+    def publish(self, *, stamp=None) -> None:
         if self._closed or not self.writers:
             return
         if self._publish_hz is not None and self._publish_hz > 0.0:
@@ -171,7 +171,8 @@ class CompressedCameraPublishers:
             self._warn_saturated()
             return
 
-        stamp = now_time_msg()
+        if stamp is None:
+            stamp = now_time_msg()
         frames = []
         for camera_name, writer in self.writers.items():
             buffer_pool = self._buffer_pools.setdefault(camera_name, Queue(maxsize=2))

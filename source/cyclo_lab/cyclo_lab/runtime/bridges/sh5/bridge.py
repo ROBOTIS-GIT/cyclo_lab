@@ -14,6 +14,7 @@ from cyclo_lab.robot_specs.ffw.mobile_base.odometry import SwerveOdometry, yaw_t
 from cyclo_lab.robot_specs.ffw.mobile_base.swerve_drive import SwerveDriveController, SwerveModule
 from cyclo_lab.runtime.publishers.articulation_state_publisher import ArticulationStatePublisher
 from cyclo_lab.runtime.publishers.camera_publishers import CompressedCameraPublishers
+from cyclo_lab.runtime.publishers.clock_publisher import ClockPublisher
 from cyclo_lab.runtime.transport.ros2_zenoh import (
     EMPTY,
     JOINT_TRAJECTORY,
@@ -24,7 +25,6 @@ from cyclo_lab.runtime.transport.ros2_zenoh import (
     create_publisher,
     create_subscriber,
     make_odometry_kwargs,
-    now_time_msg,
     ros_domain_id,
 )
 
@@ -146,6 +146,8 @@ class FFWSH5TopicBridge:
             image_rotations=FFW_SH5_CAMERA_IMAGE_ROTATIONS,
         )
         self.publishers.extend(self.camera_publishers.endpoints)
+        self.clock_publisher = ClockPublisher()
+        self.publishers.extend(self.clock_publisher.endpoints)
 
         for label, topic_name in topic_names.items():
             if not topic_name:
@@ -194,12 +196,12 @@ class FFWSH5TopicBridge:
         return self._zero_action
 
     def publish_observations(self) -> None:
-        stamp = now_time_msg()
+        stamp = self.clock_publisher.publish()
         self.update_odometry(float(self.env.step_dt))
         self.state_publisher.publish_joint_states(stamp=stamp)
         self.publish_odometry(stamp=stamp)
         self.state_publisher.publish_tf(stamp=stamp)
-        self.camera_publishers.publish()
+        self.camera_publishers.publish(stamp=stamp)
 
     # Parse trajectory topics and match joints
     def _store_trajectory(self, label: str, msg):

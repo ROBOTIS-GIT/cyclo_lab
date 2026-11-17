@@ -101,8 +101,9 @@ class ArticulationStatePublisher:
     def close(self) -> None:
         close_endpoints(self.publishers)
 
-    def publish_all(self) -> None:
-        stamp = now_time_msg()
+    def publish_all(self, *, stamp=None) -> None:
+        if stamp is None:
+            stamp = now_time_msg()
         self.publish_joint_states(stamp=stamp)
         self.publish_odometry(stamp=stamp)
         self.publish_tf(stamp=stamp)

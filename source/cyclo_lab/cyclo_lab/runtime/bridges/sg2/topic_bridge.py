@@ -22,6 +22,7 @@ from cyclo_lab.robot_specs.ffw.sg2 import (
 )
 from cyclo_lab.runtime.publishers.articulation_state_publisher import ArticulationStatePublisher
 from cyclo_lab.runtime.publishers.camera_publishers import CompressedCameraPublishers
+from cyclo_lab.runtime.publishers.clock_publisher import ClockPublisher
 from cyclo_lab.runtime.transport.ros2_zenoh import (
     EMPTY,
     JOINT_TRAJECTORY,
@@ -116,7 +117,12 @@ class FFWSG2TopicBridge:
             FFW_SG2_CAMERA_TOPICS,
             camera_publish_hz,
         )
-        self.publishers = [*self.state_publisher.publishers, *self.camera_publishers.endpoints]
+        self.clock_publisher = ClockPublisher()
+        self.publishers = [
+            *self.state_publisher.publishers,
+            *self.camera_publishers.endpoints,
+            *self.clock_publisher.endpoints,
+        ]
 
         print(
             f"[Zenoh ROS2] FFW-SG2 topic bridge ready: {self.total_action_dim}D "
@@ -215,8 +221,9 @@ class FFWSG2TopicBridge:
         return self._make_action(targets, (0.0, 0.0, 0.0))
 
     def publish_observations(self) -> None:
-        self.state_publisher.publish_all()
-        self.camera_publishers.publish()
+        stamp = self.clock_publisher.publish()
+        self.state_publisher.publish_all(stamp=stamp)
+        self.camera_publishers.publish(stamp=stamp)
 
     def clear_command_cache(self) -> None:
         with self._lock:
