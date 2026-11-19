@@ -43,7 +43,7 @@ from isaaclab.utils.noise import UniformNoiseCfg as Unoise
 
 from isaaclab_physx.physics import PhysxCfg
 
-import cyclo_lab.manager_based.mimic.mdp as mdp
+import cyclo_lab.manager_based.mimic.beyondmimic.mdp as mdp
 
 ##
 # Scene definition

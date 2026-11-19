@@ -18,7 +18,7 @@
 from isaaclab.utils import configclass
 
 from cyclo_lab.assets.robots import CYCLO_LAB_ASSETS_DATA_DIR
-from cyclo_lab.manager_based.mimic.config.k1_rev1.base_env_cfg import K1Rev1MimicEnvCfg
+from cyclo_lab.manager_based.mimic.beyondmimic.config.k1_rev1.base_env_cfg import K1Rev1MimicEnvCfg
 
 TRAJECTORY_FILE = f"{CYCLO_LAB_ASSETS_DATA_DIR}/motions/K1_rev1/dance2/dance2.npz"
 

@@ -25,11 +25,11 @@ from isaaclab.utils import configclass
 from cyclo_lab.utils.k1_physics import configure_k1_physics
 
 from cyclo_lab.assets.robots.K1_rev1 import K1_REV1_INERTIA_TUNED_ACTION_SCALE, K1_REV1_INERTIA_TUNED_CFG
-from cyclo_lab.manager_based.mimic.tracking_env_cfg import (
+from cyclo_lab.manager_based.mimic.beyondmimic.tracking_env_cfg import (
     RewardsCfg,
     TrackingEnvCfg,
 )
-import cyclo_lab.manager_based.mimic.mdp as mdp
+import cyclo_lab.manager_based.mimic.beyondmimic.mdp as mdp
 
 TRACKED_BODY_NAMES = [
     "pelvis",

@@ -64,10 +64,7 @@ class ReferenceTrajectoryCommand(CommandTerm):
             self.robot.find_bodies(self.cfg.body_names, preserve_order=True)[0], dtype=torch.long, device=self.device
         )
 
-        self.reference = ReferenceTrajectory(
-            self.cfg.trajectory_file, self.tracked_body_ids, device=self.device,
-            joint_names=self.robot.joint_names, body_names=self.robot.body_names,
-        )
+        self.reference = self._load_reference(cfg.trajectory_file)
         self.frame_ids = torch.zeros(self.num_envs, dtype=torch.long, device=self.device)
         self.aligned_body_position_w = torch.zeros(self.num_envs, len(cfg.body_names), 3, device=self.device)
         self.aligned_body_orientation_w = torch.zeros(self.num_envs, len(cfg.body_names), 4, device=self.device)
@@ -96,6 +93,14 @@ class ReferenceTrajectoryCommand(CommandTerm):
         self.metrics["start_sampling_entropy"] = torch.zeros(self.num_envs, device=self.device)
         self.metrics["start_sampling_top1_prob"] = torch.zeros(self.num_envs, device=self.device)
         self.metrics["start_sampling_top1_bin"] = torch.zeros(self.num_envs, device=self.device)
+
+    def _load_reference(self, path):
+        return ReferenceTrajectory(path, self.tracked_body_ids, device=self.device,
+                                   joint_names=self.robot.joint_names, body_names=self.robot.body_names)
+
+    def _advance_reference(self):
+        self.frame_ids += 1
+        return torch.where(self.frame_ids >= self.reference.num_frames)[0]
 
     @property
     def command(self) -> torch.Tensor:
@@ -126,12 +131,22 @@ class ReferenceTrajectoryCommand(CommandTerm):
         return self.reference.body_angular_velocity_w[self.frame_ids]
 
     @property
+    def termination_frame_ids(self) -> torch.Tensor:
+        return self.frame_ids
+
+    def anchor_pos_w_at(self, frames: torch.Tensor) -> torch.Tensor:
+        return self.reference.body_position_w[frames, self.reference_anchor_body_id] + self._env.scene.env_origins
+
+    def anchor_quat_w_at(self, frames: torch.Tensor) -> torch.Tensor:
+        return self.reference.body_orientation_w[frames, self.reference_anchor_body_id]
+
+    @property
     def anchor_pos_w(self) -> torch.Tensor:
-        return self.reference.body_position_w[self.frame_ids, self.reference_anchor_body_id] + self._env.scene.env_origins
+        return self.anchor_pos_w_at(self.frame_ids)
 
     @property
     def anchor_quat_w(self) -> torch.Tensor:
-        return self.reference.body_orientation_w[self.frame_ids, self.reference_anchor_body_id]
+        return self.anchor_quat_w_at(self.frame_ids)
 
     @property
     def anchor_lin_vel_w(self) -> torch.Tensor:
@@ -289,9 +304,7 @@ class ReferenceTrajectoryCommand(CommandTerm):
         )
 
     def _update_command(self):
-        self.frame_ids += 1
-        env_ids = torch.where(self.frame_ids >= self.reference.num_frames)[0]
-        self._resample_command(env_ids)
+        self._resample_command(self._advance_reference())
 
         anchor_pos_w_repeat = self.anchor_pos_w[:, None, :].repeat(1, len(self.cfg.body_names), 1)
         anchor_quat_w_repeat = self.anchor_quat_w[:, None, :].repeat(1, len(self.cfg.body_names), 1)
