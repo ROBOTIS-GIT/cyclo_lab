@@ -1,0 +1,25 @@
+# Copyright 2026 ROBOTIS CO., LTD.
+# SPDX-License-Identifier: Apache-2.0
+
+from isaaclab.utils import configclass
+from cyclo_lab.manager_based.mimic.motion_library_env_cfg import K1MotionLibraryEnvCfg, TrackingRewardsCfg
+
+
+@configclass
+class SuperMimicLibraryEnvCfg(K1MotionLibraryEnvCfg):
+    def __post_init__(self):
+        super().__post_init__()
+        self.scene.robot.init_state.joint_pos[".*_elbow_joint"] = 0.95
+        self.events.physics_material.params["feet_only"] = True
+        self.events.joint_home_offset_noise = None
+        solver = self.sim.physics.newton_mjwarp.solver_cfg
+        solver.iterations, solver.ls_iterations, solver.ccd_iterations = 10, 20, 50
+        solver.tolerance = 1e-8
+        self.commands.reference_trajectory.targets_next_frame = True
+
+
+def validate_imagined_rewards(cfg):
+    from cyclo_lab.manager_based.mimic.tracking_contract import active_terms
+
+    if active_terms(cfg.rewards) != active_terms(TrackingRewardsCfg()):
+        raise ValueError("Reward override differs from the SuperMimic imagined objective")
