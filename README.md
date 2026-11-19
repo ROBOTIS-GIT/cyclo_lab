@@ -68,6 +68,28 @@ Docker installation provides a consistent environment with all dependencies pre-
 
 ## Try examples
 
+### K1 BlinkMimic and SuperMimic
+
+The registered motion-library tasks train against Isaac Lab articulation state using
+either Newton MJWarp (`newton_mjwarp`) or Isaac Sim PhysX (`isaacsim_physx`).
+Task 001 uses the Dance1 and Dance2 references. Run inside the Cyclo Lab container:
+
+```bash
+third_party/IsaacLab/isaaclab.sh -p scripts/reinforcement_learning/train.py Cyclo-BlinkMimic-K1-Rev1-001 --physics newton_mjwarp --headless
+third_party/IsaacLab/isaaclab.sh -p scripts/reinforcement_learning/train.py Cyclo-SuperMimic-GenCoord-K1-Rev1-001 --physics isaacsim_physx --headless
+third_party/IsaacLab/isaaclab.sh -p scripts/reinforcement_learning/play.py Cyclo-SuperMimic-GenCoord-K1-Rev1-001 --physics isaacsim_physx --viz kit
+```
+
+- `Cyclo-SuperMimic-MaxCoord-K1-Rev1-001` uses the maximal-coordinate world model.
+- To add a motion set, copy `task_001.py` under `manager_based/mimic/<family>/config/k1_rev1/`, edit `MOTION_PATHS`, and add the number in that package's `__init__.py`. Both SuperMimic representations use the same motion set.
+- `--motion-file clip1.npz clip2.npz` selects 50 Hz K1 references. The loader accepts archives with joint/body names and quaternion order, and legacy unnamed K1 archives with 23 joints and 24 or 25 bodies in PhysX order (WXYZ). Clip boundaries apply to both resets and future targets.
+- SuperMimic trains motion at `--velocity-fraction 0`, velocity at `1`, and both at intermediate values. BlinkMimic uses motion. Use `--encoder velocity --velocity-command 0.2 0 0` for velocity playback. The standalone export writes all trained encoders by default and accepts `--encoder motion|velocity` to select one.
+- Runs live under `logs/<family>/<task>/<run>/`. Training writes `params/sim2real.yaml` and TensorBoard events. Play exports `exported/policy.onnx`. The velocity encoder uses the corresponding `velocity/` subdirectories.
+- BlinkMimic and SuperMimic keep model checkpoints local by default. For online W&B uploads, install the optional `wandb` package and set `CYCLO_WANDB_UPLOAD_MODELS=1 WANDB_MODE=online` when launching training. This publishes numbered checkpoints and the final checkpoint.
+- `--resume` selects the most recent native checkpoint for the task. `--checkpoint PATH` selects a specific run or iteration. `last.pt` includes optimizers. Numbered snapshots retain the most recent five at 1,000-iteration intervals and all 10,000-iteration milestones. Replay and simulation state are rebuilt on resume. Use `--world-model-checkpoint PATH` to initialize the dynamics from a native `last.pt` or numbered snapshot. The destination task selects the physics, randomization and encoder mix. The new run loads the compatible world-model architecture and weights and starts with fresh actor, critic and optimizers. The world model continues to train.
+- To resume on an expanded motion library, pass `--resume --checkpoint /path/to/last.pt --motion-file old.npz new.npz`. A different registered task or an updated task motion list uses the destination task's references. An unchanged task reuses its previous motion selection. Replay starts empty. Shared clips recover reset-sampling statistics by content and local frame. New clips use the initial distribution. Full resume keeps the encoder mix and world-model representation. Use a compatible world-model checkpoint to start a new policy with another encoder mix.
+- Use `--eager` for small SuperMimic smoke runs without learner compilation. The numbered tasks use the shared K1 URDF, randomized robot friction, torso center of mass and encoder bias. SuperMimic uses return-based reset sampling. BlinkMimic resamples the encoder bias at episode boundaries. With Kit playback, the Motion tracking panel selects and restarts reference clips and toggles tracked-link overlays. Green follows the reference and blue shows the SuperMimic world model rollout. BlinkMimic play accepts `--evaluate` for per-clip results.
+
 ### Sim2Sim
 <details>
 <summary>Reinforcement learning</summary>
