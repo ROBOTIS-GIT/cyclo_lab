@@ -69,7 +69,8 @@ class IsaacBlinkMimicRunner:
         joints = bridge.num_actions
         default = bridge.robot.data.default_joint_pos.torch[0]
         self.xi = default.new_zeros(bridge.env.num_envs, 1 + joints + 3)
-        reward_cfg = RewardCfg(term_height=bridge.anchor_pos_threshold, term_tilt=bridge.anchor_ori_threshold)
+        reward_cfg = RewardCfg(term_height=bridge.anchor_pos_threshold, term_tilt=bridge.anchor_ori_threshold,
+                               foot_contact_z=bridge.env.cfg.foot_contact_z)
         self.mdp = MDP(Kinematics(bridge), self.motion, default, self.xi.shape[-1], cfg=reward_cfg)
         self.mdp.feet = [bridge.fk.body_names.index(side + "_ankle_roll_link") for side in ("left", "right")]
         self.motion.set_ref_contact(self.mdp.feet)

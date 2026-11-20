@@ -20,5 +20,6 @@ class BlinkObservationsCfg(MotionLibraryObservationsCfg):
 
 @configclass
 class BlinkMimicLibraryEnvCfg(K1MotionLibraryEnvCfg):
+    foot_contact_z: float = 0.074
     compute_final_obs: bool = True
     observations: BlinkObservationsCfg = BlinkObservationsCfg()
