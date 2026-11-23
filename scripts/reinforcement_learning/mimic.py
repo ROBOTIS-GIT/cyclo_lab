@@ -45,6 +45,12 @@ def main(argv=None):
             parser.error(f"Choose a registered {algorithm} task")
         from motion_tracker import main as track
 
+        if args.action == "train":
+            sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
+            from scripts.tools.permission_hint import training_permission_hint
+
+            with training_permission_hint():
+                return track(args.action, task, remaining, family=algorithm)
         return track(args.action, task, remaining, family=algorithm)
     if args.action == "export":
         parser.error("Export requires a registered motion-library task")
