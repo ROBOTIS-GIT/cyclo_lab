@@ -1,5 +1,7 @@
 # Copyright 2026 ROBOTIS CO., LTD.
 # SPDX-License-Identifier: Apache-2.0
+#
+# Author: Kiwoong Park
 """Verify redundant named NPZ bodies against source-defined K1 kinematics/twists.
 
 No producer is inferred. A physical convention must explain every frame/body.
@@ -14,7 +16,7 @@ import xml.etree.ElementTree as ET
 
 import numpy as np
 import torch
-from cyclo_lab.manager_based.mimic.supermimic.core import quat_apply
+from cyclo_lab.manager_based.mimic.supermimic.upstream import quat_apply
 from cyclo_lab.manager_based.mimic import REPO_ROOT
 from cyclo_lab.utils.k1_kinematics import UrdfKinematics, rpy_quat
 from cyclo_lab.utils.k1_motion_validation import validate_motion, real_float32

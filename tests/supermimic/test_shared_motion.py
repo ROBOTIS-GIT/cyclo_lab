@@ -7,7 +7,7 @@ import pytest
 from cyclo_lab.manager_based.mimic import REPO_ROOT as ROOT
 from cyclo_lab.utils.k1_motion_validation import validate_motion
 from cyclo_lab.utils.k1_motion_physics import validate_motion_physics
-from cyclo_lab.manager_based.mimic.supermimic.core.bridge import URDF
+from cyclo_lab.manager_based.mimic.supermimic.reference.bridge import URDF
 from cyclo_lab.utils.motion_npz import load_motion_npz
 
 SOURCE = ROOT / "source/cyclo_lab/data/motions/K1_rev1/dance1/dance1.npz"
@@ -53,7 +53,7 @@ def test_shared_loader_reorders_without_resampling_or_rewriting(tmp_path, order)
         and metadata["quaternion_order"] == order
     )
     physical, _ = validate_motion_physics(path)
-    assert physical["physical_profiles"] == ["ai_sapiens_b0ef567_com"]
+    assert physical["physical_profiles"] == ["current_urdf_com"]
     baseline = load_motion_npz(SOURCE, target_joints, target_bodies)
     # This is the exact loader called by ReferenceTrajectory for BOTH algorithms.
     reordered = load_motion_npz(path, target_joints, target_bodies)

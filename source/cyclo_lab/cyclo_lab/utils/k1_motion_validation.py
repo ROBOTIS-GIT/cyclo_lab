@@ -1,5 +1,7 @@
 # Copyright 2026 ROBOTIS CO., LTD.
 # SPDX-License-Identifier: Apache-2.0
+#
+# Author: Kiwoong Park
 """Strict, read-only contract for Cyclo NPZ motion input."""
 
 from pathlib import Path

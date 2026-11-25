@@ -5,7 +5,7 @@ from types import SimpleNamespace
 import pytest
 import torch
 
-from cyclo_lab.manager_based.mimic.motion_library_command import MotionLibraryCommand
+from cyclo_lab.manager_based.mimic._shared.motion_library_command import MotionLibraryCommand
 from cyclo_lab.manager_based.mimic.beyondmimic.mdp.terminations import (
     reference_anchor_gravity_deviation,
     reference_anchor_height_deviation,

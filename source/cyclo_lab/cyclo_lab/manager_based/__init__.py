@@ -13,5 +13,5 @@ except ModuleNotFoundError as error:
         raise
 else:
     # Register Gym tasks without importing the optional learner implementations.
-    _BLACKLIST_PKGS = ["utils", ".mdp", ".mimic.blinkmimic.core", ".mimic.supermimic.core"]
+    _BLACKLIST_PKGS = ["utils", ".mdp", ".mimic.blinkmimic.core"]
     import_packages(__name__, _BLACKLIST_PKGS)

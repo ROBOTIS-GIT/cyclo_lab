@@ -1,5 +1,7 @@
 # Copyright 2026 ROBOTIS CO., LTD.
 # SPDX-License-Identifier: Apache-2.0
+#
+# Author: Kiwoong Park
 """URDF kinematics with differentiable joint/root pose and world link twists.
 
 Uses the same URDF as Isaac's K1 asset. Joint order comes from the live
@@ -9,7 +11,7 @@ articulation; URDF document order is never assumed to match PhysX order.
 import math
 import xml.etree.ElementTree as ET
 import torch
-from cyclo_lab.manager_based.mimic.supermimic.core import quat_apply, quat_mul
+from cyclo_lab.manager_based.mimic.supermimic.upstream import quat_apply, quat_mul
 
 
 def rpy_quat(rpy):

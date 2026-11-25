@@ -6,7 +6,7 @@ import argparse
 import traceback
 import warp as wp
 import torch
-from cyclo_lab.manager_based.mimic.motion_bridge import BODIES, wxyz
+from cyclo_lab.manager_based.mimic._shared.motion_bridge import BODIES, wxyz
 
 
 def check_ik(runner, atol=5e-3):
@@ -138,17 +138,17 @@ def check_foot_friction(env, backend):
     torch.testing.assert_close(robot.data.body_com_pos_b.torch[:, torso], env.tracking_com)
 
 
-def verify(backend):
+def verify(backend, revision):
     import gymnasium as gym
     import cyclo_lab  # noqa: F401
     from isaaclab.app import launch_simulation
     from isaaclab_tasks.utils import resolve_task_config
-    from cyclo_lab.manager_based.mimic.supermimic.core.runner import IsaacSuperMimicRunner
+    from cyclo_lab.manager_based.mimic.supermimic.training.runner import IsaacSuperMimicRunner
 
-    task = "Cyclo-SuperMimic-MaxCoord-K1-Rev1-001"
+    task = f"Cyclo-SuperMimic-MaxCoord-K1-Rev{revision}-001"
     cfg, settings = resolve_task_config(task, "learner_cfg_entry_point", overrides=[f"physics={backend}"])
     cfg.scene.num_envs = 2
-    settings.hidden = settings.world_hidden = settings.critic_hidden = (32, 32)
+    settings.actor_hidden_dims = settings.dynamics_hidden_dims = settings.critic_hidden_dims = (32, 32)
     settings.eager = True
     with launch_simulation(cfg, {"headless": True, "require_kit": True}):
         env = gym.make(task, cfg=cfg)
@@ -171,4 +171,6 @@ def verify(backend):
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("backend", choices=("newton_mjwarp", "isaacsim_physx"))
-    verify(parser.parse_args().backend)
+    parser.add_argument("--revision", type=int, choices=(1, 2), default=1)
+    args = parser.parse_args()
+    verify(args.backend, args.revision)

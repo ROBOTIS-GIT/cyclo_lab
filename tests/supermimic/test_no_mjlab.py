@@ -14,7 +14,7 @@ class BlockMjlab:
         if fullname == 'mjlab' or fullname.startswith('mjlab.'):
             raise AssertionError('Unexpected mjlab runtime dependency: '+fullname)
 sys.meta_path.insert(0, BlockMjlab())
-from cyclo_lab.manager_based.mimic.supermimic.core.runner import IsaacSuperMimicRunner
+from cyclo_lab.manager_based.mimic.supermimic.training.runner import IsaacSuperMimicRunner
 assert not any(n == 'mjlab' or n.startswith('mjlab.') for n in sys.modules)
 """
     subprocess.run([sys.executable, "-c", code], check=True)

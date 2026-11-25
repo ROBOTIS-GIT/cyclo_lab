@@ -54,3 +54,49 @@ def test_motion_library_tasks_do_not_inherit_beyondmimic_task_defaults(task):
     cfg, _ = resolve_task_config(task, "learner_cfg_entry_point", overrides=[])
     for cls in (type(cfg), type(cfg.rewards), type(cfg.events)):
         assert all(".beyondmimic." not in base.__module__ for base in cls.__mro__)
+
+
+@pytest.mark.parametrize("rev1_task", [
+    "Cyclo-Velocity-Flat-K1-Rev1-v0",
+    "Cyclo-BeyondMimic-K1-Rev1-Dance1",
+    "Cyclo-BeyondMimic-K1-Rev1-Dance2",
+    "Cyclo-Mimic-K1-Rev1-Dance1",
+    "Cyclo-Mimic-K1-Rev1-Dance2",
+    "Cyclo-BlinkMimic-K1-Rev1-001",
+    "Cyclo-SuperMimic-GenCoord-K1-Rev1-001",
+    "Cyclo-SuperMimic-MaxCoord-K1-Rev1-001",
+])
+def test_rev2_selects_own_robot_and_motion_files(rev1_task):
+    from importlib import import_module
+    from pathlib import Path
+
+    for revision in (2, 1):
+        task = rev1_task.replace("Rev1", f"Rev{revision}")
+        entry = gym.spec(task).kwargs["env_cfg_entry_point"]
+        module, name = entry.split(":")
+        cfg = getattr(import_module(module), name)()
+        urdf = Path(cfg.scene.robot.spawn.asset_path)
+        assert urdf.is_file() and urdf.parent.name == f"k1_rev{revision}"
+        if "Velocity" in task:
+            continue
+        command = cfg.commands.reference_trajectory
+        for file in (command.trajectory_file, *getattr(command, "additional_motions", ())):
+            path = Path(file)
+            assert path.is_file() and path.parent.parent.name == f"K1_rev{revision}"
+        if "BlinkMimic" in task:
+            assert cfg.foot_contact_z == 0.074
+
+
+def test_library_expands_mixed_motion_paths_once_in_order(tmp_path):
+    cfg = SuperMimicLibraryEnvCfg()
+    folder = tmp_path / "library"
+    nested = folder / "nested"
+    nested.mkdir(parents=True)
+    files = [tmp_path / "first.npz", folder / "a.npz", nested / "b.npz", tmp_path / "last.npz"]
+    for path in reversed(files):
+        path.touch()
+    cfg.set_motion_paths([files[0], folder, tmp_path / "**/*.npz"])
+    command = cfg.commands.reference_trajectory
+    assert [command.trajectory_file, *command.additional_motions] == list(map(str, files))
+    with pytest.raises(ValueError, match="No motion files matched"):
+        cfg.set_motion_paths([tmp_path / "missing*.npz"])

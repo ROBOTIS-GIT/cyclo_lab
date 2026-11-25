@@ -4,8 +4,10 @@ from types import SimpleNamespace as NS
 import numpy as np
 import pytest
 import torch
+from cyclo_lab.utils.k1_motion_physics import URDF
 from cyclo_lab.manager_based.mimic import REPO_ROOT as ROOT
-from cyclo_lab.manager_based.mimic.supermimic.core.runner import IsaacSuperMimicRunner, RunnerCfg
+from cyclo_lab.manager_based.mimic.supermimic.training.runner import WorldModelLearnerCfg, ActorCriticPolicyLearnerCfg
+from cyclo_lab.manager_based.mimic.supermimic.training.runner import IsaacSuperMimicRunner, RunnerCfg
 
 
 def proxy(value):
@@ -24,6 +26,8 @@ class UnitEnv:
         self.step_dt = 0.02
         self.unwrapped = self
         self.cfg = NS(
+            foot_contact_z=0.074,
+            scene=NS(robot=NS(spawn=NS(asset_path=str(URDF)))),
             sim=NS(physics=None),
             decimation=4,
             commands=NS(reference_trajectory=NS(trajectory_file=str(path))),
@@ -65,6 +69,8 @@ class UnitEnv:
                 reference=ref,
                 frame_ids=self.frames,
                 resample_counts=self.resample_counts,
+                sampling_state=lambda: self.resample_counts.clone(),
+                restore_sampling=self.resample_counts.copy_,
             )
         )
         self.joints = torch.zeros(1, 23)
@@ -98,7 +104,6 @@ class UnitEnv:
         )
         self.calls = 0
         from cyclo_lab.utils.k1_kinematics import UrdfKinematics
-        from cyclo_lab.manager_based.mimic.supermimic.core.bridge import URDF
 
         self._fk = UrdfKinematics(URDF, names, robot.body_names)
         self._refresh_bodies()
@@ -135,7 +140,7 @@ class UnitEnv:
 def test_collection_boundaries_learning_and_checkpoint(
     tmp_path, representation
 ):
-    from cyclo_lab.manager_based.mimic.checkpoint import save, load
+    from cyclo_lab.manager_based.mimic._shared.checkpoint import save, load
 
     before = torch._dynamo.config.disable
     torch._dynamo.config.disable = True
@@ -143,12 +148,10 @@ def test_collection_boundaries_learning_and_checkpoint(
         env = UnitEnv()
         cfg = RunnerCfg(
             representation=representation,
-            hidden=(16, 16),
-            latent=8,
-            batch_size=2,
-            horizon=4,
-            policy_horizon=2,
-            eager=True,
+            actor_hidden_dims=(16, 16), dynamics_hidden_dims=(16, 16), critic_hidden_dims=(16, 16),
+            latent_dim=8, eager=True,
+            wm=WorldModelLearnerCfg(num_batches=1, batch_size=2, horizon=4),
+            policy=ActorCriticPolicyLearnerCfg(batch_size=2, horizon=2),
         )
         runner = IsaacSuperMimicRunner(env, cfg)
         runner.collect(8)
@@ -172,7 +175,7 @@ def test_collection_boundaries_learning_and_checkpoint(
         assert any(not torch.equal(a, b) for a, b in zip(wm_before, runner.dynamics.parameters()))
         assert any(not torch.equal(a, b) for a, b in zip(actor_before, runner.actor.parameters()))
         assert not any(p.requires_grad for p in runner.dynamics.parameters())
-        save(runner, tmp_path, {}, [])
+        save(runner, tmp_path, [])
         saved = {k: v.clone() for k, v in runner.actor.state_dict().items()}
         fresh = IsaacSuperMimicRunner(UnitEnv(), cfg)
         bundle = torch.load(tmp_path / "last.pt", weights_only=True)
@@ -201,12 +204,10 @@ def test_clip_wrap_without_env_done_is_excluded_from_replay():
     runner = IsaacSuperMimicRunner(
         env,
         RunnerCfg(
-            hidden=(16, 16),
-            latent=8,
-            batch_size=2,
-            horizon=4,
-            policy_horizon=2,
-            eager=True,
+            actor_hidden_dims=(16, 16), dynamics_hidden_dims=(16, 16), critic_hidden_dims=(16, 16),
+            latent_dim=8, eager=True,
+            wm=WorldModelLearnerCfg(num_batches=1, batch_size=2, horizon=4),
+            policy=ActorCriticPolicyLearnerCfg(batch_size=2, horizon=2),
         ),
     )
     runner.collect(12)

@@ -27,16 +27,17 @@ def test_original_clips_physically_verify_without_source_mutation(clip):
     path = SOURCE.parents[1] / clip / f"{clip}.npz"
     before = hashlib.sha256(path.read_bytes()).hexdigest()
     metadata, root_v = validate_motion_physics(path)
-    assert metadata["physical_profiles"] == ["ai_sapiens_b0ef567_com"]
+    assert metadata["physical_profiles"] == ["current_urdf_com"]
     assert metadata["producer"] == "unspecified"
     assert metadata["fps"] == 50 and root_v.shape[-1] == 3
     assert hashlib.sha256(path.read_bytes()).hexdigest() == before
 
 
-def test_rotating_pelvis_com_to_link_conversion(tmp_path):
+@pytest.mark.parametrize("profile", ["current_urdf_com", "ai_sapiens_b0ef567_com"])
+def test_rotating_pelvis_com_to_link_conversion(tmp_path, profile):
     data = arrays()
     names, joints = data["body_names"].tolist(), data["joint_names"].tolist()
-    offsets = com_profiles(names)["current_urdf_com"]
+    offsets = com_profiles(names)[profile]
     fk = UrdfKinematics(URDF, joints, names)
     frames = 3
     pos = torch.tensor([[1.0, 2.0, 0.8]]).expand(frames, -1)
@@ -58,7 +59,7 @@ def test_rotating_pelvis_com_to_link_conversion(tmp_path):
     path = tmp_path / "rotating.npz"
     np.savez(path, **data)
     metadata, converted = validate_motion_physics(path)
-    assert metadata["physical_profiles"] == ["current_urdf_com"]
+    assert metadata["physical_profiles"] == [profile]
     torch.testing.assert_close(converted, linear, rtol=0, atol=1e-7)
     assert not torch.allclose(converted, com_v[:, names.index("pelvis")])
 
