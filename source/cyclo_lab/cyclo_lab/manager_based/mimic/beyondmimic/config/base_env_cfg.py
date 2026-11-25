@@ -14,7 +14,7 @@
 #
 # Author: Woojae Lee
 
-"""K1 Rev.1-specific configuration for mimic tracking tasks."""
+"""Shared K1 configuration for mimic tracking tasks."""
 
 from __future__ import annotations
 
@@ -24,7 +24,7 @@ from isaaclab.utils import configclass
 
 from cyclo_lab.utils.k1_physics import configure_k1_physics
 
-from cyclo_lab.assets.robots.K1_rev1 import K1_REV1_INERTIA_TUNED_ACTION_SCALE, K1_REV1_INERTIA_TUNED_CFG
+from cyclo_lab.assets.robots.K1_rev1 import K1_REV1_INERTIA_TUNED_ACTION_SCALE
 from cyclo_lab.manager_based.mimic.beyondmimic.tracking_env_cfg import (
     RewardsCfg,
     TrackingEnvCfg,
@@ -61,8 +61,8 @@ UNDESIRED_CONTACT_BODY_NAMES = [
 
 
 @configclass
-class K1Rev1MimicRewardsCfg(RewardsCfg):
-    """K1 Rev.1 reward terms that depend on robot body names."""
+class K1MimicRewardsCfg(RewardsCfg):
+    """K1 reward terms that depend on robot body names."""
 
     undesired_contacts = RewTerm(
         func=mdp.undesired_contacts,
@@ -75,16 +75,17 @@ class K1Rev1MimicRewardsCfg(RewardsCfg):
 
 
 @configclass
-class K1Rev1MimicEnvCfg(TrackingEnvCfg):
-    """K1 Rev.1 mimic tracking environment."""
+class K1MimicEnvCfg(TrackingEnvCfg):
+    """K1 mimic tracking environment."""
 
-    rewards: K1Rev1MimicRewardsCfg = K1Rev1MimicRewardsCfg()
+    rewards: K1MimicRewardsCfg = K1MimicRewardsCfg()
     curriculum = None
 
-    def __post_init__(self):
-        super().__post_init__()
+    def configure_motion(self, robot_cfg, trajectory_file):
+        self.episode_length_s = 30.0
+        self.commands.reference_trajectory.trajectory_file = trajectory_file
 
-        self.scene.robot = K1_REV1_INERTIA_TUNED_CFG.replace(prim_path="{ENV_REGEX_NS}/Robot")
+        self.scene.robot = robot_cfg.replace(prim_path="{ENV_REGEX_NS}/Robot")
         self.actions.joint_pos.scale = K1_REV1_INERTIA_TUNED_ACTION_SCALE
         self.commands.reference_trajectory.anchor_body_name = "torso_link"
         self.commands.reference_trajectory.body_names = TRACKED_BODY_NAMES

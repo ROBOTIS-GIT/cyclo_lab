@@ -11,6 +11,8 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+#
+# Author: Woojin Wie
 
 
 """K1 Rev.1 mimic environment configuration."""
@@ -18,14 +20,14 @@
 from isaaclab.utils import configclass
 
 from cyclo_lab.assets.robots import CYCLO_LAB_ASSETS_DATA_DIR
-from cyclo_lab.manager_based.mimic.beyondmimic.config.k1_rev1.base_env_cfg import K1Rev1MimicEnvCfg
+from cyclo_lab.assets.robots.K1_rev1 import K1_REV1_INERTIA_TUNED_CFG
+from ..base_env_cfg import K1MimicEnvCfg
 
 TRAJECTORY_FILE = f"{CYCLO_LAB_ASSETS_DATA_DIR}/motions/K1_rev1/dance1/dance1.npz"
 
 
 @configclass
-class K1Rev1EnvCfg(K1Rev1MimicEnvCfg):
+class K1Rev1EnvCfg(K1MimicEnvCfg):
     def __post_init__(self):
         super().__post_init__()
-        self.episode_length_s = 30.0
-        self.commands.reference_trajectory.trajectory_file = TRAJECTORY_FILE
+        self.configure_motion(K1_REV1_INERTIA_TUNED_CFG, TRAJECTORY_FILE)

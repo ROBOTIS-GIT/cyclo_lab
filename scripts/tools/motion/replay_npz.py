@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""Kinematics-only replay for K1 Rev.1 motion NPZ files."""
+"""Kinematics-only replay for K1 motion NPZ files."""
 
 import argparse
 import os
@@ -33,7 +33,8 @@ REQUIRED_NPZ_KEYS = (
 )
 
 
-parser = argparse.ArgumentParser(description="Kinematics-only replay for K1 Rev.1 motion NPZ files.")
+parser = argparse.ArgumentParser(description="Kinematics-only replay for K1 motion NPZ files.")
+parser.add_argument("--robot", choices=("k1_rev1", "k1_rev2"), default="k1_rev2", help="K1 robot revision (default: k1_rev2).")
 parser.add_argument("--input_file", "-f", type=str, required=True, help="Motion NPZ file.")
 parser.add_argument("--fps", type=float, help="Replay FPS. Defaults to the NPZ fps key.")
 parser.add_argument(
@@ -78,6 +79,7 @@ from isaaclab.utils import configclass
 from isaaclab.utils.assets import ISAAC_NUCLEUS_DIR
 
 from cyclo_lab.assets.robots.K1_rev1 import K1_REV1_INERTIA_TUNED_CFG
+from cyclo_lab.assets.robots.K1_rev2 import K1_REV2_INERTIA_TUNED_CFG
 from cyclo_lab.utils.motion_npz import load_motion_npz
 
 
@@ -93,7 +95,9 @@ class ReplaySceneCfg(InteractiveSceneCfg):
             texture_file=f"{ISAAC_NUCLEUS_DIR}/Materials/Textures/Skies/PolyHaven/kloofendal_43d_clear_puresky_4k.hdr",
         ),
     )
-    robot: ArticulationCfg = K1_REV1_INERTIA_TUNED_CFG.replace(prim_path="{ENV_REGEX_NS}/Robot")
+    robot: ArticulationCfg = (
+        K1_REV2_INERTIA_TUNED_CFG if args_cli.robot == "k1_rev2" else K1_REV1_INERTIA_TUNED_CFG
+    ).replace(prim_path="{ENV_REGEX_NS}/Robot")
 
 
 def _load_npz(path: str, device: str, joint_names=None, body_names=None) -> tuple[torch.Tensor, torch.Tensor, torch.Tensor, float]:
