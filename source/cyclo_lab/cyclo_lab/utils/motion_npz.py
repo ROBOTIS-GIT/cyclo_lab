@@ -89,7 +89,7 @@ def load_motion_npz(path, joint_names: Sequence[str] | None = None, body_names: 
     with np.load(path, allow_pickle=False) as archive:
         data = {key: archive[key] for key in archive.files}
 
-    motion_format = _resolve_metadata(data, path)
+    motion_format = resolve_motion_metadata(data, path)
     source_order = _normalize_quaternions(data)
     source_body_count = len(data["body_names"])
     _reorder_motion(data, joint_names, body_names)
@@ -107,7 +107,7 @@ def load_motion_npz(path, joint_names: Sequence[str] | None = None, body_names: 
     return data
 
 
-def _resolve_metadata(data, path) -> str:
+def resolve_motion_metadata(data, path) -> str:
     """Validate explicit metadata or supply the known legacy K1 layout."""
     # Format              | Detection                         | Interpretation
     #

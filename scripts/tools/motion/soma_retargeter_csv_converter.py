@@ -12,27 +12,27 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""Convert Soma retargeter CSV files to K1 Rev.1 motion CSV and NPZ.
+"""Convert Soma retargeter CSV files to K1 motion CSV and NPZ.
 
 The Soma retargeter CSV format is headered and contains:
 
 * Frame
 * root_translateX, root_translateY, root_translateZ
 * root_rotateX, root_rotateY, root_rotateZ
-* 23 K1 Rev.1 joint columns named ``<joint_name>_dof``
+* 23 K1 joint columns named ``<joint_name>_dof``
 
 By default, root translation is interpreted as centimeters and all rotations as
 degrees. The default FPS conversion is 30 Hz input to 50 Hz output.
 
 Example:
     ./third_party/IsaacLab/isaaclab.sh -p scripts/tools/motion/soma_retargeter_csv_converter.py \
-        -f source/cyclo_lab/data/motions/K1_rev1/dance1/dance1_soma.csv \
-        --output_name source/cyclo_lab/data/motions/K1_rev1/dance1/dance1.npz \
+        -f /path/to/dance1_soma.csv \
+        --output_name source/cyclo_lab/data/motions/K1_rev2/dance1/dance1.npz \
         --viz none
 
 This writes:
-    source/cyclo_lab/data/motions/K1_rev1/dance1/dance1.csv
-    source/cyclo_lab/data/motions/K1_rev1/dance1/dance1.npz
+    source/cyclo_lab/data/motions/K1_rev2/dance1/dance1.csv
+    source/cyclo_lab/data/motions/K1_rev2/dance1/dance1.npz
 
 If ``--output_name`` is omitted, the exported CSV and NPZ use the
 ``<input_stem>_converted`` stem so the source CSV is preserved.
@@ -91,7 +91,8 @@ SOMA_JOINT_COLUMNS = [f"{name}_dof" for name in K1_REV1_MOTION_CSV_JOINT_NAMES]
 SOMA_REQUIRED_COLUMNS = ["Frame", *SOMA_ROOT_POSITION_COLUMNS, *SOMA_ROOT_EULER_COLUMNS, *SOMA_JOINT_COLUMNS]
 
 
-parser = argparse.ArgumentParser(description="Convert Soma retargeter CSV to K1 Rev.1 motion CSV plus NPZ.")
+parser = argparse.ArgumentParser(description="Convert Soma retargeter CSV to K1 motion CSV plus NPZ.")
+parser.add_argument("--robot", choices=("k1_rev1", "k1_rev2"), default="k1_rev2", help="K1 robot revision (default: k1_rev2).")
 parser.add_argument("--input_file", "-f", type=str, required=True, help="Input Soma retargeter CSV.")
 parser.add_argument("--input_fps", type=int, default=30, help="FPS of the input CSV.")
 parser.add_argument("--output_fps", type=int, default=50, help="FPS of the exported CSV/NPZ.")
@@ -181,11 +182,12 @@ from isaaclab.utils.math import (
 )
 
 from cyclo_lab.assets.robots.K1_rev1 import K1_REV1_INERTIA_TUNED_CFG
+from cyclo_lab.assets.robots.K1_rev2 import K1_REV2_INERTIA_TUNED_CFG
 
 
 @configclass
 class ReplayMotionsSceneCfg(InteractiveSceneCfg):
-    """Scene used to replay K1 Rev.1 23-DoF motion."""
+    """Scene used to replay K1 23-DoF motion."""
 
     ground = AssetBaseCfg(prim_path="/World/defaultGroundPlane", spawn=sim_utils.GroundPlaneCfg())
     sky_light = AssetBaseCfg(
@@ -195,7 +197,9 @@ class ReplayMotionsSceneCfg(InteractiveSceneCfg):
             texture_file=f"{ISAAC_NUCLEUS_DIR}/Materials/Textures/Skies/PolyHaven/kloofendal_43d_clear_puresky_4k.hdr",
         ),
     )
-    robot: ArticulationCfg = K1_REV1_INERTIA_TUNED_CFG.replace(prim_path="{ENV_REGEX_NS}/Robot")
+    robot: ArticulationCfg = (
+        K1_REV2_INERTIA_TUNED_CFG if args_cli.robot == "k1_rev2" else K1_REV1_INERTIA_TUNED_CFG
+    ).replace(prim_path="{ENV_REGEX_NS}/Robot")
 
 
 class MotionLoader:
@@ -435,7 +439,7 @@ def run_simulator(sim: SimulationContext, scene: InteractiveScene):
     robot = scene["robot"]
     robot_joint_indexes = robot.find_joints(K1_REV1_MOTION_CSV_JOINT_NAMES, preserve_order=True)[0]
     if len(robot_joint_indexes) != len(K1_REV1_MOTION_CSV_JOINT_NAMES):
-        raise RuntimeError("Could not resolve all K1 Rev.1 23-DoF joints in the robot asset.")
+        raise RuntimeError("Could not resolve all K1 23-DoF joints in the robot asset.")
 
     motion_base_rot_xyzw = motion.motion_base_rots
     motion_csv = torch.cat((motion.motion_base_poss, motion_base_rot_xyzw, motion.motion_dof_poss), dim=1)
@@ -478,7 +482,7 @@ def run_simulator(sim: SimulationContext, scene: InteractiveScene):
         root_states[:, 7:10] = motion_base_lin_vel
         root_states[:, 10:] = motion_base_ang_vel
         robot.write_root_link_pose_to_sim_index(root_pose=root_states[:, :7])
-        robot.write_root_com_velocity_to_sim_index(root_velocity=root_states[:, 7:])
+        robot.write_root_link_velocity_to_sim_index(root_velocity=root_states[:, 7:])
 
         joint_pos = robot.data.default_joint_pos.torch.clone()
         joint_vel = robot.data.default_joint_vel.torch.clone()

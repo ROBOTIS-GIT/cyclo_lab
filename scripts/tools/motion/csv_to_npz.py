@@ -16,10 +16,10 @@
 # This module is adapted from HybridRobotics/whole_body_tracking, licensed under the MIT License.
 # See THIRD_PARTY_LICENSES.md for details.
 
-"""Replay a K1 Rev.1 23-DoF motion CSV and export converted CSV plus NPZ.
+"""Replay a K1 23-DoF motion CSV and export converted CSV plus NPZ.
 
-The input CSV is K1 Rev.1-native: root pose (3 position + 4 quaternion columns)
-followed by exactly 23 K1 Rev.1 joint columns.
+The K1 CSV contains a root pose (3 position + 4 quaternion columns) followed by
+23 joint positions. The default robot is K1 Rev.2. Use --robot k1_rev1 for Rev.1.
 
 Example:
     ./third_party/IsaacLab/isaaclab.sh -p scripts/tools/motion/csv_to_npz.py \
@@ -45,7 +45,7 @@ import numpy as np
 from isaaclab.app import AppLauncher
 
 
-K1_REV1_MOTION_CSV_JOINT_NAMES = [
+K1_MOTION_CSV_JOINT_NAMES = [
     "left_hip_pitch_joint",
     "left_hip_roll_joint",
     "left_hip_yaw_joint",
@@ -72,8 +72,9 @@ K1_REV1_MOTION_CSV_JOINT_NAMES = [
 ]
 
 
-parser = argparse.ArgumentParser(description="Replay K1 Rev.1 motion CSV and export converted CSV plus NPZ.")
-parser.add_argument("--input_file", "-f", type=str, required=True, help="Input K1 Rev.1 motion CSV.")
+parser = argparse.ArgumentParser(description="Replay K1 motion CSV and export converted CSV plus NPZ.")
+parser.add_argument("--input_file", "-f", type=str, required=True, help="Input K1 motion CSV.")
+parser.add_argument("--robot", choices=("k1_rev1", "k1_rev2"), default="k1_rev2", help="K1 robot revision (default: k1_rev2).")
 parser.add_argument("--input_fps", type=int, default=50, help="FPS of the input CSV.")
 parser.add_argument("--output_fps", type=int, default=50, help="FPS of the exported CSV/NPZ.")
 parser.add_argument(
@@ -141,11 +142,12 @@ from isaaclab.utils.assets import ISAAC_NUCLEUS_DIR
 from isaaclab.utils.math import axis_angle_from_quat, quat_conjugate, quat_mul, quat_slerp
 
 from cyclo_lab.assets.robots.K1_rev1 import K1_REV1_INERTIA_TUNED_CFG
+from cyclo_lab.assets.robots.K1_rev2 import K1_REV2_INERTIA_TUNED_CFG
 
 
 @configclass
 class ReplayMotionsSceneCfg(InteractiveSceneCfg):
-    """Scene used to replay K1 Rev.1 23-DoF motion."""
+    """Scene used to replay K1 23-DoF motion."""
 
     ground = AssetBaseCfg(prim_path="/World/defaultGroundPlane", spawn=sim_utils.GroundPlaneCfg())
     sky_light = AssetBaseCfg(
@@ -155,11 +157,13 @@ class ReplayMotionsSceneCfg(InteractiveSceneCfg):
             texture_file=f"{ISAAC_NUCLEUS_DIR}/Materials/Textures/Skies/PolyHaven/kloofendal_43d_clear_puresky_4k.hdr",
         ),
     )
-    robot: ArticulationCfg = K1_REV1_INERTIA_TUNED_CFG.replace(prim_path="{ENV_REGEX_NS}/Robot")
+    robot: ArticulationCfg = (
+        K1_REV2_INERTIA_TUNED_CFG if args_cli.robot == "k1_rev2" else K1_REV1_INERTIA_TUNED_CFG
+    ).replace(prim_path="{ENV_REGEX_NS}/Robot")
 
 
 class MotionLoader:
-    """Loads, optionally smooths, resamples, and differentiates K1 Rev.1 23-DoF CSV motion."""
+    """Loads, optionally smooths, resamples, and differentiates K1 23-DoF CSV motion."""
 
     def __init__(
         self,
@@ -203,7 +207,7 @@ class MotionLoader:
             motion_np = motion_np[None, :]
         if motion_np.shape[1] != 30:
             raise ValueError(
-                "K1 Rev.1 23-DoF CSV must have 30 columns "
+                "K1 23-DoF CSV must have 30 columns "
                 f"(root 7 + 23 joints), got {motion_np.shape[1]}: {self.motion_file}"
             )
 
@@ -363,17 +367,17 @@ def run_simulator(sim: SimulationContext, scene: InteractiveScene):
     )
 
     robot = scene["robot"]
-    robot_joint_indexes = robot.find_joints(K1_REV1_MOTION_CSV_JOINT_NAMES, preserve_order=True)[0]
-    if len(robot_joint_indexes) != len(K1_REV1_MOTION_CSV_JOINT_NAMES):
-        raise RuntimeError("Could not resolve all K1 Rev.1 23-DoF CSV joints in the robot asset.")
+    robot_joint_indexes = robot.find_joints(K1_MOTION_CSV_JOINT_NAMES, preserve_order=True)[0]
+    if len(robot_joint_indexes) != len(K1_MOTION_CSV_JOINT_NAMES):
+        raise RuntimeError("Could not resolve all K1 23-DoF CSV joints in the robot asset.")
 
     motion_base_rot_xyzw = motion.motion_base_rots
     motion_csv = torch.cat((motion.motion_base_poss, motion_base_rot_xyzw, motion.motion_dof_poss), dim=1)
     output_csv_path = _get_output_csv_path(args_cli.output_name)
     np.savetxt(output_csv_path, motion_csv.cpu().numpy(), delimiter=",", fmt="%.9f")
-    print("[INFO]: Converted K1 Rev.1 23-DoF motion csv file saved to", output_csv_path)
+    print("[INFO]: Converted K1 23-DoF motion csv file saved to", output_csv_path)
     print("[INFO]: CSV joint order:")
-    for idx, joint_name in enumerate(K1_REV1_MOTION_CSV_JOINT_NAMES):
+    for idx, joint_name in enumerate(K1_MOTION_CSV_JOINT_NAMES):
         print(f"  {idx:02d}: {joint_name}")
 
     log = {
@@ -408,7 +412,7 @@ def run_simulator(sim: SimulationContext, scene: InteractiveScene):
         root_states[:, 7:10] = motion_base_lin_vel
         root_states[:, 10:] = motion_base_ang_vel
         robot.write_root_link_pose_to_sim_index(root_pose=root_states[:, :7])
-        robot.write_root_com_velocity_to_sim_index(root_velocity=root_states[:, 7:])
+        robot.write_root_link_velocity_to_sim_index(root_velocity=root_states[:, 7:])
 
         joint_pos = robot.data.default_joint_pos.torch.clone()
         joint_vel = robot.data.default_joint_vel.torch.clone()

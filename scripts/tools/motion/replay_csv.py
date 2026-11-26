@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""Kinematics-only replay for normalized K1 Rev.1 motion CSV files."""
+"""Kinematics-only replay for normalized K1 motion CSV files."""
 
 import argparse
 import os
@@ -52,7 +52,8 @@ K1_REV1_MOTION_CSV_JOINT_NAMES = [
 ]
 
 
-parser = argparse.ArgumentParser(description="Kinematics-only replay for normalized K1 Rev.1 motion CSV files.")
+parser = argparse.ArgumentParser(description="Kinematics-only replay for normalized K1 motion CSV files.")
+parser.add_argument("--robot", choices=("k1_rev1", "k1_rev2"), default="k1_rev2", help="K1 robot revision (default: k1_rev2).")
 parser.add_argument("--input_file", "-f", type=str, required=True, help="Normalized motion CSV file.")
 parser.add_argument("--fps", type=float, default=50.0, help="Replay FPS.")
 parser.add_argument(
@@ -98,6 +99,7 @@ from isaaclab.utils import configclass
 from isaaclab.utils.assets import ISAAC_NUCLEUS_DIR
 
 from cyclo_lab.assets.robots.K1_rev1 import K1_REV1_INERTIA_TUNED_CFG
+from cyclo_lab.assets.robots.K1_rev2 import K1_REV2_INERTIA_TUNED_CFG
 
 
 @configclass
@@ -112,7 +114,9 @@ class ReplaySceneCfg(InteractiveSceneCfg):
             texture_file=f"{ISAAC_NUCLEUS_DIR}/Materials/Textures/Skies/PolyHaven/kloofendal_43d_clear_puresky_4k.hdr",
         ),
     )
-    robot: ArticulationCfg = K1_REV1_INERTIA_TUNED_CFG.replace(prim_path="{ENV_REGEX_NS}/Robot")
+    robot: ArticulationCfg = (
+        K1_REV2_INERTIA_TUNED_CFG if args_cli.robot == "k1_rev2" else K1_REV1_INERTIA_TUNED_CFG
+    ).replace(prim_path="{ENV_REGEX_NS}/Robot")
 
 
 def _load_csv(path: str, root_quat_order: str, device: str) -> tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
@@ -155,7 +159,7 @@ def run_replay(sim: SimulationContext, scene: InteractiveScene):
     robot = scene["robot"]
     joint_ids = robot.find_joints(K1_REV1_MOTION_CSV_JOINT_NAMES, preserve_order=True)[0]
     if len(joint_ids) != len(K1_REV1_MOTION_CSV_JOINT_NAMES):
-        raise RuntimeError("Could not resolve all K1 Rev.1 CSV joints in the robot asset.")
+        raise RuntimeError("Could not resolve all K1 CSV joints in the robot asset.")
 
     print(f"[INFO] Replaying CSV: {args_cli.input_file}", flush=True)
     print(f"[INFO] Frames: {root_pos.shape[0]}, fps: {args_cli.fps}, loop: {args_cli.loop}", flush=True)
