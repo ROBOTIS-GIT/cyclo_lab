@@ -49,3 +49,35 @@ ROS installation in the Isaac Sim Python environment.
 
 Cyclo Lab reuses the upstream Galileo scene, task, and metrics while supplying
 the FFW-SG2 embodiment and action configuration.
+
+## SuperMimic
+
+Copyright 2026 The SuperMimic Authors. Apache-2.0.
+The [ROBOTIS SuperMimic fork](https://github.com/ROBOTIS-GIT/supermimic) in
+`third_party/supermimic` derives from [HybridRobotics/SuperMimic](https://github.com/HybridRobotics/supermimic).
+See its [Apache license](third_party/supermimic/LICENSE),
+[BSD-3-Clause math notice](third_party/supermimic/licenses/IsaacLab-BSD-3-Clause.txt)
+and [patch record](third_party/supermimic/PATCHES.md).
+Models, replay, WM/policy learners
+and imagined environments remain official; native Isaac/K1 topology, collection,
+motion validation and checkpoint adapters live in Cyclo Lab. No research MJLab
+runtime is required by the Lab integration.
+Reference motions are subject to the terms of their source datasets.
+
+## Historical K1 motion inertial profile
+
+`cyclo_lab/utils/k1_motion_profile.json` contains inertial masses/centers
+extracted from ROBOTIS-GIT/ai_sapiens, Apache-2.0, revision
+`b0ef567ca77db0f37089ed3b23e492baba60d6be`, file
+`ai_sapiens_description/urdf/k1_rev1/k1.urdf`. Original source/blob hashes are
+recorded in the profile. The [ai_sapiens license](third_party/ai_sapiens/LICENSE) is included in the submodule.
+ROBOTIS added numerical reference verification and fixed-link COM aggregation;
+the values were not fitted to motion data. This is asset provenance, not a source
+of SuperMimic algorithm changes.
+
+## BlinkMimic
+
+The native Isaac adapter uses Fuyi Chen's BlinkMimic actor, critic, world model,
+reference goals, replay, rewards and differentiable actor objective from the
+pinned ROBOTIS fork in `third_party/blinkmimic`. See its [MIT license](third_party/blinkmimic/LICENSE) and
+[third-party notices](third_party/blinkmimic/THIRD_PARTY_NOTICES.md).

@@ -12,3 +12,11 @@
 	path = third_party/IsaacLab-Arena
 	url = https://github.com/isaac-sim/IsaacLab-Arena.git
 	branch = main
+[submodule "third_party/blinkmimic"]
+	path = third_party/blinkmimic
+	url = https://github.com/ROBOTIS-GIT/blinkmimic.git
+	branch = feature-cyclo-native
+[submodule "third_party/supermimic"]
+	path = third_party/supermimic
+	url = https://github.com/ROBOTIS-GIT/supermimic.git
+	branch = feature-cyclo-native
