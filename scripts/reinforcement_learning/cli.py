@@ -15,7 +15,7 @@ def select_algorithm(algorithm, task):
         "velocity": ("Cyclo-Velocity-",),
         "blinkmimic": ("Cyclo-BlinkMimic-",),
         "supermimic": ("Cyclo-SuperMimic-",),
-        "beyondmimic": ("Cyclo-Mimic-", "Cyclo-BeyondMimic-"),
+        "beyondmimic": ("Cyclo-BeyondMimic-",),
     }
     family = next((family for family, names in prefixes.items() if task and task.startswith(names)), None)
     if algorithm and family and algorithm != family:

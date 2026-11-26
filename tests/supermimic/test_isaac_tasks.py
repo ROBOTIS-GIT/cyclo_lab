@@ -12,12 +12,11 @@ from cyclo_lab.manager_based.mimic.supermimic.config.k1_rev1.base_env_cfg import
 
 
 @pytest.mark.parametrize("motion", ["Dance1", "Dance2"])
-def test_alias_is_existing_ppo_and_supermimic_cannot_select_ppo_by_accident(motion):
-    old = gym.spec(f"Cyclo-Mimic-K1-Rev1-{motion}")
-    alias = gym.spec(f"Cyclo-BeyondMimic-K1-Rev1-{motion}")
+def test_beyondmimic_uses_ppo_and_supermimic_uses_native_learner(motion):
+    beyond = gym.spec(f"Cyclo-BeyondMimic-K1-Rev1-{motion}")
     new = gym.spec("Cyclo-SuperMimic-GenCoord-K1-Rev1-001")
-    assert old.entry_point == alias.entry_point
-    assert old.kwargs == alias.kwargs
+    assert "rsl_rl_cfg_entry_point" in beyond.kwargs
+    assert "learner_cfg_entry_point" not in beyond.kwargs
     assert "learner_cfg_entry_point" in new.kwargs
     assert "rsl_rl_cfg_entry_point" not in new.kwargs
 
@@ -60,8 +59,6 @@ def test_motion_library_tasks_do_not_inherit_beyondmimic_task_defaults(task):
     "Cyclo-Velocity-Flat-K1-Rev1-v0",
     "Cyclo-BeyondMimic-K1-Rev1-Dance1",
     "Cyclo-BeyondMimic-K1-Rev1-Dance2",
-    "Cyclo-Mimic-K1-Rev1-Dance1",
-    "Cyclo-Mimic-K1-Rev1-Dance2",
     "Cyclo-BlinkMimic-K1-Rev1-001",
     "Cyclo-SuperMimic-GenCoord-K1-Rev1-001",
     "Cyclo-SuperMimic-MaxCoord-K1-Rev1-001",

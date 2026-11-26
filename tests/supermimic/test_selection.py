@@ -13,7 +13,6 @@ spec.loader.exec_module(selector)
 @pytest.mark.parametrize(
     "prefix, algorithm",
     [
-        ("Cyclo-Mimic-", "beyondmimic"),
         ("Cyclo-BeyondMimic-", "beyondmimic"),
         ("Cyclo-SuperMimic-", "supermimic"),
     ],

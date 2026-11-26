@@ -18,14 +18,22 @@
 
 import gymnasium as gym
 
-for motion in ("Dance1", "Dance2"):
-    for prefix in ("Cyclo-Mimic", "Cyclo-BeyondMimic"):
-        gym.register(
-            id=f"{prefix}-K1-Rev1-{motion}",
-            entry_point="isaaclab.envs:ManagerBasedRLEnv",
-            disable_env_checker=True,
-            kwargs={
-                "env_cfg_entry_point": f"{__name__}.{motion.lower()}_env_cfg:K1Rev1EnvCfg",
-                "rsl_rl_cfg_entry_point": f"{__name__}.agents.rsl_rl_ppo_cfg:K1Rev1MimicPPORunnerCfg",
-            },
-        )
+gym.register(
+    id="Cyclo-BeyondMimic-K1-Rev1-Dance1",
+    entry_point="isaaclab.envs:ManagerBasedRLEnv",
+    disable_env_checker=True,
+    kwargs={
+        "env_cfg_entry_point": f"{__name__}.dance1_env_cfg:K1Rev1EnvCfg",
+        "rsl_rl_cfg_entry_point": f"{__name__}.agents.rsl_rl_ppo_cfg:K1Rev1MimicPPORunnerCfg",
+    },
+)
+
+gym.register(
+    id="Cyclo-BeyondMimic-K1-Rev1-Dance2",
+    entry_point="isaaclab.envs:ManagerBasedRLEnv",
+    disable_env_checker=True,
+    kwargs={
+        "env_cfg_entry_point": f"{__name__}.dance2_env_cfg:K1Rev1EnvCfg",
+        "rsl_rl_cfg_entry_point": f"{__name__}.agents.rsl_rl_ppo_cfg:K1Rev1MimicPPORunnerCfg",
+    },
+)

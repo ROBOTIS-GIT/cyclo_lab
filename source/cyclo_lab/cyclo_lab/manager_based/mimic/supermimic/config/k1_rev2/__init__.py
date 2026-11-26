@@ -18,14 +18,22 @@
 
 import gymnasium as gym
 
-for number in ("001",):
-    for representation in ("GenCoord", "MaxCoord"):
-        gym.register(
-            id=f"Cyclo-SuperMimic-{representation}-K1-Rev2-{number}",
-            entry_point="isaaclab.envs:ManagerBasedRLEnv",
-            disable_env_checker=True,
-            kwargs={
-                "env_cfg_entry_point": f"{__name__}.task_{number}:K1Rev2EnvCfg",
-                "learner_cfg_entry_point": f"cyclo_lab.manager_based.mimic.supermimic.training.runner:{representation}Cfg",
-            },
-        )
+gym.register(
+    id="Cyclo-SuperMimic-GenCoord-K1-Rev2-001",
+    entry_point="isaaclab.envs:ManagerBasedRLEnv",
+    disable_env_checker=True,
+    kwargs={
+        "env_cfg_entry_point": f"{__name__}.task_001:K1Rev2EnvCfg",
+        "learner_cfg_entry_point": "cyclo_lab.manager_based.mimic.supermimic.training.runner:GenCoordCfg",
+    },
+)
+
+gym.register(
+    id="Cyclo-SuperMimic-MaxCoord-K1-Rev2-001",
+    entry_point="isaaclab.envs:ManagerBasedRLEnv",
+    disable_env_checker=True,
+    kwargs={
+        "env_cfg_entry_point": f"{__name__}.task_001:K1Rev2EnvCfg",
+        "learner_cfg_entry_point": "cyclo_lab.manager_based.mimic.supermimic.training.runner:MaxCoordCfg",
+    },
+)
