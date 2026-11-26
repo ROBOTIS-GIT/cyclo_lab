@@ -39,7 +39,8 @@ if TYPE_CHECKING:
 
 def reference_anchor_height_deviation(env: ManagerBasedRLEnv, command_name: str, threshold: float) -> torch.Tensor:
     command: ReferenceTrajectoryCommand = env.command_manager.get_term(command_name)
-    return torch.abs(command.anchor_pos_w[:, -1] - command.robot_anchor_pos_w[:, -1]) > threshold
+    reference = command.anchor_pos_w_at(command.termination_frame_ids)
+    return torch.abs(reference[:, -1] - command.robot_anchor_pos_w[:, -1]) > threshold
 
 
 def reference_anchor_gravity_deviation(
@@ -47,7 +48,8 @@ def reference_anchor_gravity_deviation(
 ) -> torch.Tensor:
     asset: RigidObject | Articulation = env.scene[asset_cfg.name]
     command: ReferenceTrajectoryCommand = env.command_manager.get_term(command_name)
-    reference_projected_gravity_b = quat_apply_inverse(command.anchor_quat_w, asset.data.GRAVITY_VEC_W.torch)
+    reference = command.anchor_quat_w_at(command.termination_frame_ids)
+    reference_projected_gravity_b = quat_apply_inverse(reference, asset.data.GRAVITY_VEC_W.torch)
     robot_projected_gravity_b = quat_apply_inverse(command.robot_anchor_quat_w, asset.data.GRAVITY_VEC_W.torch)
     return (reference_projected_gravity_b[:, 2] - robot_projected_gravity_b[:, 2]).abs() > threshold
 

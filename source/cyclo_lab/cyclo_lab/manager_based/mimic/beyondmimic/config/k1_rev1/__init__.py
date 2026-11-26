@@ -18,7 +18,7 @@
 
 import gymnasium as gym
 
-import cyclo_lab.manager_based.mimic.config.k1_rev1.agents as agents
+import cyclo_lab.manager_based.mimic.beyondmimic.config.k1_rev1.agents as agents
 
 
 gym.register(
