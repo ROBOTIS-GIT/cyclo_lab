@@ -2,6 +2,14 @@
 Changelog for package cyclo_lab
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+3.2.0 (2026-11-25)
+------------------
+* Added native SuperMimic and BlinkMimic motion tracking with training, checkpoint resume,
+  playback, and export of ONNX policies and ``sim2real.yaml`` deployment settings.
+* Added K1 Rev.2 tasks for Velocity, BeyondMimic, SuperMimic, and BlinkMimic.
+  The K1 motion conversion and replay tools now default to Rev.2 and accept ``--robot k1_rev1`` for Rev.1.
+* Contributors: Kiwoong Park
+
 3.1.0 (2026-11-17)
 ------------------
 * Added an HX5-D20 fingertip tactile sensor (HandTactile) that turns PhysX contacts into 3x3 readings per fingertip pad, laid out like the real hand's sensors, with a fingertip overlay and a heatmap window per hand.
