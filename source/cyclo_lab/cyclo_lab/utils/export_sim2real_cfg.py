@@ -17,35 +17,19 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-import os
+from pathlib import Path
 from typing import TYPE_CHECKING, Any, TypeAlias
-
-import yaml
 
 from isaaclab.utils import class_to_dict
 from isaaclab.utils.dict import replace_slices_with_strings
+
+from cyclo_lab.utils.sim2real_yaml import write_sim2real_yaml
 
 if TYPE_CHECKING:
     from isaaclab.assets import Articulation
     from isaaclab.envs import ManagerBasedRLEnv
 
 
-class _FlowList(list):
-    pass
-
-
-class _Sim2RealYamlDumper(yaml.SafeDumper):
-    pass
-
-
-def _represent_flow_list(dumper: yaml.SafeDumper, data: _FlowList) -> yaml.SequenceNode:
-    return dumper.represent_sequence("tag:yaml.org,2002:seq", data, flow_style=True)
-
-
-_Sim2RealYamlDumper.add_representer(_FlowList, _represent_flow_list)
-
-
-_FLOW_LIST_KEYS = {"scale", "offset", "clip", "lin_vel_x", "lin_vel_y", "ang_vel_z", "heading"}
 _SIM2REAL_YAML_FILENAME = "sim2real.yaml"
 _ACTION_CFG_EXPORT_OMIT_KEYS = {
     "asset_name",
@@ -76,31 +60,6 @@ class _ExportContext:
     asset_joint_names: list[str]
     policy_joint_names: list[str]
     policy_joint_ids: list[int]
-
-
-def _format_value(value: Any) -> Any:
-    """Keep exported YAML compact and stable for human review."""
-    if isinstance(value, float):
-        return float(f"{value:.3g}")
-    if isinstance(value, tuple):
-        return [_format_value(item) for item in value]
-    if isinstance(value, list):
-        return [_format_value(item) for item in value]
-    if isinstance(value, dict):
-        return {key: _format_value(item) for key, item in value.items()}
-    return value
-
-
-def _format_yaml(value: Any, key: str | None = None) -> Any:
-    value = _format_value(value)
-    if isinstance(value, list):
-        items = [_format_yaml(item) for item in value]
-        if key in _FLOW_LIST_KEYS:
-            return _FlowList(items)
-        return items
-    if isinstance(value, dict):
-        return {item_key: _format_yaml(item, item_key) for item_key, item in value.items()}
-    return value
 
 
 def _tensor_to_list(value) -> list[Any]:
@@ -329,12 +288,9 @@ def _build_sim2real_cfg(env: ManagerBasedRLEnv, context: _ExportContext) -> _Cfg
 
 
 def _write_yaml(cfg: _CfgDict, log_dir: str) -> None:
-    filename = os.path.join(log_dir, "params", _SIM2REAL_YAML_FILENAME)
-    os.makedirs(os.path.dirname(filename), exist_ok=True)
     cfg = class_to_dict(cfg) if not isinstance(cfg, dict) else cfg
     cfg = replace_slices_with_strings(cfg)
-    with open(filename, "w") as file:
-        yaml.dump(_format_yaml(cfg), file, Dumper=_Sim2RealYamlDumper, default_flow_style=False, sort_keys=False)
+    write_sim2real_yaml(Path(log_dir) / "params" / _SIM2REAL_YAML_FILENAME, cfg)
 
 
 def export_sim2real_cfg(env: ManagerBasedRLEnv, log_dir: str) -> None:

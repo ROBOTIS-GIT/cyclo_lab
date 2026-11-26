@@ -5,11 +5,13 @@
 
 """Package containing manager-based task implementations."""
 
-from isaaclab_tasks.utils import import_packages
-
-##
-# Register Gym environments.
-##
-
-_BLACKLIST_PKGS = ["utils", ".mdp"]
-import_packages(__name__, _BLACKLIST_PKGS)
+# The standalone tensor modules can also be imported without an Isaac installation.
+try:
+    from isaaclab_tasks.utils import import_packages
+except ModuleNotFoundError as error:
+    if error.name != "isaaclab_tasks":
+        raise
+else:
+    # Register Gym tasks without importing the optional learner implementations.
+    _BLACKLIST_PKGS = ["utils", ".mdp", ".mimic.blinkmimic.core"]
+    import_packages(__name__, _BLACKLIST_PKGS)
