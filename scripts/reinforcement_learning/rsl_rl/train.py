@@ -12,6 +12,7 @@ import contextlib
 import os
 import time
 from datetime import datetime
+from pathlib import Path
 
 import torch.distributed as dist
 
@@ -190,4 +191,8 @@ def _run(args_cli: argparse.Namespace) -> None:
 if __name__ == "__main__":
     import sys
 
-    run(sys.argv[1:])
+    sys.path.insert(0, str(Path(__file__).resolve().parents[3]))
+    from scripts.tools.permission_hint import training_permission_hint
+
+    with training_permission_hint():
+        run(sys.argv[1:])
