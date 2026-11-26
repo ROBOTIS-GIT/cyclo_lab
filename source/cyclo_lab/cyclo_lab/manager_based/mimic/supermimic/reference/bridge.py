@@ -18,7 +18,7 @@
 
 from types import SimpleNamespace
 import torch
-from cyclo_lab.manager_based.mimic._shared.motion_bridge import BODIES, URDF, IsaacMotionBridge, wxyz
+from cyclo_lab.manager_based.mimic._shared.motion_bridge import BODIES, IsaacMotionBridge, wxyz
 
 
 class IsaacSimContext(torch.nn.Module):

@@ -68,6 +68,5 @@ def actor_contract(runner, encoder):
     }
 
 
-
 def actor_module(runner, encoder):
     return FlatPolicy(runner.average.module), "observations"

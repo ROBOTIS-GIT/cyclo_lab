@@ -57,6 +57,7 @@ def select_resume_checkpoint(log_root, options, *, skip_discovered_symlinks=Fals
             key=run_sort_key,
             reverse=True,
         )
+
     def eligible(path):
         return path.is_file() and (
             not skip_discovered_symlinks or explicit_run or not path.is_symlink()
