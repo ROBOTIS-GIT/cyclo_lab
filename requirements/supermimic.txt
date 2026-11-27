@@ -1,0 +1,4 @@
+# Use only inside the pinned Isaac Lab 3.0 / Python 3.12 environment.
+# Match third_party/IsaacLab/uv.lock; never install a second simulator runtime.
+rsl-rl-lib==5.5.1
+tensordict==0.14.2

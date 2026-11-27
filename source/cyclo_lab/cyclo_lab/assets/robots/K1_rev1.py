@@ -11,6 +11,8 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+#
+# Authors: Woojin Wie, Kiwoong Park
 
 """K1 Rev.1 humanoid robot asset configuration."""
 
@@ -50,7 +52,6 @@ K1_REV1_CFG = ArticulationCfg(
         asset_path=K1_REV1_URDF_PATH,
         activate_contact_sensors=True,
         fix_base=False,
-        replace_cylinders_with_capsules=True,
         joint_drive=sim_utils.UrdfConverterCfg.JointDriveCfg(
             gains=sim_utils.UrdfConverterCfg.JointDriveCfg.PDGainsCfg(stiffness=0, damping=0)
         ),
@@ -200,7 +201,6 @@ K1_REV1_INERTIA_TUNED_CFG = ArticulationCfg(
         asset_path=K1_REV1_URDF_PATH,
         fix_base=False,
         activate_contact_sensors=True,
-        replace_cylinders_with_capsules=True,
         joint_drive=sim_utils.UrdfConverterCfg.JointDriveCfg(
             gains=sim_utils.UrdfConverterCfg.JointDriveCfg.PDGainsCfg(stiffness=0.0, damping=0.0)
         ),
