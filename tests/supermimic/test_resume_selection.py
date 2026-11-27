@@ -10,6 +10,28 @@ import pytest
 from cyclo_lab.manager_based.mimic._shared import motion_tracker as tracker
 
 
+@pytest.mark.parametrize("action", ["train", "play"])
+@pytest.mark.parametrize("multiple", [False, True])
+def test_motion_file_preserves_trailing_overrides(action, multiple):
+    motions = ["source/cyclo_lab/data/motions/K1_rev2/dance2/dance2.npz"]
+    if multiple:
+        motions.append("source/cyclo_lab/data/motions/K1_rev2/dance1/dance1.npz")
+    overrides = ["physics=newton_mjwarp", "agent.wm.batch_size=32"]
+    args, remaining = tracker.parse_cli(action, ["--motion-file", *motions, *overrides])
+    assert args.motion_file == [Path(motion) for motion in motions]
+    assert remaining == overrides
+
+
+def test_motion_file_with_overrides_and_equals_option():
+    args, overrides = tracker.parse_cli("train", [
+        "physics=isaacsim_physx", "--motion-file", "dance2.npz",
+        "--num-envs=4", "physics=newton_mjwarp",
+    ])
+    assert args.motion_file == [Path("dance2.npz")]
+    assert args.num_envs == 4
+    assert overrides == ["physics=isaacsim_physx", "physics=newton_mjwarp"]
+
+
 @pytest.mark.parametrize(
     ("action", "task", "defaults", "override", "world_only", "expected"),
     [

@@ -48,7 +48,13 @@ def parse_cli(action, argv):
     add_launcher_args(parser)
     if "--physics" not in parser._option_string_actions:
         parser.add_argument("--physics", choices=("newton_mjwarp", "isaacsim_physx"))
-    args, overrides = parser.parse_known_args(argv)
+    # Keep key=value overrides out of argparse's variable-length motion list.
+    options, overrides = [], []
+    for value in argv:
+        target = overrides if "=" in value and not value.startswith("-") else options
+        target.append(value)
+    args, unknown = parser.parse_known_args(options)
+    overrides.extend(unknown)
     if any(value.startswith("--") for value in overrides):
         parser.error("Unknown option; use agent.<setting>=<value> for learner settings")
     args.resume = args.resume == "true"
