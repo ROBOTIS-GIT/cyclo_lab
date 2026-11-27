@@ -1,11 +1,12 @@
+# Copyright 2026 The SuperMimic Authors.
 # Copyright 2026 ROBOTIS CO., LTD.
 # SPDX-License-Identifier: Apache-2.0
 #
 # Author: Kiwoong Park
 """Native URDF constants for the official SuperMimic analytic Torch IK.
 
-The chain reduction follows HybridRobotics/supermimic analytic_ik._reduce
-(abc124c1, Apache-2.0). Only topology extraction is replaced. One-hinge K1
+The chain reduction follows HybridRobotics/supermimic utils/analytic_ik.py::_reduce
+(Apache-2.0). Only topology extraction is replaced. One-hinge K1
 chains use an orthogonal auxiliary axis whose unused joint slot is discarded;
 the shared core validates constants and supplies the unchanged tensor solver.
 """
