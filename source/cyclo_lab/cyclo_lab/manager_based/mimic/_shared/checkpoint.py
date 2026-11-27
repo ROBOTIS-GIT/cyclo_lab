@@ -43,15 +43,18 @@ def checkpoint_motion_paths(paths):
 
 
 def save(runner, output, motions, *, task=None, task_motions=None):
-    step = runner.iteration
+    # Match each upstream convention: SuperMimic step index, BlinkMimic update count.
+    is_supermimic = runner.family == "supermimic"
+    step = runner.iteration - 1 if is_supermimic else runner.iteration
     bundle = dict(
-        format="cyclo_lab.mimic.v1",
+        format="cyclo_lab.mimic.v2" if is_supermimic else "cyclo_lab.mimic.v1",
         task=task,
         task_motions=checkpoint_motion_paths(task_motions) if task_motions is not None else None,
         cfg=asdict(runner.cfg),
         contract={"family": runner.family},
         iteration=step,
         motions=checkpoint_motion_paths(motions),
+        training_stats={"total_steps": runner.metrics.total_steps, "wall_time": runner.metrics.wall_time},
     )
     command = runner.bridge.env.command_manager.get_term("reference_trajectory")
     bundle["sampling"] = command.sampling_state()
@@ -116,6 +119,12 @@ def load(runner, bundle, *, training, world_only=False):
             for opt, state in zip(opts, bundle["optimizers"][name], strict=True):
                 opt.load_state_dict(state)
     runner.iteration = bundle["iteration"]
+    if runner.family == "supermimic" and bundle.get("format") == "cyclo_lab.mimic.v2":
+        runner.iteration += 1
+    if training:
+        stats = bundle.get("training_stats", {})
+        runner.metrics.total_steps = stats.get("total_steps", 0)
+        runner.metrics.wall_time = stats.get("wall_time", 0.0)
 
 
 def training_run_order(directory):
@@ -162,13 +171,14 @@ def load_checkpoint(action, args, family, task, root):
         args.checkpoint_pattern,
     )
     bundle = torch.load(path, map_location="cpu", weights_only=True)
-    if family == "supermimic" and bundle.get("format") != "cyclo_lab.mimic.v1":
+    is_cyclo_checkpoint = bundle.get("format") in ("cyclo_lab.mimic.v1", "cyclo_lab.mimic.v2")
+    if family == "supermimic" and not is_cyclo_checkpoint:
         if not args.world_model_checkpoint:
             raise ValueError("A native world_model.pt only initializes the world model; use --world-model-checkpoint")
         if not all(isinstance(bundle.get(key), dict) for key in ("dynamics", "sim_context")):
             raise ValueError("Expected a SuperMimic world_model.pt containing dynamics and sim_context")
         return path, bundle
-    if bundle.get("format") != "cyclo_lab.mimic.v1" or bundle["contract"]["family"] != family:
+    if not is_cyclo_checkpoint or bundle["contract"]["family"] != family:
         raise ValueError("Checkpoint algorithm or format does not match this Isaac Lab task")
     return path, bundle
 

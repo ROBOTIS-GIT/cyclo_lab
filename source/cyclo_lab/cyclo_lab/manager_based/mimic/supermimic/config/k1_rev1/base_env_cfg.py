@@ -26,7 +26,7 @@ class SuperMimicLibraryEnvCfg(K1MotionLibraryEnvCfg):
         self.events.physics_material.params["feet_only"] = True
         self.events.joint_home_offset_noise = None
         solver = self.sim.physics.newton_mjwarp.solver_cfg
-        solver.iterations, solver.ls_iterations, solver.ccd_iterations = 10, 20, 50
+        solver.ccd_iterations = 50
         solver.tolerance = 1e-8
         self.commands.reference_trajectory.targets_next_frame = True
 

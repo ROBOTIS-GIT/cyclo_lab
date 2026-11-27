@@ -17,8 +17,8 @@ from cyclo_lab.manager_based.mimic._shared.checkpoint import load, save
 from test_runner_contract import UnitEnv
 
 
-@pytest.mark.parametrize("family", ["blinkmimic", "supermimic"])
-def test_checkpoint_and_export_match_trained_actor(tmp_path, family):
+@pytest.mark.parametrize("family,step", [("blinkmimic", 1000), ("supermimic", 0), ("supermimic", 1000)])
+def test_checkpoint_and_export_match_trained_actor(tmp_path, family, step):
     env = UnitEnv()
     torch.manual_seed(12)
     if family == "blinkmimic":
@@ -43,16 +43,22 @@ def test_checkpoint_and_export_match_trained_actor(tmp_path, family):
 
     metrics = runner.update()
     assert all(np.isfinite(list(metrics.values())))
-    runner.iteration = 1000
+    completed = step + 1 if family == "supermimic" else step
+    runner.iteration = completed
     save(runner, tmp_path, [])
     last = torch.load(tmp_path / "last.pt", weights_only=True)
-    historical = torch.load(tmp_path / "model_1000.pt", weights_only=True)
+    historical = torch.load(tmp_path / f"model_{step}.pt", weights_only=True)
+    assert last["iteration"] == historical["iteration"] == step
     assert last["optimizers"] and "optimizers" not in historical
     experiment = import_module(f"cyclo_lab.manager_based.mimic.{family}.experiment")
     restored_cfg = experiment.restore_config(last["cfg"])
     assert asdict(restored_cfg) == asdict(cfg)
     runner = experiment.Runner(UnitEnv(), restored_cfg)
     load(runner, last, training=True)
+    assert runner.iteration == completed
+    legacy = dict(last, format="cyclo_lab.mimic.v1", iteration=completed)
+    load(runner, legacy, training=True)
+    assert runner.iteration == completed
     export_actors(runner, tmp_path)
     runner.actor.eval()
 

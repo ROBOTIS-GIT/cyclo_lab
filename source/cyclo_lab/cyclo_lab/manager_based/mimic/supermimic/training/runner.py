@@ -5,6 +5,7 @@
 """Isaac collection loop around original SuperMimic WM and imagined BPTT learners."""
 
 from dataclasses import dataclass, field
+import time
 import torch
 from tensordict import TensorDict
 from .. import upstream  # noqa: F401  # Expose the pinned SuperMimic source before upstream imports.
@@ -26,6 +27,7 @@ from ..reference.ik import build_urdf_analytic_ik
 
 @dataclass
 class RunnerCfg:
+    log_interval: int = 10
     representation: str = "gencoord"
     actor_hidden_dims: tuple[int, ...] = (256, 256)
     dynamics_hidden_dims: tuple[int, ...] = (256, 256)
@@ -234,10 +236,9 @@ class IsaacSuperMimicRunner:
         self.actor.set_slot_mix({encoder: 1.0})
         if encoder == "velocity":
             self.play_velocity = torch.tensor(velocity_command or (0.0, 0.0, 0.0), device=self.device)
-        if self.bridge.env.sim.has_gui:
-            from ..viewer import create_play_viewer
+        from ..viewer import create_play_viewer
 
-            return create_play_viewer(self, motions)
+        return create_play_viewer(self, motions)
 
     @torch.no_grad()
     def play_step(self):
@@ -261,7 +262,7 @@ class IsaacSuperMimicRunner:
                 context = self.bridge.context()
                 if not torch.isfinite(action).all() or not torch.isfinite(state).all():
                     raise RuntimeError("Nonfinite real state/action before collection")
-                _, reward, terminated, truncated, _ = self.env.step(action)
+                _, reward, terminated, truncated, extras = self.env.step(action)
                 # Commands can teleport at clip end without an env done. Never
                 # teach the WM that a resample is a physical transition.
                 resampled = self.bridge.reset_counts() != resets
@@ -273,7 +274,7 @@ class IsaacSuperMimicRunner:
                     )
                 truncated = truncated | (resampled & ~terminated)
                 self.reset_rows = terminated | truncated
-                self.metrics.record(reward, self.reset_rows)
+                self.metrics.record(reward, self.reset_rows, extras=extras)
                 transition = TensorDict(
                     dict(
                         **({"actor_obs": self.clean_sensor} if self.cfg.actor_obs == "proprio" else {}),
@@ -320,8 +321,14 @@ class IsaacSuperMimicRunner:
         self.reset_rows = None
 
     def train_iteration(self, collection_steps=None):
+        collection_start = time.perf_counter()
         steps = 1 if collection_steps is None else collection_steps
         self.collect(steps)
+        episode_logs = self.metrics.scalars()
+        # Resolve collected GPU work before attributing time to learning.
+        if torch.device(self.device).type == "cuda":
+            torch.cuda.synchronize(self.device)
+        collection_time = time.perf_counter() - collection_start
         ratio = (
             self.bridge.env.num_envs
             * self.cfg.replay_ratio
@@ -330,12 +337,24 @@ class IsaacSuperMimicRunner:
         updates = int((self.iteration + 1) * ratio) - int(self.iteration * ratio)
         if collection_steps is not None:
             updates = 1
-        logs = {}
+        updates_logs = []
         if self.buffer.num_transitions >= self.cfg.wm.horizon:
             for _ in range(updates):
-                logs = self._update_models()
+                updates_logs.append(self._update_models())
+        logs = {}
+        if updates_logs:
+            for key in updates_logs[0]:
+                total = sum(values[key] for values in updates_logs)
+                logs[key] = total if key.startswith("Perf/") else total / len(updates_logs)
+        else:
+            logs.update({
+                "Perf/world_model_learning_time": 0.0,
+                "Perf/policy_learning_time": 0.0,
+                "Perf/learning_time": 0.0,
+            })
+        logs["Perf/collection_time"] = collection_time
         self.iteration += 1
-        return logs | self.metrics.scalars()
+        return logs | episode_logs
 
     def update(self):
         logs = self._update_models()
@@ -345,13 +364,23 @@ class IsaacSuperMimicRunner:
     def _update_models(self):
         if self.buffer.num_transitions < self.cfg.wm.horizon:
             raise RuntimeError("Collect enough Isaac transitions before learning")
+        wm_start = time.perf_counter()
         wm = self.wm_learner.update(
             self.buffer.sample(self.cfg.wm.horizon, self.cfg.wm.batch_size)
             for _ in range(self.cfg.wm.num_batches)
         )
+        wm = {key: float(value) for key, value in wm.items()}
+        wm_time = time.perf_counter() - wm_start
         policy_cfg = self.policy_learner.cfg
+        policy_start = time.perf_counter()
         policy = self.policy_learner.update(
             sample_start(self.buffer, self.cfg.history_length, policy_cfg.batch_size)
             for _ in range(policy_cfg.num_batches)
         )
-        return {k: float(v) for k, v in (wm | policy).items()}
+        policy = {key: float(value) for key, value in policy.items()}
+        policy_time = time.perf_counter() - policy_start
+        return wm | policy | {
+            "Perf/world_model_learning_time": wm_time,
+            "Perf/policy_learning_time": policy_time,
+            "Perf/learning_time": wm_time + policy_time,
+        }

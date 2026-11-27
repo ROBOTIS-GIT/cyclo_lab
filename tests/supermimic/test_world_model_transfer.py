@@ -74,11 +74,20 @@ def test_native_transfer_and_lab_checkpoint_roundtrip(tmp_path, representation):
     actual = target.dynamics(rep, mapped, aux, target.bridge.context())
     for a, b in zip(actual, expected, strict=True):
         torch.testing.assert_close(a, b)
+    target.metrics.total_steps = 1234
+    target.metrics.wall_time = 56.0
     save(target, tmp_path, [])
     resumed = IsaacSuperMimicRunner(context_env(), cfg)
     saved = torch.load(tmp_path / "last.pt", weights_only=True)
     restore_runner(resumed, saved, training=True, world_only=False, iterations=10)
     torch.testing.assert_close(resumed.bridge.context(), target.bridge.context())
+    assert resumed.metrics.total_steps == 1234
+    assert resumed.metrics.wall_time == 56.0
+    # Older checkpoints still resume without requiring logging metadata.
+    saved.pop("training_stats")
+    restore_runner(resumed, saved, training=True, world_only=False, iterations=10)
+    assert resumed.metrics.total_steps == 0
+    assert resumed.metrics.wall_time == 0.0
 
 
 def test_native_file_cannot_be_used_for_full_resume(tmp_path):

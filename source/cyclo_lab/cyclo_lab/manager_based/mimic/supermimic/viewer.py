@@ -16,7 +16,10 @@
 
 """World-model prediction and velocity controls for the SuperMimic playback viewer."""
 
+from copy import copy
+
 import torch
+
 from . import upstream  # noqa: F401  # Expose the pinned SuperMimic source before upstream imports.
 from supermimic.tasks.task_spec import build_actor_obs_td
 
@@ -24,6 +27,8 @@ from supermimic.tasks.task_spec import build_actor_obs_td
 class PlaybackPrediction:
     def __init__(self, runner):
         self.runner = runner
+        self.fk = copy(runner.bridge.fk)
+        self.fk.body_names = list(runner.bridge.robot.body_names)
         self.reset()
 
     def reset(self):
@@ -59,35 +64,32 @@ class PlaybackPrediction:
         self.steps = (self.steps + 1) % r.cfg.policy.horizon
         state = rep.reconstruct_full_state(self.aux, self.state)
         if r.cfg.representation == "maxcoord":
-            width = 3 * len(r.bridge.fk.body_names)
-            return state[0, :width].reshape(-1, 3)
-        return r.bridge.fk(
-            state[:, :3], state[:, 3:7], state[:, 7:30], state[:, 30:33], state[:, 33:36], state[:, 36:]
-        )[0][0]
+            count = len(r.bridge.fk.body_names)
+            return (
+                r.bridge.fk.body_names,
+                state[0, :3 * count].reshape(-1, 3),
+                state[0, 3 * count:7 * count].reshape(-1, 4)[:, [1, 2, 3, 0]],
+            )
+        zeros = torch.zeros_like(state[:, :3])
+        positions, orientations, _, _ = self.fk(
+            state[:, :3], state[:, 3:7], state[:, 7:7 + r.bridge.num_actions],
+            zeros, zeros, torch.zeros_like(state[:, 7:7 + r.bridge.num_actions]),
+        )
+        return self.fk.body_names, positions[0], orientations[0][:, [1, 2, 3, 0]]
 
 
 def create_play_viewer(runner, motions):
     from cyclo_lab.manager_based.mimic._shared.play_viewer import TrackingPlayViewer
     from .export import velocity_ranges
 
-    def velocity_controls(ui):
+    controls = None
+    if runner.play_velocity is not None:
         ranges = velocity_ranges()
-        for axis, (label, bounds) in enumerate((
+        controls = [
             ("Forward (m/s)", ranges["lin_vel_x"]),
             ("Lateral (m/s)", ranges["lin_vel_y"]),
             ("Yaw (rad/s)", ranges["ang_vel_z"]),
-        )):
-            with ui.HStack():
-                ui.Label(label)
-                slider = ui.FloatSlider(min=bounds[0], max=bounds[1])
-                slider.model.set_value(float(runner.play_velocity[axis]))
-
-                def set_velocity(model, axis=axis):
-                    runner.play_velocity[axis] = model.as_float
-
-                slider.model.add_value_changed_fn(set_velocity)
-
-    return TrackingPlayViewer(
-        runner, motions, predictor=PlaybackPrediction(runner),
-        extra_controls=velocity_controls if runner.play_velocity is not None else None,
+        ]
+    return TrackingPlayViewer.create(
+        runner, motions, predictor=PlaybackPrediction(runner), velocity_ranges=controls,
     )

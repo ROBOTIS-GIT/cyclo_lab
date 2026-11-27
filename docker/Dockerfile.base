@@ -237,6 +237,15 @@ RUN echo "# Environment variables" >> ${DOCKER_USER_HOME}/.bashrc && \
 # Isaac Lab uses MuJoCo only for physics; its EGL renderer conflicts with Newton's windowed viewer.
 ENV MUJOCO_GL=disable
 
+# Isaac Lab searches extension folders for both standalone and pip installations.
+# Kit resolves missing folders to an empty search path and scans the working
+# directory as extensions. Keep these optional search roots valid in the image.
+RUN mkdir -p "${ISAACSIM_ROOT_PATH}/kit/exts" \
+    "${ISAACSIM_ROOT_PATH}/extsPhysics" \
+    "${ISAACSIM_ROOT_PATH}/isaacsim/exts" \
+    "${ISAACSIM_ROOT_PATH}/isaacsim/extscache" \
+    "${ISAACSIM_ROOT_PATH}/isaacsim/extsPhysics"
+
 # Keep Kit runtime files and the home directory writable by the runtime user.
 RUN mkdir -p ${ISAACSIM_ROOT_PATH}/kit/logs ${ISAACSIM_ROOT_PATH}/kit/data /var/cache/hub && \
     chown -R cyclolab:cyclolab ${DOCKER_USER_HOME} /var/cache/hub \

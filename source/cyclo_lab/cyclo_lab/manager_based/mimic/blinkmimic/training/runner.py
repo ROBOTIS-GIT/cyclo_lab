@@ -6,6 +6,7 @@
 
 from dataclasses import dataclass
 import math
+import time
 
 import torch
 
@@ -26,6 +27,7 @@ from ..core.rotations import quat_to_mat
 
 @dataclass
 class BlinkCfg:
+    log_every: int = 50
     hist: int = 10
     goal_frames: int = 10
     wm_batch: int = 2048
@@ -62,7 +64,7 @@ class IsaacBlinkMimicRunner:
         self.cfg, self.env = cfg, env
         self.bridge = bridge = IsaacMotionBridge(env)
         self.device = bridge.device
-        self.metrics = EpisodeMetrics(bridge.env.num_envs, self.device)
+        self.metrics = EpisodeMetrics(bridge.env.num_envs, self.device, reward_scale=0.1)
         self.motion = IsaacMotionLib(bridge)
         self.sampler = None
         if hasattr(bridge.env, "encoder_bias"):
@@ -198,7 +200,7 @@ class IsaacBlinkMimicRunner:
             if done.any():
                 normalized = (self.metrics.returns + reward) / ((self.steps + 1) * 0.1)
                 self.recent_tracking = float(normalized[done].mean())
-            self.metrics.record(reward, done)
+            self.metrics.record(reward, done, terminated=term)
             wm = self.dynamics
             valid = (~done | captured) & torch.isfinite(flatten_state(after)).all(-1)
             if valid.any():
@@ -255,10 +257,9 @@ class IsaacBlinkMimicRunner:
         return {name: [optimizer] for name, optimizer in self.optimizers.items()}
 
     def start_playback(self, encoder, velocity_command, motions):
-        if self.bridge.env.sim.has_gui:
-            from cyclo_lab.manager_based.mimic._shared.play_viewer import TrackingPlayViewer
+        from cyclo_lab.manager_based.mimic._shared.play_viewer import TrackingPlayViewer
 
-            return TrackingPlayViewer(self, motions)
+        return TrackingPlayViewer.create(self, motions)
 
     def play_step(self):
         self.step(False)
@@ -269,6 +270,7 @@ class IsaacBlinkMimicRunner:
         self.previous.zero_()
 
     def train_iteration(self, collection_steps=None):
+        collection_start = time.perf_counter()
         if self.buffer.size == 0:
             for _ in range(max(self.cfg.warmup_steps, self.cfg.wm_window, self.cfg.hist)):
                 self.step(True)
@@ -280,12 +282,13 @@ class IsaacBlinkMimicRunner:
         for _ in range(steps):
             self.step(True)
             rewards.append(self.mean_step_reward)
-        logs = self.metrics.scalars()
+        logs = self.metrics.scalars(reset=False)
         if "Train/mean_reward" in logs:
             logs["Train/mean_episode_return"] = logs.pop("Train/mean_reward")
         logs["Train/mean_reward"] = (
             torch.stack(rewards).mean().item() if rewards else self.mean_step_reward.item()
         )
+        logs["Perf/collection_time"] = time.perf_counter() - collection_start
         return logs | self.update()
 
     def update(self):
@@ -301,20 +304,30 @@ class IsaacBlinkMimicRunner:
             for group in optimizer.param_groups:
                 group["lr"] = lr * (4 - 3 * progress if name == "actor" else 1)
         # Collectors without terminal observations cannot train on the reset transition.
-        world_losses = [
-            self.wm_learner.update(self.buffer, exclude_cuts=self.sampler is None, check_finite=True)[0]
+        wm_start = time.perf_counter()
+        world_results = [
+            self.wm_learner.update(self.buffer, exclude_cuts=self.sampler is None, check_finite=True)
             for _ in range(self.cfg.wm_batches)
         ]
+        wm_loss, wm_error = torch.stack([torch.stack(result) for result in world_results]).mean(0).tolist()
+        wm_time = time.perf_counter() - wm_start
+        policy_start = time.perf_counter()
         policy_loss, value_loss, reward, grad_norm, survival = self.policy_learner.update(self.buffer)
         self.iteration += 1
-        return {
-            "Loss/world_model": torch.stack(world_losses).mean().item(),
+        logs = {
+            "Loss/world_model": wm_loss,
+            f"BlinkMimic/world_model_error_{self.cfg.wm_window}_steps": wm_error,
             "Loss/policy": policy_loss.item(),
             "Loss/value_function": value_loss.item(),
             "Policy/gradient_norm": grad_norm.item(),
-            "BlinkMimic/nonfinite_updates": int(not torch.isfinite(grad_norm)),
+            "BlinkMimic/nonfinite_updates": self.policy_learner.nonfinite.item(),
             "BlinkMimic/imagined_reward": reward.item(),
             "BlinkMimic/imagined_survival": survival.item(),
             "Loss/learning_rate": lr,
             "Loss/policy_learning_rate": self.optimizers["actor"].param_groups[0]["lr"],
+            "Policy/learning_rate_multiplier": self.optimizers["actor"].param_groups[0]["lr"] / lr,
         }
+        logs["Perf/world_model_learning_time"] = wm_time
+        logs["Perf/policy_learning_time"] = time.perf_counter() - policy_start
+        logs["Perf/learning_time"] = wm_time + logs["Perf/policy_learning_time"]
+        return logs

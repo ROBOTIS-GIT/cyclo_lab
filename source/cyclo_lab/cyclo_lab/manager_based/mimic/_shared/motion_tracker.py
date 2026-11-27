@@ -13,13 +13,16 @@ from pathlib import Path
 from .. import REPO_ROOT
 
 
-def parse_cli(action, argv):
+def parse_cli(action, argv, *, family="supermimic"):
     from isaaclab.app import add_launcher_args
 
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--motion-file", nargs="+", type=Path)
     parser.add_argument("--num-envs", "--num_envs", type=int)
-    parser.add_argument("--iterations", "--max_iterations", type=int, default=1000)
+    parser.add_argument(
+        "--iterations", "--max_iterations", type=int,
+        default=3500 if family == "blinkmimic" else 1_000_000,
+    )
     parser.add_argument("--collection-steps", type=int)
     parser.add_argument("--play-steps", type=int)
     parser.add_argument("--encoder", choices=("motion", "velocity"), help="Trained encoder to play")
@@ -135,7 +138,7 @@ def play(runner, args, encoder, motions):
     steps = 0
     try:
         while limit is None or steps < limit:
-            if viewer and not viewer.window.visible:
+            if viewer and not viewer.is_running():
                 break
             if viewer:
                 viewer.before_step()
@@ -175,12 +178,13 @@ def main(action, task, argv, *, family):
     import gymnasium as gym
     import torch
     from isaaclab.app import launch_simulation
+    from isaaclab_rl.entrypoints.common import show_run_summary, startup_screen
     from isaaclab_tasks.utils import resolve_task_config
     from cyclo_lab.manager_based.mimic._shared import checkpoint
     from cyclo_lab.manager_based.mimic._shared.training_loop import run_training_loop
     from cyclo_lab.manager_based.mimic._shared.tracking_contract import validate_native_cfg
 
-    args, overrides = parse_cli(action, argv)
+    args, overrides = parse_cli(action, argv, family=family)
     experiment = import_module(f"cyclo_lab.manager_based.mimic.{family}.experiment")
     if (args.evaluate or args.probe_report) and (experiment.evaluate is None or action != "play"):
         raise ValueError("Clip evaluation requires BlinkMimic play")
@@ -203,27 +207,34 @@ def main(action, task, argv, *, family):
     experiment.configure_environment(cfg, action, args)
     validate_native_cfg(cfg)
 
+    args.task = task
     args.require_kit = True
-    with launch_simulation(cfg, args):
-        env = gym.make(task, cfg=cfg)
-        try:
-            env.reset()
-            runner = experiment.Runner(env, settings)
-            solver = getattr(cfg.sim.physics, "solver_cfg", None)
-            backend = type(solver if solver is not None else cfg.sim.physics).__name__
-            checkpoint.restore_runner(
-                runner, bundle, training=action == "train",
-                world_only=bool(args.world_model_checkpoint), iterations=args.iterations,
-            )
-            print(
-                f"[INFO] {task}: {backend}, {cfg.scene.num_envs} envs, {len(motions)} clips, dt={runner.bridge.step_dt}",
-                flush=True,
-            )
-            if action == "train":
-                run_training_loop(
-                    runner, args, root, task, motions, backend, task_motions, experiment.training_probe
+    with startup_screen(args, num_stages=3) as screen:
+        show_run_summary(screen, args, cfg, library=family, action=action)
+        screen.stage("Launching simulation")
+        with launch_simulation(cfg, args):
+            screen.stage("Creating environment")
+            env = gym.make(task, cfg=cfg)
+            try:
+                env.reset()
+                screen.stage("Preparing agent" if action == "train" else "Loading policy")
+                runner = experiment.Runner(env, settings)
+                solver = getattr(cfg.sim.physics, "solver_cfg", None)
+                backend = type(solver if solver is not None else cfg.sim.physics).__name__
+                checkpoint.restore_runner(
+                    runner, bundle, training=action == "train",
+                    world_only=bool(args.world_model_checkpoint), iterations=args.iterations,
                 )
-            else:
-                run_playback(runner, args, path, motions, experiment)
-        finally:
-            env.close()
+                screen.close()
+                print(
+                    f"[INFO] {task}: {backend}, {cfg.scene.num_envs} envs, {len(motions)} clips, dt={runner.bridge.step_dt}",
+                    flush=True,
+                )
+                if action == "train":
+                    run_training_loop(
+                        runner, args, root, task, motions, backend, task_motions, experiment.training_probe
+                    )
+                else:
+                    run_playback(runner, args, path, motions, experiment)
+            finally:
+                env.close()

@@ -6,8 +6,7 @@ import numpy as np
 import pytest
 from cyclo_lab.manager_based.mimic import REPO_ROOT as ROOT
 from cyclo_lab.utils.k1_motion_validation import validate_motion
-from cyclo_lab.utils.k1_motion_physics import validate_motion_physics
-from cyclo_lab.manager_based.mimic.supermimic.reference.bridge import URDF
+from cyclo_lab.utils.k1_motion_physics import URDF, validate_motion_physics
 from cyclo_lab.utils.motion_npz import load_motion_npz
 
 SOURCE = ROOT / "source/cyclo_lab/data/motions/K1_rev1/dance1/dance1.npz"
