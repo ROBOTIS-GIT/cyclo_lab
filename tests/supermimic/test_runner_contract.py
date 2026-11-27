@@ -31,6 +31,7 @@ class UnitEnv:
             sim=NS(physics=None),
             decimation=4,
             commands=NS(reference_trajectory=NS(trajectory_file=str(path))),
+            observations={},
         )
         self.cfg.terminations = NS(
             anchor_height=NS(params={"threshold": 0.25}),
@@ -82,6 +83,7 @@ class UnitEnv:
             joint_pos=proxy(self.joints),
             joint_vel=proxy(torch.zeros(1, 23)),
             default_joint_pos=proxy(torch.zeros(1, 23)),
+            default_joint_vel=proxy(torch.zeros(1, 23)),
             soft_joint_pos_limits=proxy(
                 torch.tensor([[[-3.0, 3.0]]] * 23).reshape(1, 23, 2)
             ),
@@ -140,7 +142,7 @@ class UnitEnv:
 def test_collection_boundaries_learning_and_checkpoint(
     tmp_path, representation
 ):
-    from cyclo_lab.manager_based.mimic._shared.checkpoint import save, load
+    from cyclo_lab.manager_based.mimic._shared.checkpoint import decode, save, load
 
     before = torch._dynamo.config.disable
     torch._dynamo.config.disable = True
@@ -179,7 +181,7 @@ def test_collection_boundaries_learning_and_checkpoint(
         saved = {k: v.clone() for k, v in runner.actor.state_dict().items()}
         fresh = IsaacSuperMimicRunner(UnitEnv(), cfg)
         bundle = torch.load(tmp_path / "last.pt", weights_only=True)
-        load(fresh, bundle, training=True)
+        load(fresh, decode(bundle, "supermimic"), training=True)
         assert fresh.iteration == 5
         for k, value in saved.items():
             torch.testing.assert_close(

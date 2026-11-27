@@ -4,8 +4,6 @@
 # Author: Kiwoong Park
 """BlinkMimic settings and evaluation for an Isaac tracking run."""
 
-from copy import deepcopy
-
 from .evaluation import run_training_probe_if_due as training_probe, write_evaluation_report as evaluate
 from .training.runner import BlinkCfg, IsaacBlinkMimicRunner as Runner
 
@@ -25,29 +23,13 @@ def configure_environment(cfg, action, args):
 
 
 def restore_config(saved):
-    """Read old Cyclo checkpoint field names without retaining CLI aliases."""
-    saved = deepcopy(saved)
-    if "policy_horizon" in saved:
-        saved["wm_window"] = saved.pop("horizon")
-        saved["horizon"] = saved.pop("policy_horizon")
-    for old, new in {
-        "history_length": "hist", "updates_per_step": "utd",
-        "probe_start": "eprobe_start", "probe_interval": "eprobe_every",
-        "world_hidden": "wm_hidden", "reference_skip": "pi_ref_skip",
-        "ema": "pi_ema", "buffer_size": "buffer_steps", "noise": "action_noise",
-        "structured_dynamics": "wm_structured",
-    }.items():
-        if old in saved:
-            saved[new] = saved.pop(old)
-    if "batch_size" in saved:
-        saved["wm_batch"] = saved["pi_batch"] = saved.pop("batch_size")
-    if "hidden" in saved:
-        saved["enc_hidden"] = saved["dec_hidden"] = saved.pop("hidden")
-    saved.pop("verify_updates", None)
     return BlinkCfg(**saved)
 
 
 def configure_learner(settings, args, bundle):
+    for name in ("pi_opt", "wm_opt"):
+        if getattr(settings, name) not in ("adam", "muon"):
+            raise ValueError(f"agent.{name} must be 'adam' or 'muon'")
     if bundle and args.world_model_checkpoint:
         settings.wm_hidden = restore_config(bundle["cfg"]).wm_hidden
     if min(settings.wm_batch, settings.pi_batch, settings.wm_batches, settings.horizon, settings.hist) < 1:

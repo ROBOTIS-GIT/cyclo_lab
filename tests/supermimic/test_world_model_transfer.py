@@ -5,7 +5,7 @@ from types import SimpleNamespace
 import pytest
 import torch
 
-from cyclo_lab.manager_based.mimic._shared.checkpoint import load_checkpoint, restore_runner, save
+from cyclo_lab.manager_based.mimic._shared.checkpoint import decode, load_checkpoint, restore_runner, save
 from cyclo_lab.manager_based.mimic._shared.motion_tracker import resolve_learner
 from cyclo_lab.manager_based.mimic.supermimic import experiment
 from cyclo_lab.manager_based.mimic.supermimic.training.runner import IsaacSuperMimicRunner, RunnerCfg
@@ -79,13 +79,13 @@ def test_native_transfer_and_lab_checkpoint_roundtrip(tmp_path, representation):
     save(target, tmp_path, [])
     resumed = IsaacSuperMimicRunner(context_env(), cfg)
     saved = torch.load(tmp_path / "last.pt", weights_only=True)
-    restore_runner(resumed, saved, training=True, world_only=False, iterations=10)
+    restore_runner(resumed, decode(saved, "supermimic"), training=True, world_only=False, iterations=10)
     torch.testing.assert_close(resumed.bridge.context(), target.bridge.context())
     assert resumed.metrics.total_steps == 1234
     assert resumed.metrics.wall_time == 56.0
-    # Older checkpoints still resume without requiring logging metadata.
+    # Logging metadata is optional for external checkpoints.
     saved.pop("training_stats")
-    restore_runner(resumed, saved, training=True, world_only=False, iterations=10)
+    restore_runner(resumed, decode(saved, "supermimic"), training=True, world_only=False, iterations=10)
     assert resumed.metrics.total_steps == 0
     assert resumed.metrics.wall_time == 0.0
 

@@ -70,7 +70,7 @@ def test_heading_aligned_velocity_terms(cfg):
 def test_restore_ignores_recorded_physics(cfg, tmp_path, world_only, changed):
     import torch
 
-    from cyclo_lab.manager_based.mimic._shared.checkpoint import load, restore_runner, save
+    from cyclo_lab.manager_based.mimic._shared.checkpoint import decode, load, restore_runner, save
     from cyclo_lab.manager_based.mimic.supermimic.training.runner import IsaacSuperMimicRunner, RunnerCfg
     from test_runner_contract import UnitEnv
 
@@ -81,19 +81,18 @@ def test_restore_ignores_recorded_physics(cfg, tmp_path, world_only, changed):
     save(source, tmp_path, [])
     saved = torch.load(tmp_path / "last.pt", weights_only=True)
     assert "dynamics_contract" not in saved and "physics_backend" not in saved
-    assert saved["contract"] == {"family": source.family}
+    assert saved["format"] == "cyclo.supermimic.checkpoint.v1"
     if changed:
         saved["dynamics_contract"] = {"collision_model_sha256": "legacy-checkpoint"}
         saved["physics_backend"] = "MJWarpSolverCfg"
-        saved["contract"]["step_dt"] = 0.04
-        saved["contract"]["action"] = [(source.dynamics.action_scale * 2).tolist()]
-        saved["dynamics"]["action_scale"] *= 2
+        saved["contract"] = {"step_dt": 0.04, "action": [(source.dynamics.action_scale * 2).tolist()]}
+        saved["world_model"]["dynamics"]["action_scale"] *= 2
     action_scale = target.dynamics.action_scale.clone()
-    restore_runner(target, saved, training=True, world_only=world_only, iterations=10)
+    restore_runner(target, decode(saved, "supermimic"), training=True, world_only=world_only, iterations=10)
     assert target.iteration == (0 if world_only else 5)
     torch.testing.assert_close(target.dynamics.action_scale, action_scale)
     for actual, expected in zip(target.dynamics.parameters(), source.dynamics.parameters(), strict=True):
         torch.testing.assert_close(actual, expected)
     assert "joint_names" not in saved
     saved["joint_names"] = ["old_robot_joint"]
-    load(target, saved, training=True, world_only=world_only)
+    load(target, decode(saved, "supermimic"), training=True, world_only=world_only)

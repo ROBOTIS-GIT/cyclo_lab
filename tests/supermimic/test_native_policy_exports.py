@@ -3,6 +3,7 @@
 import numpy as np
 from dataclasses import asdict
 from importlib import import_module
+from types import SimpleNamespace
 import onnxruntime as ort
 import pytest
 import torch
@@ -13,18 +14,28 @@ from cyclo_lab.manager_based.mimic.blinkmimic.training.runner import BlinkCfg, I
 from cyclo_lab.manager_based.mimic.supermimic.training.runner import WorldModelLearnerCfg, ActorCriticPolicyLearnerCfg
 from cyclo_lab.manager_based.mimic.supermimic.training.runner import IsaacSuperMimicRunner, RunnerCfg
 from cyclo_lab.manager_based.mimic._shared.export import export_actors, export_sim2real_cfg
-from cyclo_lab.manager_based.mimic._shared.checkpoint import load, save
+from cyclo_lab.manager_based.mimic._shared.checkpoint import (
+    SUPERMIMIC_FORMAT, decode, load, load_checkpoint, save,
+)
 from test_runner_contract import UnitEnv
 
 
-@pytest.mark.parametrize("family,step", [("blinkmimic", 1000), ("supermimic", 0), ("supermimic", 1000)])
-def test_checkpoint_and_export_match_trained_actor(tmp_path, family, step):
+@pytest.mark.parametrize("family,step,pi_opt,wm_opt", [
+    ("blinkmimic", 1000, "muon", "muon"),
+    ("blinkmimic", 1000, "adam", "adam"),
+    ("blinkmimic", 1000, "adam", "muon"),
+    ("blinkmimic", 1000, "muon", "adam"),
+    ("supermimic", 0, None, None),
+    ("supermimic", 1000, None, None),
+])
+def test_checkpoint_and_export_match_trained_actor(tmp_path, family, step, pi_opt, wm_opt):
     env = UnitEnv()
     torch.manual_seed(12)
     if family == "blinkmimic":
         cfg = BlinkCfg(
             enc_hidden=(16, 12), dec_hidden=(24, 8), wm_hidden=(32, 16),
             wm_window=2, horizon=2, wm_batch=7, pi_batch=4,
+            pi_opt=pi_opt, wm_opt=wm_opt,
         )
         runner = IsaacBlinkMimicRunner(env, cfg)
         for _ in range(12):
@@ -45,20 +56,45 @@ def test_checkpoint_and_export_match_trained_actor(tmp_path, family, step):
     assert all(np.isfinite(list(metrics.values())))
     completed = step + 1 if family == "supermimic" else step
     runner.iteration = completed
+    runner.metrics.total_steps = 123
+    runner.metrics.wall_time = 12.5
+    if family == "blinkmimic":
+        runner.decay_start = 500
     save(runner, tmp_path, [])
     last = torch.load(tmp_path / "last.pt", weights_only=True)
     historical = torch.load(tmp_path / f"model_{step}.pt", weights_only=True)
-    assert last["iteration"] == historical["iteration"] == step
-    assert last["optimizers"] and "optimizers" not in historical
+    step_key = "step" if family == "supermimic" else "iteration"
+    optimizer_keys = {"optimizers"} if family == "supermimic" else {"opt_pi", "opt_wm", "opt_v"}
+    assert last[step_key] == historical[step_key] == step
+    assert optimizer_keys.issubset(last) and not optimizer_keys.intersection(historical)
+    decoded = decode(last, family)
+    assert decoded["training_stats"] == {"total_steps": 123, "wall_time": 12.5}
+    assert decoded["sampling"] is last["cyclo_lab"]["sampling"]
+    if family == "blinkmimic":
+        torch.testing.assert_close(last["pi_avg"], runner.average.state_dict())
+        assert decoded["ema_updates"] == int(runner.average.n_averaged)
+        assert decoded["decay_start"] == 500
+    else:
+        assert last["format"] == SUPERMIMIC_FORMAT
+        assert set(last["world_model"]) == {"dynamics", "sim_context"}
+        assert set(last["optimizers"]) == {"actor", "critic", "world_model"}
+        torch.testing.assert_close(decoded["sim_context"], runner.bridge.sim_context.state_dict())
     experiment = import_module(f"cyclo_lab.manager_based.mimic.{family}.experiment")
-    restored_cfg = experiment.restore_config(last["cfg"])
+    restored_cfg = experiment.restore_config(decoded["cfg"])
     assert asdict(restored_cfg) == asdict(cfg)
     runner = experiment.Runner(UnitEnv(), restored_cfg)
-    load(runner, last, training=True)
+    load(runner, decoded, training=True)
     assert runner.iteration == completed
-    legacy = dict(last, format="cyclo_lab.mimic.v1", iteration=completed)
-    load(runner, legacy, training=True)
-    assert runner.iteration == completed
+    if family == "blinkmimic":
+        for name, key, selected in (("actor", "opt_pi", pi_opt), ("dynamics", "opt_wm", wm_opt)):
+            assert isinstance(runner.optimizers[name], torch.optim.Adam) == (selected == "adam")
+            actual, expected = runner.optimizers[name].state_dict(), last[key]
+            pairs = [(actual, expected)] if selected == "adam" else [
+                (actual[part], expected[part]) for part in ("muon", "adam")
+            ]
+            for actual_state, expected_state in pairs:
+                assert actual_state["param_groups"] == expected_state["param_groups"]
+                torch.testing.assert_close(actual_state["state"], expected_state["state"])
     export_actors(runner, tmp_path)
     runner.actor.eval()
 
@@ -131,7 +167,8 @@ def test_numbered_history_retention_and_world_model_only(tmp_path):
     assert retained == {10000, 12000, 13000, 14000, 15000, 16000}
     other = IsaacBlinkMimicRunner(UnitEnv(), runner.cfg)
     actor = {name: value.clone() for name, value in other.actor.state_dict().items()}
-    load(other, torch.load(tmp_path / "model_16000.pt", weights_only=True), training=True, world_only=True)
+    load(other, decode(torch.load(tmp_path / "model_16000.pt", weights_only=True), "blinkmimic"),
+         training=True, world_only=True)
     assert other.iteration == 0
     for name, value in other.dynamics.state_dict().items():
         torch.testing.assert_close(value, runner.dynamics.state_dict()[name], rtol=0, atol=0)
@@ -145,7 +182,7 @@ def test_blinkmimic_play_keeps_reference_skip_and_resume_uses_current_transform(
     source.actor.ref_q0.fill_(0.25)
     source.actor.ref_alpha.fill_(0.5)
     source.average.module.load_state_dict(source.actor.state_dict())
-    saved = source.actor_checkpoint()
+    saved = decode(dict(source.actor_checkpoint(), args=asdict(cfg), iteration=0), "blinkmimic")
     target = IsaacBlinkMimicRunner(UnitEnv(), cfg)
     current_q0 = target.actor.ref_q0.clone()
     current_alpha = target.actor.ref_alpha.clone()
@@ -157,3 +194,46 @@ def test_blinkmimic_play_keeps_reference_skip_and_resume_uses_current_transform(
     torch.testing.assert_close(target.actor.ref_q0, current_q0)
     torch.testing.assert_close(target.average.module.ref_alpha, current_alpha)
     torch.testing.assert_close(saved["actor"]["ref_q0"], torch.full((23,), 0.25))
+
+
+def test_blinkmimic_external_checkpoint_without_lab_metadata():
+    saved = dict(
+        args={**asdict(BlinkCfg()), "robot": "k1_rev2", "num_envs": 4096},
+        pi={"obs_norm.mean": torch.tensor(2.0)}, wm={}, critic={}, iteration=12,
+        pi_avg={"n_averaged": torch.tensor(5), "module.obs_norm.mean": torch.tensor(3.0)},
+        sim_steps=100, wall_time=20.0,
+    )
+    restored = decode(saved, "blinkmimic")
+    assert "robot" not in restored["cfg"]
+    assert restored["actor"] is saved["pi"]
+    assert restored["average_actor"]["obs_norm.mean"].item() == 3.0
+    assert restored["ema_updates"] == 5
+    assert "sampling" not in restored and "optimizers" not in restored
+    saved["opt_pi"] = {}
+    with pytest.raises(ValueError, match="Incomplete optimizer"):
+        decode(saved, "blinkmimic")
+
+
+def test_supermimic_world_model_load_does_not_require_manifest(tmp_path):
+    path = tmp_path / "last.pt"
+    weights = {"dynamics": {}, "sim_context": {}}
+    torch.save({"format": SUPERMIMIC_FORMAT, "world_model": weights}, path)
+    args = SimpleNamespace(
+        checkpoint=None, resume=False, world_model_checkpoint=path,
+        run_pattern=None, checkpoint_pattern=None,
+    )
+    _, loaded = load_checkpoint("train", args, "supermimic", "task", tmp_path)
+    assert loaded == weights
+
+
+def test_blinkmimic_light_checkpoint_is_play_only(tmp_path):
+    path = tmp_path / "model_1000.pt"
+    torch.save({"pi": {}, "args": asdict(BlinkCfg()), "iteration": 1000}, path)
+    args = SimpleNamespace(
+        checkpoint=path, resume=False, world_model_checkpoint=None,
+        run_pattern=None, checkpoint_pattern=None,
+    )
+    _, loaded = load_checkpoint("play", args, "blinkmimic", "task", tmp_path)
+    assert loaded["iteration"] == 1000 and "dynamics" not in loaded
+    with pytest.raises(ValueError, match="Policy-only checkpoint"):
+        load_checkpoint("train", args, "blinkmimic", "task", tmp_path)

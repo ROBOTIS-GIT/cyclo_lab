@@ -16,13 +16,105 @@
 
 """Select, save, validate and restore native motion tracker checkpoints."""
 
-from dataclasses import asdict
+from dataclasses import asdict, fields
 from datetime import datetime
 from pathlib import Path
 from tempfile import NamedTemporaryFile
 import torch
 
 from .. import REPO_ROOT
+
+
+SUPERMIMIC_FORMAT = "cyclo.supermimic.checkpoint.v1"
+BLINKMIMIC_OPTIMIZERS = {"dynamics": "opt_wm", "actor": "opt_pi", "critic": "opt_v"}
+
+
+def supermimic_manifest(runner, task, cfg):
+    from .motion_bridge import BODIES
+    from .tracking_contract import _plain
+
+    bridge = runner.bridge
+    names = list(bridge.robot.joint_names)
+    return dict(
+        schema_version=2,
+        task_id=task,
+        representation=runner.cfg.representation,
+        actor_obs=runner.cfg.actor_obs,
+        runner_cfg=cfg,
+        environment={
+            "commands": {"motion": {"body_names": list(BODIES), "anchor_body_name": "pelvis"}},
+            # Record the real Isaac configuration, not invented MJLab callables.
+            "observations": _plain(bridge.env.cfg.observations),
+        },
+        robot={"joint_order": names, "action_joint_order": names},
+        q0=bridge.robot.data.default_joint_pos.torch[0].tolist(),
+        qdot0=bridge.robot.data.default_joint_vel.torch[0].tolist(),
+    )
+
+
+def add_optimizers(saved, states, family):
+    if family == "supermimic":
+        saved["optimizers"] = {("world_model" if key == "dynamics" else key): value
+                               for key, value in states.items()}
+    else:
+        for name, key in BLINKMIMIC_OPTIMIZERS.items():
+            (saved[key],) = states[name]
+
+
+def decode(saved, family):
+    """Read each algorithm's archive into the shared runner inputs once."""
+    if family == "supermimic":
+        if saved.get("format") != SUPERMIMIC_FORMAT:
+            if saved.get("format") is None and all(
+                isinstance(saved.get(key), dict) for key in ("dynamics", "sim_context")
+            ):
+                return saved
+            raise ValueError("Expected a SuperMimic checkpoint or world-model bundle")
+        manifest = saved["manifest"]
+        from ..supermimic.training.runner import RunnerCfg
+
+        cfg = {f.name: manifest["runner_cfg"][f.name] for f in fields(RunnerCfg)
+               if f.name in manifest["runner_cfg"]}
+        result = dict(
+            cfg=cfg, iteration=saved["step"] + 1, actor=saved["actor"],
+            **saved["world_model"],
+        )
+        if saved.get("critic") is not None:
+            result["critic"] = saved["critic"]
+        if saved.get("optimizers") is not None:
+            result["optimizers"] = {("dynamics" if key == "world_model" else key): value
+                                    for key, value in saved["optimizers"].items()}
+        result["training_stats"] = saved.get("training_stats", {})
+    else:
+        if not all(key in saved for key in ("args", "pi", "iteration")):
+            raise ValueError("Expected a BlinkMimic checkpoint containing args, pi and iteration")
+        from ..blinkmimic.training.runner import BlinkCfg
+
+        cfg = {f.name: saved["args"][f.name] for f in fields(BlinkCfg) if f.name in saved["args"]}
+        for key in ("enc_hidden", "dec_hidden", "wm_hidden"):
+            if isinstance(cfg.get(key), str):
+                cfg[key] = tuple(map(int, cfg[key].split(",")))
+        average = saved.get("pi_avg")
+        result = dict(
+            cfg=cfg, iteration=saved["iteration"], actor=saved["pi"],
+            actor_live=saved.get("pi_live", saved["pi"]),
+            ema_updates=int(average["n_averaged"]) if average is not None else 1,
+            decay_start=(saved.get("ctrl") or {}).get("decay_at"),
+            training_stats={"total_steps": saved.get("sim_steps", 0), "wall_time": saved.get("wall_time", 0.0)},
+        )
+        if average is not None:
+            result["average_actor"] = {key.removeprefix("module."): value for key, value in average.items()
+                                       if key.startswith("module.")}
+        for source, target in (("wm", "dynamics"), ("critic", "critic")):
+            if source in saved:
+                result[target] = saved[source]
+        keys = set(BLINKMIMIC_OPTIMIZERS.values())
+        if keys.intersection(saved):
+            if not keys.issubset(saved):
+                raise ValueError("Incomplete optimizer state in BlinkMimic checkpoint")
+            result["optimizers"] = {name: [saved[key]] for name, key in BLINKMIMIC_OPTIMIZERS.items()}
+    result.update(saved.get("cyclo_lab", {}))
+    return result
 
 
 def atomic_save(bundle, path):
@@ -46,23 +138,34 @@ def save(runner, output, motions, *, task=None, task_motions=None):
     # Match each upstream convention: SuperMimic step index, BlinkMimic update count.
     is_supermimic = runner.family == "supermimic"
     step = runner.iteration - 1 if is_supermimic else runner.iteration
-    bundle = dict(
-        format="cyclo_lab.mimic.v2" if is_supermimic else "cyclo_lab.mimic.v1",
+    local = dict(
         task=task,
         task_motions=checkpoint_motion_paths(task_motions) if task_motions is not None else None,
-        cfg=asdict(runner.cfg),
-        contract={"family": runner.family},
-        iteration=step,
         motions=checkpoint_motion_paths(motions),
-        training_stats={"total_steps": runner.metrics.total_steps, "wall_time": runner.metrics.wall_time},
     )
     command = runner.bridge.env.command_manager.get_term("reference_trajectory")
-    bundle["sampling"] = command.sampling_state()
+    local["sampling"] = command.sampling_state()
+    cfg = asdict(runner.cfg)
+    bundle = dict(critic=runner.critic.state_dict(), cyclo_lab=local)
     bundle.update(runner.actor_checkpoint())
-    bundle["critic"] = runner.critic.state_dict()
-    bundle["dynamics"] = runner.dynamics.state_dict()
-    if runner.family == "supermimic":
-        bundle["sim_context"] = runner.bridge.sim_context.state_dict()
+    if is_supermimic:
+        bundle.update(
+            format=SUPERMIMIC_FORMAT,
+            step=step,
+            manifest=supermimic_manifest(runner, task, cfg),
+            world_model={"dynamics": runner.dynamics.state_dict(),
+                         "sim_context": runner.bridge.sim_context.state_dict()},
+            training_stats={"total_steps": runner.metrics.total_steps, "wall_time": runner.metrics.wall_time},
+        )
+    else:
+        for key in ("enc_hidden", "dec_hidden", "wm_hidden"):
+            cfg[key] = ",".join(map(str, cfg[key]))
+        cfg.update(pi_lr_mult=4.0, wm_mirror=0.5)
+        local["decay_start"] = runner.decay_start
+        bundle.update(
+            args=cfg, iteration=step, wm=runner.dynamics.state_dict(),
+            sim_steps=runner.metrics.total_steps, wall_time=runner.metrics.wall_time,
+        )
     snapshot = None
     if step % 1000 == 0:
         snapshot = output / f"model_{step}.pt"
@@ -73,12 +176,20 @@ def save(runner, output, motions, *, task=None, task_motions=None):
         for iteration, path in snapshots[:-5]:
             if iteration % 10000:
                 path.unlink()
-    bundle["optimizers"] = {k: [opt.state_dict() for opt in opts] for k, opts in runner.checkpoint_optimizers().items()}
+    states = {k: [opt.state_dict() for opt in opts] for k, opts in runner.checkpoint_optimizers().items()}
+    add_optimizers(bundle, states, runner.family)
     atomic_save(bundle, output / "last.pt")
     return snapshot
 
 
 def load(runner, bundle, *, training, world_only=False):
+    """Restore the runner inputs already decoded by load_checkpoint()."""
+    if "dynamics" not in bundle:
+        if training or world_only:
+            raise ValueError("Policy-only checkpoint cannot resume training or initialize a world model; use last.pt")
+        runner.restore_actor(bundle, training=False)
+        runner.iteration = bundle["iteration"]
+        return
     weights = bundle["dynamics"]
     if runner.family == "supermimic":
         if "cfg" not in bundle and not hasattr(runner.bridge.env, "encoder_bias"):
@@ -109,7 +220,10 @@ def load(runner, bundle, *, training, world_only=False):
             bundle["sampling"]
         )
     runner.restore_actor(bundle, training=training)
-    runner.critic.load_state_dict(bundle["critic"])
+    if "critic" in bundle:
+        runner.critic.load_state_dict(bundle["critic"])
+    elif training:
+        raise ValueError("Full training resume requires a critic; use last.pt")
     if training and "optimizers" not in bundle:
         import warnings
 
@@ -119,8 +233,6 @@ def load(runner, bundle, *, training, world_only=False):
             for opt, state in zip(opts, bundle["optimizers"][name], strict=True):
                 opt.load_state_dict(state)
     runner.iteration = bundle["iteration"]
-    if runner.family == "supermimic" and bundle.get("format") == "cyclo_lab.mimic.v2":
-        runner.iteration += 1
     if training:
         stats = bundle.get("training_stats", {})
         runner.metrics.total_steps = stats.get("total_steps", 0)
@@ -171,15 +283,15 @@ def load_checkpoint(action, args, family, task, root):
         args.checkpoint_pattern,
     )
     bundle = torch.load(path, map_location="cpu", weights_only=True)
-    is_cyclo_checkpoint = bundle.get("format") in ("cyclo_lab.mimic.v1", "cyclo_lab.mimic.v2")
-    if family == "supermimic" and not is_cyclo_checkpoint:
+    if family == "supermimic" and args.world_model_checkpoint and bundle.get("format") == SUPERMIMIC_FORMAT:
+        # World-model-only loading does not need actor or manifest metadata.
+        bundle = bundle["world_model"]
+    bundle = decode(bundle, family)
+    if family == "supermimic" and "cfg" not in bundle:
         if not args.world_model_checkpoint:
             raise ValueError("A native world_model.pt only initializes the world model; use --world-model-checkpoint")
-        if not all(isinstance(bundle.get(key), dict) for key in ("dynamics", "sim_context")):
-            raise ValueError("Expected a SuperMimic world_model.pt containing dynamics and sim_context")
-        return path, bundle
-    if not is_cyclo_checkpoint or bundle["contract"]["family"] != family:
-        raise ValueError("Checkpoint algorithm or format does not match this Isaac Lab task")
+    if action == "train" and family == "blinkmimic" and "dynamics" not in bundle:
+        raise ValueError("Policy-only checkpoint cannot resume training or initialize a world model; use last.pt")
     return path, bundle
 
 

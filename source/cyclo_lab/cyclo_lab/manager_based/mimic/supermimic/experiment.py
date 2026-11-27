@@ -24,25 +24,8 @@ def configure_environment(cfg, action, args):
 
 
 def restore_config(saved):
-    """Convert the former flat Cyclo config to the native learner structure."""
+    """Rebuild the nested learner dataclasses from recorded settings."""
     saved = deepcopy(saved)
-    if "hidden" in saved:
-        hidden = saved.pop("hidden")
-        saved["actor_hidden_dims"] = hidden
-        saved["dynamics_hidden_dims"] = saved.pop("world_hidden") or hidden
-        saved["critic_hidden_dims"] = saved.pop("critic_hidden") or hidden
-        saved["latent_dim"] = saved.pop("latent")
-        batch = saved.pop("batch_size")
-        saved["wm"] = dict(
-            batch_size=saved.pop("wm_batch_size") or batch,
-            num_batches=saved.pop("wm_batches"), horizon=saved.pop("horizon"),
-        )
-        saved["policy"] = dict(batch_size=batch, horizon=saved.pop("policy_horizon"), num_batches=1)
-        fraction = saved.pop("velocity_fraction")
-        saved["slot_mix"] = {"motion": 1.0 - fraction, "velocity": fraction}
-        saved["latent_bc_weight"] = 0.1 if fraction else 0.0
-    for name in ("collection_steps", "noise", "verify_updates"):
-        saved.pop(name, None)
     saved["wm"] = WorldModelLearnerCfg(**saved["wm"])
     saved["policy"] = ActorCriticPolicyLearnerCfg(**saved["policy"])
     return RunnerCfg(**saved)

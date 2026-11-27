@@ -50,6 +50,8 @@ class BlinkCfg:
     pi_ema: float = 0.995
     buffer_steps: int = 1024
     action_noise: float = 0.1
+    pi_opt: str = "muon"
+    wm_opt: str = "muon"
     lr: float = 4e-4
     gamma: float = 0.99
     lam: float = 0.95
@@ -112,9 +114,13 @@ class IsaacBlinkMimicRunner:
         self.optimizers = {
             "dynamics": MuonAdam(
                 self.dynamics, [self.dynamics.net], lr=cfg.lr, betas=(0.9, 0.999), fused=default.is_cuda
+            ) if cfg.wm_opt == "muon" else torch.optim.Adam(
+                self.dynamics.parameters(), lr=cfg.lr, fused=default.is_cuda
             ),
             "actor": MuonAdam(
                 self.actor, [self.actor.enc, self.actor.dec], lr=4 * cfg.lr, fused=default.is_cuda
+            ) if cfg.pi_opt == "muon" else torch.optim.Adam(
+                self.actor.parameters(), lr=4 * cfg.lr, betas=(0.9, 0.95), fused=default.is_cuda
             ),
             "critic": torch.optim.Adam(self.critic.parameters(), lr=cfg.lr),
         }
@@ -230,10 +236,9 @@ class IsaacBlinkMimicRunner:
 
     def actor_checkpoint(self):
         return dict(
-            actor=self.average.module.state_dict(),
-            actor_live=self.actor.state_dict(),
-            ema_updates=int(self.average.n_averaged),
-            decay_start=self.decay_start,
+            pi=self.average.module.state_dict(),
+            pi_live=self.actor.state_dict(),
+            pi_avg=self.average.state_dict(),
         )
 
     def restore_actor(self, bundle, *, training=False):
@@ -249,7 +254,8 @@ class IsaacBlinkMimicRunner:
             return saved
 
         self.actor.load_state_dict(weights(bundle.get("actor_live", bundle["actor"])))
-        self.average.module.load_state_dict(weights(bundle["actor"]))
+        average = bundle.get("average_actor", bundle["actor"]) if training else bundle["actor"]
+        self.average.module.load_state_dict(weights(average))
         self.average.n_averaged.fill_(bundle["ema_updates"])
         self.decay_start = bundle["decay_start"]
 
