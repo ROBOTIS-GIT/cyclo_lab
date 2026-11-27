@@ -1,6 +1,7 @@
 import xml.etree.ElementTree as ET
 import torch
-from cyclo_lab.manager_based.mimic.supermimic.reference.bridge import URDF, BODIES, wxyz
+from cyclo_lab.manager_based.mimic.supermimic.reference.bridge import BODIES, wxyz
+from cyclo_lab.utils.k1_motion_physics import URDF
 from cyclo_lab.utils.k1_kinematics import UrdfKinematics
 from supermimic.utils.math import quat_mul, quat_apply
 

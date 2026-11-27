@@ -3,7 +3,8 @@
 import xml.etree.ElementTree as ET
 import pytest
 import torch
-from cyclo_lab.manager_based.mimic.supermimic.reference.bridge import URDF, BODIES
+from cyclo_lab.manager_based.mimic.supermimic.reference.bridge import BODIES
+from cyclo_lab.utils.k1_motion_physics import URDF
 from cyclo_lab.utils.k1_kinematics import UrdfKinematics
 from cyclo_lab.manager_based.mimic.supermimic.reference.ik import build_urdf_analytic_ik
 from supermimic.utils.math import matrix_from_quat
